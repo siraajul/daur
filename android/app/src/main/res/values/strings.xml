@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_description">Today\'s lap, next meal, kcal, water and steps</string>
+    <string name="widget_track">Today\'s lap on the track</string>
+    <string name="widget_water_description">Water today, with a + glass button</string>
+    <string name="widget_meal_description">Your next meal, with a Log button</string>
+    <string name="widget_walk_description">Steps today against this week\'s target</string>
+    <string name="widget_large_description">The whole lap: the track and all four meals; on day 84 the cut closes</string>
+</resources>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Daur · Next meal, slim 4×1. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/daur_widget_bg" android:clipToOutline="true" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp">
+    <TextView android:id="@+id/meal_num" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1/4" android:textColor="#FFD23F" android:textSize="30sp" android:fontFamily="@font/unbounded_black" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:minWidth="96dp"/>
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+        <TextView android:id="@+id/meal_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="#FFF8F3" android:textSize="16sp" android:fontFamily="@font/unbounded_black" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+        <TextView android:id="@+id/meal_sub" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="#FFD9CC" android:textSize="13sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+    </LinearLayout>
+    <TextView android:id="@+id/meal_btn" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Log" android:textColor="#3A1208" android:textSize="15sp" android:fontFamily="sans-serif-black" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:background="@drawable/daur_pill" android:paddingHorizontal="16dp" android:paddingVertical="10dp" android:layout_marginStart="10dp"/>
+</LinearLayout>

@@ -1,0 +1,2012 @@
+[
+ {
+  "name": "Rice (bhaat), 1 cup cooked",
+  "bangla": "ভাত",
+  "category": "staple",
+  "serving": "1 cup cooked (~160 g)",
+  "kcal": 178,
+  "protein": 3.4,
+  "rare": false,
+  "basis": "FCT BD white rice boiled 111 kcal, 2.1 g P/100 g x 160 g"
+ },
+ {
+  "name": "Rice (bhaat), half cup",
+  "bangla": "ভাত (আধা কাপ)",
+  "category": "staple",
+  "serving": "1/2 cup cooked (~80 g)",
+  "kcal": 89,
+  "protein": 1.7,
+  "rare": false,
+  "basis": "FCT BD white rice boiled 111 kcal/100 g x 80 g"
+ },
+ {
+  "name": "Rice (bhaat), 1 hotel plate",
+  "bangla": "ভাত (এক প্লেট)",
+  "category": "staple",
+  "serving": "1 plate (~300 g, ~2 cups)",
+  "kcal": 333,
+  "protein": 6.3,
+  "rare": false,
+  "basis": "FCT BD rice boiled 111 kcal/100 g x 300 g; hotel plates vary 250-400 g"
+ },
+ {
+  "name": "Red/brown rice (lal chaler bhaat)",
+  "bangla": "লাল চালের ভাত",
+  "category": "staple",
+  "serving": "1 cup cooked (~160 g)",
+  "kcal": 179,
+  "protein": 4.0,
+  "rare": false,
+  "basis": "FCT BD brown parboiled rice boiled 112 kcal, 2.5 g P/100 g x 160 g"
+ },
+ {
+  "name": "Atta ruti (home)",
+  "bangla": "আটার রুটি",
+  "category": "staple",
+  "serving": "1 piece (~40 g)",
+  "kcal": 98,
+  "protein": 3.0,
+  "rare": false,
+  "basis": "FCT BD ruti 246 kcal, 7.5 g P/100 g x 40 g; no oil"
+ },
+ {
+  "name": "Ruti (hotel/dokan, large)",
+  "bangla": "হোটেলের রুটি",
+  "category": "staple",
+  "serving": "1 piece (~55 g)",
+  "kcal": 135,
+  "protein": 4.1,
+  "rare": false,
+  "basis": "FCT BD ruti 246 kcal/100 g x 55 g; hotel ruti bigger, often maida"
+ },
+ {
+  "name": "Naan / tandoor ruti",
+  "bangla": "নান রুটি",
+  "category": "staple",
+  "serving": "1 piece (~90 g)",
+  "kcal": 262,
+  "protein": 8.1,
+  "rare": false,
+  "basis": "USDA naan ~291 kcal, 9 g P/100 g x 90 g; butter naan +40 kcal"
+ },
+ {
+  "name": "Paratha (plain, hotel)",
+  "bangla": "পরোটা",
+  "category": "staple",
+  "serving": "1 piece (~80 g)",
+  "kcal": 260,
+  "protein": 5.0,
+  "rare": true,
+  "basis": "IFCT/USDA paratha ~320 kcal/100 g x 80 g; hotel dalda/oil, could be 300+"
+ },
+ {
+  "name": "Lachha paratha",
+  "bangla": "লাচ্ছা পরোটা",
+  "category": "staple",
+  "serving": "1 piece (~90 g)",
+  "kcal": 320,
+  "protein": 5.5,
+  "rare": true,
+  "basis": "USDA/IFCT layered paratha ~355 kcal/100 g x 90 g; extra ghee/dalda between layers"
+ },
+ {
+  "name": "Luchi / puri (plain)",
+  "bangla": "লুচি",
+  "category": "staple",
+  "serving": "1 piece (~25 g)",
+  "kcal": 90,
+  "protein": 1.8,
+  "rare": true,
+  "basis": "USDA/IFCT poori ~360 kcal/100 g x 25 g; deep-fried maida"
+ },
+ {
+  "name": "Bakarkhani",
+  "bangla": "বাখরখানি",
+  "category": "staple",
+  "serving": "1 piece (~30 g)",
+  "kcal": 135,
+  "protein": 2.5,
+  "rare": true,
+  "basis": "Estimate: flaky ghee/dalda pastry ~450 kcal/100 g x 30 g; uncertain"
+ },
+ {
+  "name": "Plain khichuri (home)",
+  "bangla": "খিচুড়ি",
+  "category": "staple",
+  "serving": "1 cup (~200 g)",
+  "kcal": 326,
+  "protein": 10.2,
+  "rare": false,
+  "basis": "FCT BD plain khichuri recipe 163 kcal, 5.1 g P/100 g x 200 g"
+ },
+ {
+  "name": "Bhuna khichuri",
+  "bangla": "ভুনা খিচুড়ি",
+  "category": "staple",
+  "serving": "1 plate (~300 g)",
+  "kcal": 570,
+  "protein": 14.0,
+  "rare": false,
+  "basis": "FCT BD khichuri 163/100 g adjusted to ~190/100 g for extra oil/ghee x 300 g"
+ },
+ {
+  "name": "Plain polao",
+  "bangla": "পোলাও",
+  "category": "staple",
+  "serving": "1 cup (~160 g)",
+  "kcal": 230,
+  "protein": 3.5,
+  "rare": true,
+  "basis": "FCT BD plain pulao 128 kcal/100 g x 160 g = 205, +25 for ghee in hotel/biye polao"
+ },
+ {
+  "name": "Muri (puffed rice)",
+  "bangla": "মুড়ি",
+  "category": "staple",
+  "serving": "1 cup (~15 g)",
+  "kcal": 54,
+  "protein": 1.0,
+  "rare": false,
+  "basis": "FCT BD muri 361 kcal, 6.7 g P/100 g x 15 g"
+ },
+ {
+  "name": "Chira (dry)",
+  "bangla": "চিড়া",
+  "category": "staple",
+  "serving": "1 cup dry (~50 g)",
+  "kcal": 178,
+  "protein": 3.3,
+  "rare": false,
+  "basis": "FCT BD rice flakes 356 kcal, 6.5 g P/100 g x 50 g"
+ },
+ {
+  "name": "Oats with milk",
+  "bangla": "দুধ দিয়ে ওটস",
+  "category": "staple",
+  "serving": "1 bowl (40 g oats + 200 ml milk, no sugar)",
+  "kcal": 278,
+  "protein": 11.5,
+  "rare": false,
+  "basis": "USDA oats 379 kcal/100 g x 40 g + FCT BD whole milk 63 kcal/100 g x 200 ml; +20 per tsp sugar"
+ },
+ {
+  "name": "Bread slice (pauruti)",
+  "bangla": "পাউরুটি",
+  "category": "staple",
+  "serving": "1 slice (~25 g)",
+  "kcal": 68,
+  "protein": 2.0,
+  "rare": false,
+  "basis": "FCT BD white bread 272 kcal, 8.0 g P/100 g x 25 g"
+ },
+ {
+  "name": "Bun / banroti",
+  "bangla": "বনরুটি",
+  "category": "street",
+  "serving": "1 piece (~60 g)",
+  "kcal": 165,
+  "protein": 5.0,
+  "rare": false,
+  "basis": "FCT BD bread bun 270 kcal, 8.8 g P/100 g x 60 g; sweet tea-stall buns a bit more"
+ },
+ {
+  "name": "Plain yogurt (tok doi)",
+  "bangla": "টক দই",
+  "category": "staple",
+  "serving": "1 cup (~100 g)",
+  "kcal": 65,
+  "protein": 3.4,
+  "rare": false,
+  "basis": "USDA whole-milk plain yogurt 61 kcal, 3.5 g P/100 g"
+ },
+ {
+  "name": "Boiled potato (alu siddho)",
+  "bangla": "আলু সিদ্ধ",
+  "category": "staple",
+  "serving": "1 medium (~100 g)",
+  "kcal": 67,
+  "protein": 1.2,
+  "rare": false,
+  "basis": "FCT BD potato boiled 67 kcal, 1.2 g P/100 g"
+ },
+ {
+  "name": "Masoor dal, thin (patla)",
+  "bangla": "পাতলা মসুর ডাল",
+  "category": "curry/veg",
+  "serving": "1 bowl (~200 ml)",
+  "kcal": 125,
+  "protein": 6.5,
+  "rare": false,
+  "basis": "Recipe: FCT BD lentil raw 25 g (79 kcal, 6.9 g P) + 5 g oil"
+ },
+ {
+  "name": "Masoor dal, thick (ghono)",
+  "bangla": "ঘন মসুর ডাল",
+  "category": "curry/veg",
+  "serving": "1 bowl (~200 ml)",
+  "kcal": 215,
+  "protein": 12.5,
+  "rare": false,
+  "basis": "Recipe: FCT BD lentil raw 45 g (143 kcal, 12.5 g P) + 8 g oil"
+ },
+ {
+  "name": "Mug dal",
+  "bangla": "মুগ ডাল",
+  "category": "curry/veg",
+  "serving": "1 bowl (~200 ml)",
+  "kcal": 185,
+  "protein": 8.3,
+  "rare": false,
+  "basis": "Recipe: FCT BD mung split 35 g (123 kcal, 8.3 g P) + 7 g oil/ghee"
+ },
+ {
+  "name": "Dal (hotel/canteen)",
+  "bangla": "হোটেলের ডাল",
+  "category": "curry/veg",
+  "serving": "1 bati (~150 ml)",
+  "kcal": 95,
+  "protein": 4.0,
+  "rare": false,
+  "basis": "Recipe: ~15 g lentil + 5 g oil; hotel dal is watery; uncertain"
+ },
+ {
+  "name": "Mixed sabji / bhaji",
+  "bangla": "মিক্সড সবজি",
+  "category": "curry/veg",
+  "serving": "1 cup (~150 g)",
+  "kcal": 150,
+  "protein": 3.0,
+  "rare": false,
+  "basis": "FCT BD boiled veg ~40 kcal/100 g x 150 g + 10 g oil"
+ },
+ {
+  "name": "Alu bhaji (potato fry)",
+  "bangla": "আলু ভাজি",
+  "category": "curry/veg",
+  "serving": "1 cup (~120 g)",
+  "kcal": 165,
+  "protein": 2.0,
+  "rare": false,
+  "basis": "FCT BD potato 67 kcal/100 g x 100 g + ~10 g oil absorbed"
+ },
+ {
+  "name": "Alu-phulkopi torkari",
+  "bangla": "আলু-ফুলকপির তরকারি",
+  "category": "curry/veg",
+  "serving": "1 cup (~150 g)",
+  "kcal": 145,
+  "protein": 3.5,
+  "rare": false,
+  "basis": "FCT BD potato/cauliflower boiled ~50 kcal/100 g x 150 g + 8 g oil"
+ },
+ {
+  "name": "Lau torkari (bottle gourd)",
+  "bangla": "লাউ তরকারি",
+  "category": "curry/veg",
+  "serving": "1 cup (~150 g)",
+  "kcal": 85,
+  "protein": 1.2,
+  "rare": false,
+  "basis": "USDA bottle gourd ~15-20 kcal/100 g x 150 g + 6 g oil"
+ },
+ {
+  "name": "Misti kumra bhaji",
+  "bangla": "মিষ্টি কুমড়া ভাজি",
+  "category": "curry/veg",
+  "serving": "1 cup (~150 g)",
+  "kcal": 107,
+  "protein": 3.3,
+  "rare": false,
+  "basis": "FCT BD pumpkin boiled 29 kcal, 2.2 g P/100 g x 150 g + 7 g oil"
+ },
+ {
+  "name": "Potol / jhinga / begun torkari",
+  "bangla": "পটল/ঝিঙা/বেগুন তরকারি",
+  "category": "curry/veg",
+  "serving": "1 cup (~150 g)",
+  "kcal": 105,
+  "protein": 3.0,
+  "rare": false,
+  "basis": "FCT BD pointed gourd/brinjal boiled ~27 kcal/100 g x 150 g + 7 g oil"
+ },
+ {
+  "name": "Shak bhaji (lal/palong/pui)",
+  "bangla": "শাক ভাজি",
+  "category": "curry/veg",
+  "serving": "1 cup cooked (~100 g)",
+  "kcal": 100,
+  "protein": 4.0,
+  "rare": false,
+  "basis": "FCT BD amaranth/spinach boiled 30-47 kcal, 2-5 g P/100 g + 7 g oil"
+ },
+ {
+  "name": "Dheros bhuna (okra)",
+  "bangla": "ঢেঁড়স ভুনা",
+  "category": "curry/veg",
+  "serving": "1 cup (~100 g)",
+  "kcal": 127,
+  "protein": 3.4,
+  "rare": false,
+  "basis": "FCT BD lady's finger-tomato bhuna recipe 127 kcal, 3.4 g P/100 g"
+ },
+ {
+  "name": "Korola bhaji (bitter gourd)",
+  "bangla": "করলা ভাজি",
+  "category": "curry/veg",
+  "serving": "1 small serving (~60 g)",
+  "kcal": 78,
+  "protein": 1.9,
+  "rare": false,
+  "basis": "FCT BD bitter gourd fry recipe 130 kcal, 3.1 g P/100 g x 60 g"
+ },
+ {
+  "name": "Begun bhaja (home)",
+  "bangla": "বেগুন ভাজা",
+  "category": "curry/veg",
+  "serving": "1 slice (~50 g)",
+  "kcal": 90,
+  "protein": 0.9,
+  "rare": false,
+  "basis": "FCT BD brinjal 24 kcal/100 g x 50 g + ~8 g oil absorbed; soaks oil"
+ },
+ {
+  "name": "Alu bhorta",
+  "bangla": "আলু ভর্তা",
+  "category": "curry/veg",
+  "serving": "1 scoop (~80 g)",
+  "kcal": 100,
+  "protein": 1.2,
+  "rare": false,
+  "basis": "FCT BD potato mash 84 kcal/100 g x 75 g + 5 g mustard oil"
+ },
+ {
+  "name": "Begun bhorta",
+  "bangla": "বেগুন ভর্তা",
+  "category": "curry/veg",
+  "serving": "1 scoop (~80 g)",
+  "kcal": 65,
+  "protein": 1.5,
+  "rare": false,
+  "basis": "FCT BD brinjal 24 kcal/100 g x 80 g + 5 g mustard oil"
+ },
+ {
+  "name": "Shutki bhorta",
+  "bangla": "শুঁটকি ভর্তা",
+  "category": "curry/veg",
+  "serving": "1 scoop (~30 g)",
+  "kcal": 100,
+  "protein": 9.0,
+  "rare": false,
+  "basis": "FCT BD dried fish ~330 kcal, 60-70 g P/100 g x 15 g + 5 g oil + onion/chilli"
+ },
+ {
+  "name": "Dal bhorta",
+  "bangla": "ডাল ভর্তা",
+  "category": "curry/veg",
+  "serving": "1 scoop (~50 g)",
+  "kcal": 95,
+  "protein": 4.0,
+  "rare": false,
+  "basis": "FCT BD lentil raw 15 g + 5 g mustard oil"
+ },
+ {
+  "name": "Choto mach chorchori (small fish)",
+  "bangla": "ছোট মাছের চচ্চড়ি",
+  "category": "curry/veg",
+  "serving": "1 serving (~100 g)",
+  "kcal": 107,
+  "protein": 7.4,
+  "rare": false,
+  "basis": "FCT BD small fish (kachki) fry recipe 107 kcal, 7.4 g P/100 g"
+ },
+ {
+  "name": "Salad (shosha-tomato-peyaj)",
+  "bangla": "সালাদ",
+  "category": "curry/veg",
+  "serving": "1 plate (~100 g)",
+  "kcal": 20,
+  "protein": 0.9,
+  "rare": false,
+  "basis": "USDA cucumber/tomato/onion ~15-25 kcal/100 g"
+ },
+ {
+  "name": "Chhola bhuna (home)",
+  "bangla": "ছোলা ভুনা",
+  "category": "protein",
+  "serving": "1 cup (~150 g)",
+  "kcal": 320,
+  "protein": 15.0,
+  "rare": false,
+  "basis": "FCT BD Bengal gram boiled 182 kcal, 10.6 g P/100 g x 150 g + 6 g oil"
+ },
+ {
+  "name": "Chicken curry (home)",
+  "bangla": "মুরগির তরকারি",
+  "category": "protein",
+  "serving": "1 piece + gravy (~60 g meat)",
+  "kcal": 200,
+  "protein": 16.0,
+  "rare": false,
+  "basis": "Recipe: broiler meat 60 g cooked (~115 kcal, 16 g P; FCT BD chicken leg) + 8 g oil + onion"
+ },
+ {
+  "name": "Chicken jhol (light, home)",
+  "bangla": "মুরগির ঝোল",
+  "category": "protein",
+  "serving": "1 piece + gravy (~60 g meat)",
+  "kcal": 160,
+  "protein": 16.0,
+  "rare": false,
+  "basis": "As chicken curry with ~4 g oil"
+ },
+ {
+  "name": "Chicken curry (hotel)",
+  "bangla": "হোটেলের মুরগির তরকারি",
+  "category": "protein",
+  "serving": "1 piece + gravy (~80 g meat)",
+  "kcal": 260,
+  "protein": 20.0,
+  "rare": false,
+  "basis": "Recipe: ~80 g cooked meat + ~12 g oil in gravy; hotel oil-heavy"
+ },
+ {
+  "name": "Chicken bhuna (hotel)",
+  "bangla": "মুরগি ভুনা",
+  "category": "protein",
+  "serving": "1 piece (~80 g meat, thick masala)",
+  "kcal": 280,
+  "protein": 21.0,
+  "rare": false,
+  "basis": "As hotel chicken curry, thicker oily masala"
+ },
+ {
+  "name": "Chicken roast (biye-style)",
+  "bangla": "মুরগির রোস্ট",
+  "category": "protein",
+  "serving": "1 quarter piece (~180 g with bone)",
+  "kcal": 380,
+  "protein": 30.0,
+  "rare": true,
+  "basis": "Recipe: ~130 g edible chicken with skin (~250 kcal) + ghee/oil, sugar, fried onion; party dish"
+ },
+ {
+  "name": "Chicken rezala",
+  "bangla": "মুরগির রেজালা",
+  "category": "protein",
+  "serving": "1 piece + gravy",
+  "kcal": 320,
+  "protein": 22.0,
+  "rare": true,
+  "basis": "Recipe: ~90 g meat + yogurt, ghee, nut paste; estimate"
+ },
+ {
+  "name": "Deshi murgi curry",
+  "bangla": "দেশি মুরগির তরকারি",
+  "category": "protein",
+  "serving": "1 piece + gravy (~60 g meat)",
+  "kcal": 180,
+  "protein": 15.0,
+  "rare": false,
+  "basis": "Leaner than broiler; FCT BD chicken + 8 g oil; estimate"
+ },
+ {
+  "name": "Chicken breast (boiled/grilled)",
+  "bangla": "মুরগির বুকের মাংস",
+  "category": "protein",
+  "serving": "100 g cooked",
+  "kcal": 165,
+  "protein": 31.0,
+  "rare": false,
+  "basis": "USDA chicken breast roasted, skinless 165 kcal, 31 g P/100 g"
+ },
+ {
+  "name": "Chicken tikka / boti kebab",
+  "bangla": "চিকেন টিক্কা",
+  "category": "protein",
+  "serving": "1 serving (~100 g, 5-6 pieces)",
+  "kcal": 200,
+  "protein": 25.0,
+  "rare": false,
+  "basis": "USDA tandoori chicken ~150-200 kcal/100 g; marinade oil varies"
+ },
+ {
+  "name": "Chicken grill (quarter)",
+  "bangla": "চিকেন গ্রিল",
+  "category": "protein",
+  "serving": "1 quarter (~200 g with bone)",
+  "kcal": 320,
+  "protein": 33.0,
+  "rare": false,
+  "basis": "USDA roasted chicken with skin ~215 kcal/100 g x 130 g edible + basting oil; skip mayo"
+ },
+ {
+  "name": "Beef curry (home)",
+  "bangla": "গরুর মাংসের তরকারি",
+  "category": "protein",
+  "serving": "1 bowl (~4-5 pieces, ~100 g meat)",
+  "kcal": 330,
+  "protein": 22.0,
+  "rare": true,
+  "basis": "Recipe: FCT BD beef 15-20% fat 207 kcal/100 g x 110 g raw + 10 g oil"
+ },
+ {
+  "name": "Beef jhol / stew (lean, less oil)",
+  "bangla": "গরুর মাংসের ঝোল (কম তেল)",
+  "category": "protein",
+  "serving": "1 bowl (~100 g meat)",
+  "kcal": 220,
+  "protein": 24.0,
+  "rare": false,
+  "basis": "Recipe: FCT BD lean beef 103 kcal, 20.7 g P/100 g x 115 g raw + 5 g oil"
+ },
+ {
+  "name": "Beef kala bhuna",
+  "bangla": "কালা ভুনা",
+  "category": "protein",
+  "serving": "1 serving (~100 g)",
+  "kcal": 380,
+  "protein": 22.0,
+  "rare": true,
+  "basis": "Recipe: fatty beef dry-cooked in mustard oil; estimate, oil content uncertain"
+ },
+ {
+  "name": "Beef kosha / bhuna (hotel)",
+  "bangla": "গরুর মাংস কষা",
+  "category": "protein",
+  "serving": "1 serving (~100 g meat)",
+  "kcal": 350,
+  "protein": 22.0,
+  "rare": true,
+  "basis": "As home beef curry with extra oil; hotel"
+ },
+ {
+  "name": "Beef shik kabab",
+  "bangla": "শিক কাবাব",
+  "category": "protein",
+  "serving": "1 skewer (~80 g)",
+  "kcal": 200,
+  "protein": 16.0,
+  "rare": true,
+  "basis": "FCT BD beef handi kabab 233 kcal, 12.7 g P/100 g; shik is leaner mince, ~250/100 g x 80 g"
+ },
+ {
+  "name": "Beef chap (Old Dhaka)",
+  "bangla": "বিফ চাপ",
+  "category": "street",
+  "serving": "1 piece (~120 g)",
+  "kcal": 380,
+  "protein": 22.0,
+  "rare": true,
+  "basis": "Estimate: flattened beef, batter, shallow-fried; very oily; uncertain"
+ },
+ {
+  "name": "Mutton / khasi curry",
+  "bangla": "খাসির মাংস",
+  "category": "protein",
+  "serving": "1 serving (~100 g meat on bone + gravy)",
+  "kcal": 280,
+  "protein": 20.0,
+  "rare": true,
+  "basis": "Recipe: FCT BD goat meat 118 kcal/100 g, ~100 g edible + 12 g oil; hotel versions fattier"
+ },
+ {
+  "name": "Rui curry / jhol",
+  "bangla": "রুই মাছের তরকারি",
+  "category": "protein",
+  "serving": "1 piece + gravy (~80 g fish)",
+  "kcal": 150,
+  "protein": 16.0,
+  "rare": false,
+  "basis": "FCT BD rohu 104 kcal, 19.7 g P/100 g x 80 g (edible) + 7 g oil"
+ },
+ {
+  "name": "Rui fry (mach bhaja)",
+  "bangla": "রুই মাছ ভাজা",
+  "category": "protein",
+  "serving": "1 piece (~80 g fish)",
+  "kcal": 140,
+  "protein": 16.0,
+  "rare": false,
+  "basis": "FCT BD rohu x 80 g + ~6 g oil absorbed"
+ },
+ {
+  "name": "Katla curry",
+  "bangla": "কাতলা মাছের তরকারি",
+  "category": "protein",
+  "serving": "1 piece + gravy (~100 g fish)",
+  "kcal": 170,
+  "protein": 19.0,
+  "rare": false,
+  "basis": "FCT BD catla 103 kcal, 19.9 g P/100 g x 90 g + 7 g oil"
+ },
+ {
+  "name": "Pangas curry",
+  "bangla": "পাঙ্গাস মাছের তরকারি",
+  "category": "protein",
+  "serving": "1 piece + gravy (~100 g fish)",
+  "kcal": 235,
+  "protein": 16.0,
+  "rare": false,
+  "basis": "FCT BD pangas 162 kcal, 15.9 g P/100 g x 100 g + 7 g oil; fatty fish"
+ },
+ {
+  "name": "Tilapia curry / fry",
+  "bangla": "তেলাপিয়া মাছ",
+  "category": "protein",
+  "serving": "1 fish (~100 g edible)",
+  "kcal": 180,
+  "protein": 21.0,
+  "rare": false,
+  "basis": "FCT BD tilapia 110 kcal, 20.8 g P/100 g x 100 g + 7 g oil"
+ },
+ {
+  "name": "Ilish curry / jhol",
+  "bangla": "ইলিশ মাছের ঝোল",
+  "category": "protein",
+  "serving": "1 piece (~80 g fish)",
+  "kcal": 240,
+  "protein": 14.5,
+  "rare": false,
+  "basis": "FCT BD hilsa 223 kcal, 18 g P/100 g x 80 g + 6 g mustard oil"
+ },
+ {
+  "name": "Ilish bhaja (fried)",
+  "bangla": "ইলিশ মাছ ভাজা",
+  "category": "protein",
+  "serving": "1 piece (~80 g fish)",
+  "kcal": 250,
+  "protein": 15.0,
+  "rare": false,
+  "basis": "FCT BD hilsa x 80 g + ~8 g oil absorbed"
+ },
+ {
+  "name": "Shorshe ilish / ilish bhapa",
+  "bangla": "সর্ষে ইলিশ / ভাপা ইলিশ",
+  "category": "protein",
+  "serving": "1 piece (~80 g fish)",
+  "kcal": 300,
+  "protein": 16.0,
+  "rare": false,
+  "basis": "FCT BD hilsa x 80 g + mustard paste 10 g (FCT mustard seed 501/100 g) + 8 g oil"
+ },
+ {
+  "name": "Koi curry / bhuna",
+  "bangla": "কই মাছ",
+  "category": "protein",
+  "serving": "1 fish (~70 g edible)",
+  "kcal": 175,
+  "protein": 12.5,
+  "rare": false,
+  "basis": "FCT BD Thai koi 139 kcal, 17.5 g P/100 g x 70 g + 8 g oil (often fried first)"
+ },
+ {
+  "name": "Pabda jhol",
+  "bangla": "পাবদা মাছের ঝোল",
+  "category": "protein",
+  "serving": "1 fish (~60 g edible)",
+  "kcal": 105,
+  "protein": 10.5,
+  "rare": false,
+  "basis": "FCT BD pabda 95 kcal, 17.3 g P/100 g x 60 g + 5 g oil"
+ },
+ {
+  "name": "Shing mach jhol",
+  "bangla": "শিং মাছের ঝোল",
+  "category": "protein",
+  "serving": "1 serving (~70 g fish)",
+  "kcal": 125,
+  "protein": 12.0,
+  "rare": false,
+  "basis": "FCT BD stinging catfish 101 kcal, 17.2 g P/100 g x 70 g + 5 g oil"
+ },
+ {
+  "name": "Magur mach curry",
+  "bangla": "মাগুর মাছ",
+  "category": "protein",
+  "serving": "1 serving (~70 g fish)",
+  "kcal": 125,
+  "protein": 11.0,
+  "rare": false,
+  "basis": "FCT BD walking catfish 103 kcal, 15.6 g P/100 g x 70 g + 5 g oil"
+ },
+ {
+  "name": "Chingri malai curry",
+  "bangla": "চিংড়ি মালাইকারি",
+  "category": "protein",
+  "serving": "1 serving (~2 golda, ~100 g prawn)",
+  "kcal": 290,
+  "protein": 22.0,
+  "rare": false,
+  "basis": "FCT BD golda prawn 102 kcal, 20.9 g P/100 g + FCT coconut milk 213/100 g x 50 g + 8 g oil/ghee; rich"
+ },
+ {
+  "name": "Chingri bhuna (small prawn)",
+  "bangla": "চিংড়ি ভুনা",
+  "category": "protein",
+  "serving": "1 serving (~60 g prawns)",
+  "kcal": 130,
+  "protein": 11.0,
+  "rare": false,
+  "basis": "FCT BD river prawn ~85 kcal, 18 g P/100 g x 60 g + 8 g oil"
+ },
+ {
+  "name": "Shutki bhuna / curry",
+  "bangla": "শুঁটকি ভুনা",
+  "category": "protein",
+  "serving": "1 serving (~30 g dried fish)",
+  "kcal": 200,
+  "protein": 20.0,
+  "rare": false,
+  "basis": "FCT BD dried fish ~330 kcal, 60-70 g P/100 g x 30 g + 10 g oil + onion"
+ },
+ {
+  "name": "Boiled egg (farm)",
+  "bangla": "সিদ্ধ ডিম",
+  "category": "protein",
+  "serving": "1 egg (~50 g edible)",
+  "kcal": 79,
+  "protein": 8.3,
+  "rare": false,
+  "basis": "FCT BD farm egg boiled 158 kcal, 16.5 g P/100 g x 50 g"
+ },
+ {
+  "name": "Boiled egg (deshi)",
+  "bangla": "দেশি মুরগির ডিম সিদ্ধ",
+  "category": "protein",
+  "serving": "1 egg (~38 g edible)",
+  "kcal": 68,
+  "protein": 5.7,
+  "rare": false,
+  "basis": "FCT BD native egg boiled 179 kcal, 15.1 g P/100 g x 38 g"
+ },
+ {
+  "name": "Duck egg, boiled",
+  "bangla": "হাঁসের ডিম সিদ্ধ",
+  "category": "protein",
+  "serving": "1 egg (~65 g edible)",
+  "kcal": 139,
+  "protein": 9.9,
+  "rare": false,
+  "basis": "FCT BD duck egg boiled 214 kcal, 15.3 g P/100 g x 65 g"
+ },
+ {
+  "name": "Dimer pouch / fried egg",
+  "bangla": "ডিম পোচ / ডিম ভাজা",
+  "category": "protein",
+  "serving": "1 egg",
+  "kcal": 115,
+  "protein": 7.3,
+  "rare": false,
+  "basis": "FCT BD farm egg raw 139 kcal, 14.5 g P/100 g x 50 g + ~5 g oil"
+ },
+ {
+  "name": "Omelette (1 egg, onion-chilli)",
+  "bangla": "ডিমের অমলেট",
+  "category": "protein",
+  "serving": "1 egg",
+  "kcal": 130,
+  "protein": 7.5,
+  "rare": false,
+  "basis": "FCT BD egg x 50 g + ~6 g oil + onion"
+ },
+ {
+  "name": "Dim bhuna",
+  "bangla": "ডিম ভুনা",
+  "category": "protein",
+  "serving": "1 egg + masala",
+  "kcal": 160,
+  "protein": 7.5,
+  "rare": false,
+  "basis": "FCT BD egg + ~8 g oil + onion masala"
+ },
+ {
+  "name": "Egg curry with alu (dimer torkari)",
+  "bangla": "ডিমের তরকারি",
+  "category": "protein",
+  "serving": "1 egg + 1 potato piece + gravy",
+  "kcal": 170,
+  "protein": 8.0,
+  "rare": false,
+  "basis": "FCT BD egg + 50 g potato + ~7 g oil"
+ },
+ {
+  "name": "Bhaat-mach (hotel plate)",
+  "bangla": "ভাত-মাছ",
+  "category": "office-lunch",
+  "serving": "1 plate rice + 1 rui/katla piece + dal",
+  "kcal": 600,
+  "protein": 26.0,
+  "rare": false,
+  "basis": "Sum: rice 300 g (333) + hotel fish curry (~170) + hotel dal (95); oilier hotel gravy"
+ },
+ {
+  "name": "Bhaat-murgi (hotel plate)",
+  "bangla": "ভাত-মুরগি",
+  "category": "office-lunch",
+  "serving": "1 plate rice + 1 chicken piece + dal",
+  "kcal": 690,
+  "protein": 30.0,
+  "rare": false,
+  "basis": "Sum: rice 300 g (333) + hotel chicken curry (260) + hotel dal (95)"
+ },
+ {
+  "name": "Bhaat-gorur mangsho (hotel plate)",
+  "bangla": "ভাত-গরুর মাংস",
+  "category": "office-lunch",
+  "serving": "1 plate rice + beef curry + dal",
+  "kcal": 780,
+  "protein": 32.0,
+  "rare": true,
+  "basis": "Sum: rice 300 g (333) + hotel beef (350) + dal (95)"
+ },
+ {
+  "name": "Bhaat-dim (hotel plate)",
+  "bangla": "ভাত-ডিম",
+  "category": "office-lunch",
+  "serving": "1 plate rice + egg curry + dal",
+  "kcal": 600,
+  "protein": 18.0,
+  "rare": false,
+  "basis": "Sum: rice 300 g (333) + egg curry (170) + dal (95)"
+ },
+ {
+  "name": "Bhaat-bhorta-dal (hotel plate)",
+  "bangla": "ভাত-ভর্তা-ডাল",
+  "category": "office-lunch",
+  "serving": "1 plate rice + 2 bhorta + dal",
+  "kcal": 595,
+  "protein": 13.0,
+  "rare": false,
+  "basis": "Sum: rice 300 g + alu bhorta + begun bhorta + hotel dal"
+ },
+ {
+  "name": "Bhaat-sabji-dal (hotel plate)",
+  "bangla": "ভাত-সবজি-ডাল",
+  "category": "office-lunch",
+  "serving": "1 plate rice + sabji + dal",
+  "kcal": 580,
+  "protein": 13.0,
+  "rare": false,
+  "basis": "Sum: rice 300 g (333) + mixed sabji (150) + dal (95)"
+ },
+ {
+  "name": "Set menu (rice + chicken + sabji + dal)",
+  "bangla": "সেট মেনু (ভাত-মুরগি-সবজি-ডাল)",
+  "category": "office-lunch",
+  "serving": "1 set",
+  "kcal": 840,
+  "protein": 33.0,
+  "rare": false,
+  "basis": "Sum of components; typical canteen/restaurant set lunch"
+ },
+ {
+  "name": "Set menu (polao + roast + salad)",
+  "bangla": "সেট মেনু (পোলাও-রোস্ট)",
+  "category": "office-lunch",
+  "serving": "1 set (~1.5 cup polao + 1 roast)",
+  "kcal": 900,
+  "protein": 37.0,
+  "rare": true,
+  "basis": "Sum: hotel polao ~300 g (~510) + chicken roast (380) + salad"
+ },
+ {
+  "name": "Kacchi biryani (mutton)",
+  "bangla": "কাচ্চি বিরিয়ানি",
+  "category": "office-lunch",
+  "serving": "1 plate (~450 g, 2 meat pieces + alu)",
+  "kcal": 950,
+  "protein": 33.0,
+  "rare": true,
+  "basis": "Recipe estimate: ghee rice ~300 g at ~180/100 g + ~100 g edible mutton + ghee-fried potato; UNCERTAIN +/-20%"
+ },
+ {
+  "name": "Beef tehari",
+  "bangla": "গরুর তেহারি",
+  "category": "office-lunch",
+  "serving": "1 plate (~350 g)",
+  "kcal": 700,
+  "protein": 22.0,
+  "rare": true,
+  "basis": "Recipe estimate: oily/dalda rice ~300 g at ~175/100 g + ~60 g beef cubes; uncertain"
+ },
+ {
+  "name": "Chicken biryani",
+  "bangla": "চিকেন বিরিয়ানি",
+  "category": "office-lunch",
+  "serving": "1 plate (~400 g, 1 piece)",
+  "kcal": 750,
+  "protein": 30.0,
+  "rare": true,
+  "basis": "Recipe estimate: rice ~300 g at ~170/100 g + ~90 g edible chicken + potato"
+ },
+ {
+  "name": "Morog polao",
+  "bangla": "মোরগ পোলাও",
+  "category": "office-lunch",
+  "serving": "1 plate (~400 g)",
+  "kcal": 720,
+  "protein": 30.0,
+  "rare": true,
+  "basis": "Recipe: FCT BD pulao adjusted to ~175/100 g (hotel ghee) x 300 g + ~90 g edible chicken"
+ },
+ {
+  "name": "Khichuri with beef",
+  "bangla": "খিচুড়ি-গরুর মাংস",
+  "category": "office-lunch",
+  "serving": "1 plate (bhuna khichuri + beef)",
+  "kcal": 850,
+  "protein": 32.0,
+  "rare": true,
+  "basis": "Sum: bhuna khichuri 300 g (570) + ~100 g beef bhuna (280)"
+ },
+ {
+  "name": "Khichuri with egg",
+  "bangla": "খিচুড়ি-ডিম",
+  "category": "office-lunch",
+  "serving": "1 plate (khichuri + 1 egg bhuna/fry)",
+  "kcal": 620,
+  "protein": 22.0,
+  "rare": false,
+  "basis": "Sum: FCT BD khichuri 163/100 g x 300 g + 1 fried/bhuna egg"
+ },
+ {
+  "name": "Singara",
+  "bangla": "সিঙ্গারা",
+  "category": "street",
+  "serving": "1 piece (~50 g)",
+  "kcal": 140,
+  "protein": 2.5,
+  "rare": true,
+  "basis": "USDA/IFCT samosa ~280-300 kcal/100 g x 50 g; deep-fried, potato filling"
+ },
+ {
+  "name": "Samosa (Dhaka, keema/onion)",
+  "bangla": "সমুচা",
+  "category": "street",
+  "serving": "1 piece (~35 g)",
+  "kcal": 135,
+  "protein": 3.5,
+  "rare": true,
+  "basis": "Estimate: thin fried pastry ~380 kcal/100 g x 35 g"
+ },
+ {
+  "name": "Dal puri",
+  "bangla": "ডালপুরি",
+  "category": "street",
+  "serving": "1 piece (~40 g)",
+  "kcal": 140,
+  "protein": 3.5,
+  "rare": true,
+  "basis": "Estimate: deep-fried lentil-filled bread ~350 kcal/100 g x 40 g"
+ },
+ {
+  "name": "Piyaju",
+  "bangla": "পিঁয়াজু",
+  "category": "street",
+  "serving": "1 piece (~20 g)",
+  "kcal": 65,
+  "protein": 2.5,
+  "rare": true,
+  "basis": "Estimate: lentil-onion fritter ~330 kcal/100 g x 20 g; ~10 g lentil"
+ },
+ {
+  "name": "Beguni",
+  "bangla": "বেগুনি",
+  "category": "street",
+  "serving": "1 piece (~40 g)",
+  "kcal": 100,
+  "protein": 2.0,
+  "rare": true,
+  "basis": "Estimate: besan-battered brinjal, deep-fried ~250 kcal/100 g x 40 g"
+ },
+ {
+  "name": "Alur chop",
+  "bangla": "আলুর চপ",
+  "category": "street",
+  "serving": "1 piece (~50 g)",
+  "kcal": 115,
+  "protein": 1.8,
+  "rare": true,
+  "basis": "Estimate: battered potato, deep-fried ~230 kcal/100 g x 50 g"
+ },
+ {
+  "name": "Pakora (onion/veg)",
+  "bangla": "পাকোড়া",
+  "category": "street",
+  "serving": "1 piece (~25 g)",
+  "kcal": 75,
+  "protein": 1.5,
+  "rare": true,
+  "basis": "IFCT/USDA pakora ~300 kcal/100 g x 25 g"
+ },
+ {
+  "name": "Chola / boot (iftar/street)",
+  "bangla": "ছোলা (বুট)",
+  "category": "street",
+  "serving": "1 small bowl (~100 g)",
+  "kcal": 240,
+  "protein": 10.0,
+  "rare": false,
+  "basis": "FCT BD Bengal gram boiled 182 kcal, 10.6 g P/100 g x 100 g + ~6 g oil"
+ },
+ {
+  "name": "Fuchka",
+  "bangla": "ফুচকা",
+  "category": "street",
+  "serving": "1 plate (8 pieces with filling + egg)",
+  "kcal": 350,
+  "protein": 9.0,
+  "rare": true,
+  "basis": "Estimate: 8 fried puris (~30 kcal each) + dabli/potato filling + egg grating + tamarind water; uncertain"
+ },
+ {
+  "name": "Chotpoti",
+  "bangla": "চটপটি",
+  "category": "street",
+  "serving": "1 plate (~250 g)",
+  "kcal": 300,
+  "protein": 13.0,
+  "rare": false,
+  "basis": "FCT BD dried pea boiled 170 kcal, 11.5 g P/100 g x ~120 g + potato, egg, crushed fuchka, tetul water"
+ },
+ {
+  "name": "Velpuri",
+  "bangla": "ভেলপুরি",
+  "category": "street",
+  "serving": "1 plate (5-6 pieces)",
+  "kcal": 300,
+  "protein": 8.0,
+  "rare": true,
+  "basis": "Estimate: fried puris + chola/dabli filling; uncertain"
+ },
+ {
+  "name": "Jhalmuri",
+  "bangla": "ঝালমুড়ি",
+  "category": "street",
+  "serving": "1 thonga (~40 g muri + chanachur)",
+  "kcal": 250,
+  "protein": 5.5,
+  "rare": false,
+  "basis": "FCT BD muri 361/100 g x 40 g + chanachur 10 g + 3 g mustard oil + chola"
+ },
+ {
+  "name": "Muri makha (iftar bowl)",
+  "bangla": "মুড়ি মাখা",
+  "category": "street",
+  "serving": "1 big bowl (muri + chola + piyaju/beguni)",
+  "kcal": 450,
+  "protein": 12.0,
+  "rare": true,
+  "basis": "Sum: muri 40 g + chola 60 g + 1 piyaju + 1 beguni + oil; varies a lot"
+ },
+ {
+  "name": "Chanachur",
+  "bangla": "চানাচুর",
+  "category": "street",
+  "serving": "1 handful (~30 g)",
+  "kcal": 160,
+  "protein": 4.5,
+  "rare": true,
+  "basis": "USDA Bombay mix ~520 kcal, 15 g P/100 g x 30 g"
+ },
+ {
+  "name": "Chips (packet)",
+  "bangla": "চিপস",
+  "category": "street",
+  "serving": "1 small pack (~25 g)",
+  "kcal": 135,
+  "protein": 1.5,
+  "rare": true,
+  "basis": "USDA potato chips ~540 kcal/100 g x 25 g"
+ },
+ {
+  "name": "Peanuts (badam, roasted)",
+  "bangla": "চিনাবাদাম",
+  "category": "street",
+  "serving": "1 thonga (~30 g shelled)",
+  "kcal": 170,
+  "protein": 7.5,
+  "rare": false,
+  "basis": "USDA dry-roasted peanuts 585 kcal, 24 g P/100 g x 30 g"
+ },
+ {
+  "name": "Bhutta (roasted corn)",
+  "bangla": "ভুট্টা পোড়া",
+  "category": "street",
+  "serving": "1 cob (~90 g kernels)",
+  "kcal": 130,
+  "protein": 3.5,
+  "rare": false,
+  "basis": "FCT BD sweet corn 147 kcal, 3.5 g P/100 g x 90 g"
+ },
+ {
+  "name": "Egg roll",
+  "bangla": "এগ রোল",
+  "category": "street",
+  "serving": "1 roll",
+  "kcal": 360,
+  "protein": 11.0,
+  "rare": true,
+  "basis": "Sum: paratha ~70 g (230) + 1 fried egg (115) + sauce"
+ },
+ {
+  "name": "Chicken roll",
+  "bangla": "চিকেন রোল",
+  "category": "street",
+  "serving": "1 roll",
+  "kcal": 420,
+  "protein": 18.0,
+  "rare": true,
+  "basis": "Sum: paratha ~70 g (230) + ~60 g chicken (120) + 10 g mayo (70)"
+ },
+ {
+  "name": "Shawarma (chicken)",
+  "bangla": "শর্মা",
+  "category": "street",
+  "serving": "1 piece",
+  "kcal": 450,
+  "protein": 22.0,
+  "rare": true,
+  "basis": "Estimate: pita/khubz ~80 g + ~80 g chicken + garlic mayo; Dhaka versions mayo-heavy"
+ },
+ {
+  "name": "Momo (chicken, steamed)",
+  "bangla": "মোমো",
+  "category": "street",
+  "serving": "1 plate (8 pieces)",
+  "kcal": 320,
+  "protein": 18.0,
+  "rare": false,
+  "basis": "Estimate: ~40 kcal, 2.2 g P per steamed dumpling; fried momo ~+100 kcal"
+ },
+ {
+  "name": "Chowmein (street)",
+  "bangla": "চাউমিন",
+  "category": "street",
+  "serving": "1 plate (~250 g)",
+  "kcal": 450,
+  "protein": 12.0,
+  "rare": true,
+  "basis": "Estimate: boiled noodles ~150 g + ~15 g oil + veg + egg"
+ },
+ {
+  "name": "Instant noodles (Mr Noodles/Maggi)",
+  "bangla": "ইনস্ট্যান্ট নুডলস",
+  "category": "street",
+  "serving": "1 pack (~62 g dry)",
+  "kcal": 290,
+  "protein": 6.0,
+  "rare": true,
+  "basis": "Pack labels ~460-470 kcal/100 g dry x 62 g"
+ },
+ {
+  "name": "Haleem",
+  "bangla": "হালিম",
+  "category": "street",
+  "serving": "1 bowl (~300 g)",
+  "kcal": 450,
+  "protein": 24.0,
+  "rare": true,
+  "basis": "Estimate: wheat/lentil + beef stew with oil tarka; uncertain"
+ },
+ {
+  "name": "Nehari",
+  "bangla": "নেহারি",
+  "category": "street",
+  "serving": "1 bowl (~300 ml with meat)",
+  "kcal": 450,
+  "protein": 25.0,
+  "rare": true,
+  "basis": "Estimate: beef shank stew, fatty gravy; excludes naan"
+ },
+ {
+  "name": "Paya",
+  "bangla": "পায়া",
+  "category": "street",
+  "serving": "1 bowl (~300 ml)",
+  "kcal": 350,
+  "protein": 18.0,
+  "rare": true,
+  "basis": "Estimate: trotter soup, collagen + fat; uncertain"
+ },
+ {
+  "name": "Chicken fry (street)",
+  "bangla": "চিকেন ফ্রাই",
+  "category": "street",
+  "serving": "1 piece (~120 g with bone)",
+  "kcal": 300,
+  "protein": 20.0,
+  "rare": true,
+  "basis": "Estimate from USDA fried chicken ~260 kcal/100 g; street batter/oil"
+ },
+ {
+  "name": "Cake slice (bakery)",
+  "bangla": "কেক",
+  "category": "street",
+  "serving": "1 slice (~50 g)",
+  "kcal": 200,
+  "protein": 3.0,
+  "rare": true,
+  "basis": "USDA pound cake ~390 kcal/100 g x 50 g"
+ },
+ {
+  "name": "Pastry (cream)",
+  "bangla": "পেস্ট্রি",
+  "category": "street",
+  "serving": "1 piece (~70 g)",
+  "kcal": 260,
+  "protein": 3.0,
+  "rare": true,
+  "basis": "USDA cream cake ~370 kcal/100 g x 70 g"
+ },
+ {
+  "name": "Energy Plus-type biscuit",
+  "bangla": "এনার্জি বিস্কুট",
+  "category": "street",
+  "serving": "4 biscuits (~30 g)",
+  "kcal": 145,
+  "protein": 2.5,
+  "rare": true,
+  "basis": "Pack labels ~480 kcal/100 g; FCT BD sweet biscuit 344/100 g seems low for these"
+ },
+ {
+  "name": "Marie biscuit",
+  "bangla": "মেরি বিস্কুট",
+  "category": "street",
+  "serving": "4 biscuits (~24 g)",
+  "kcal": 105,
+  "protein": 1.8,
+  "rare": true,
+  "basis": "Pack labels ~440 kcal, 7 g P/100 g x 24 g"
+ },
+ {
+  "name": "Toast biscuit (rusk)",
+  "bangla": "টোস্ট বিস্কুট",
+  "category": "street",
+  "serving": "2 pieces (~30 g)",
+  "kcal": 125,
+  "protein": 3.0,
+  "rare": true,
+  "basis": "USDA/IFCT rusk ~410 kcal, 10 g P/100 g x 30 g"
+ },
+ {
+  "name": "Chicken burger (fried patty)",
+  "bangla": "চিকেন বার্গার",
+  "category": "fast-food",
+  "serving": "1 burger",
+  "kcal": 480,
+  "protein": 24.0,
+  "rare": true,
+  "basis": "Chain data: KFC Zinger ~450-480 kcal, ~24 g P"
+ },
+ {
+  "name": "Beef burger (cheese, restaurant)",
+  "bangla": "বিফ বার্গার",
+  "category": "fast-food",
+  "serving": "1 burger",
+  "kcal": 600,
+  "protein": 30.0,
+  "rare": true,
+  "basis": "USDA/chain data single cheeseburger 500-650 kcal; Dhaka burgers often larger"
+ },
+ {
+  "name": "Pizza slice",
+  "bangla": "পিজ্জা",
+  "category": "fast-food",
+  "serving": "1 slice of 12-inch (~100 g)",
+  "kcal": 280,
+  "protein": 12.0,
+  "rare": true,
+  "basis": "USDA chicken/cheese pizza ~270 kcal, 12 g P/100 g"
+ },
+ {
+  "name": "Fried chicken piece (KFC-style)",
+  "bangla": "ফ্রাইড চিকেন",
+  "category": "fast-food",
+  "serving": "1 piece (thigh/drum avg)",
+  "kcal": 280,
+  "protein": 20.0,
+  "rare": true,
+  "basis": "KFC published data: original/crispy thigh ~280-290 kcal, ~19-21 g P"
+ },
+ {
+  "name": "Chicken wings (hot wings)",
+  "bangla": "চিকেন উইংস",
+  "category": "fast-food",
+  "serving": "6 pieces",
+  "kcal": 470,
+  "protein": 28.0,
+  "rare": true,
+  "basis": "KFC/USDA fried wings ~80 kcal, ~4.5 g P each"
+ },
+ {
+  "name": "Chicken nuggets",
+  "bangla": "চিকেন নাগেটস",
+  "category": "fast-food",
+  "serving": "6 pieces",
+  "kcal": 270,
+  "protein": 14.0,
+  "rare": true,
+  "basis": "McDonald's 6-pc nuggets ~250-270 kcal, ~14 g P"
+ },
+ {
+  "name": "French fries",
+  "bangla": "ফ্রেঞ্চ ফ্রাই",
+  "category": "fast-food",
+  "serving": "1 regular (~110 g)",
+  "kcal": 300,
+  "protein": 3.5,
+  "rare": true,
+  "basis": "USDA/McDonald's medium fries ~320 kcal; Dhaka 'regular' ~110 g"
+ },
+ {
+  "name": "Chicken sandwich (café/bakery)",
+  "bangla": "চিকেন স্যান্ডউইচ",
+  "category": "fast-food",
+  "serving": "1 sandwich (2 triangles)",
+  "kcal": 300,
+  "protein": 14.0,
+  "rare": true,
+  "basis": "Estimate: 2 slices bread (136) + chicken + mayo"
+ },
+ {
+  "name": "Pasta (white-sauce chicken)",
+  "bangla": "পাস্তা",
+  "category": "fast-food",
+  "serving": "1 plate (~300 g)",
+  "kcal": 650,
+  "protein": 25.0,
+  "rare": true,
+  "basis": "Estimate: cream/cheese sauce pasta ~215 kcal/100 g; uncertain"
+ },
+ {
+  "name": "Thai soup",
+  "bangla": "থাই স্যুপ",
+  "category": "fast-food",
+  "serving": "1 bowl (~250 ml, per person)",
+  "kcal": 170,
+  "protein": 10.0,
+  "rare": false,
+  "basis": "Estimate: cornflour-thickened soup with chicken/prawn/egg"
+ },
+ {
+  "name": "Fried rice (Chinese restaurant)",
+  "bangla": "ফ্রাইড রাইস",
+  "category": "fast-food",
+  "serving": "1 plate (~300 g)",
+  "kcal": 550,
+  "protein": 14.0,
+  "rare": true,
+  "basis": "USDA chicken fried rice ~180 kcal, 5 g P/100 g x 300 g"
+ },
+ {
+  "name": "Chicken chowmein (restaurant)",
+  "bangla": "চিকেন চাউমিন",
+  "category": "fast-food",
+  "serving": "1 plate (~300 g)",
+  "kcal": 550,
+  "protein": 20.0,
+  "rare": true,
+  "basis": "USDA chicken chow mein/lo mein ~175-185 kcal/100 g x 300 g"
+ },
+ {
+  "name": "Chicken chilli / masala (Chinese)",
+  "bangla": "চিকেন চিলি",
+  "category": "fast-food",
+  "serving": "1 serving (~150 g)",
+  "kcal": 350,
+  "protein": 22.0,
+  "rare": true,
+  "basis": "Estimate: battered fried chicken in sauce; uncertain"
+ },
+ {
+  "name": "Paratha + dim bhaji",
+  "bangla": "পরোটা-ডিম ভাজি",
+  "category": "breakfast",
+  "serving": "1 paratha + 1 egg",
+  "kcal": 390,
+  "protein": 12.5,
+  "rare": true,
+  "basis": "Sum: hotel paratha (260) + omelette/fried egg (~130)"
+ },
+ {
+  "name": "Paratha + sabji bhaji",
+  "bangla": "পরোটা-ভাজি",
+  "category": "breakfast",
+  "serving": "1 paratha + 1 bati bhaji",
+  "kcal": 380,
+  "protein": 7.0,
+  "rare": true,
+  "basis": "Sum: hotel paratha (260) + ~120 g oily bhaji (~120)"
+ },
+ {
+  "name": "Paratha + dal",
+  "bangla": "পরোটা-ডাল",
+  "category": "breakfast",
+  "serving": "1 paratha + 1 bati dal",
+  "kcal": 355,
+  "protein": 9.0,
+  "rare": true,
+  "basis": "Sum: hotel paratha (260) + hotel dal (95)"
+ },
+ {
+  "name": "Ruti + sabji",
+  "bangla": "রুটি-সবজি",
+  "category": "breakfast",
+  "serving": "2 ruti + 1 cup sabji",
+  "kcal": 345,
+  "protein": 9.0,
+  "rare": false,
+  "basis": "Sum: 2 home ruti (196) + mixed sabji (150)"
+ },
+ {
+  "name": "Ruti + dal",
+  "bangla": "রুটি-ডাল",
+  "category": "breakfast",
+  "serving": "2 ruti + 1 bowl dal",
+  "kcal": 320,
+  "protein": 12.5,
+  "rare": false,
+  "basis": "Sum: 2 home ruti (196) + thin masoor dal (125)"
+ },
+ {
+  "name": "Bread + jam",
+  "bangla": "পাউরুটি-জ্যাম",
+  "category": "breakfast",
+  "serving": "2 slices + 1 tbsp jam",
+  "kcal": 186,
+  "protein": 4.0,
+  "rare": false,
+  "basis": "FCT BD bread 2 x 25 g (136) + USDA jam 250 kcal/100 g x 20 g"
+ },
+ {
+  "name": "Bread + egg",
+  "bangla": "পাউরুটি-ডিম",
+  "category": "breakfast",
+  "serving": "2 slices + 1 fried egg/omelette",
+  "kcal": 260,
+  "protein": 11.5,
+  "rare": false,
+  "basis": "FCT BD bread 2 x 25 g + 1 egg fried in ~5 g oil"
+ },
+ {
+  "name": "Chira-doi-gur",
+  "bangla": "চিড়া-দই-গুড়",
+  "category": "breakfast",
+  "serving": "1 bowl (50 g chira + 100 g doi + 15 g gur)",
+  "kcal": 330,
+  "protein": 6.7,
+  "rare": false,
+  "basis": "FCT BD chira 356/100 g x 50 g + sweet curd 94/100 g x 100 g + date jaggery 352/100 g x 15 g"
+ },
+ {
+  "name": "Cornflakes with milk",
+  "bangla": "দুধ দিয়ে কর্নফ্লেক্স",
+  "category": "breakfast",
+  "serving": "1 bowl (30 g + 200 ml milk + 1 tsp sugar)",
+  "kcal": 258,
+  "protein": 8.4,
+  "rare": false,
+  "basis": "Pack label ~375 kcal/100 g x 30 g + FCT BD whole milk 63/100 ml x 200 + 5 g sugar"
+ },
+ {
+  "name": "Roshogolla",
+  "bangla": "রসগোল্লা",
+  "category": "sweet",
+  "serving": "1 medium piece (~45 g)",
+  "kcal": 120,
+  "protein": 2.5,
+  "rare": true,
+  "basis": "IFCT/published rasgulla ~185-265 kcal/100 g incl. syrup; ~45 g piece"
+ },
+ {
+  "name": "Chomchom",
+  "bangla": "চমচম",
+  "category": "sweet",
+  "serving": "1 piece (~60 g)",
+  "kcal": 175,
+  "protein": 4.0,
+  "rare": true,
+  "basis": "Estimate: chhana + syrup ~290 kcal/100 g x 60 g"
+ },
+ {
+  "name": "Kalojam / gulab jamun",
+  "bangla": "কালোজাম",
+  "category": "sweet",
+  "serving": "1 piece (~50 g)",
+  "kcal": 190,
+  "protein": 3.0,
+  "rare": true,
+  "basis": "USDA/IFCT gulab jamun ~380 kcal/100 g x 50 g; fried + syrup"
+ },
+ {
+  "name": "Rosmalai",
+  "bangla": "রসমালাই",
+  "category": "sweet",
+  "serving": "1 piece with milk (~60 g)",
+  "kcal": 200,
+  "protein": 5.0,
+  "rare": true,
+  "basis": "Estimate: chhana + thickened sweet milk ~330 kcal/100 g x 60 g"
+ },
+ {
+  "name": "Sandesh",
+  "bangla": "সন্দেশ",
+  "category": "sweet",
+  "serving": "1 piece (~30 g)",
+  "kcal": 110,
+  "protein": 4.0,
+  "rare": true,
+  "basis": "IFCT/estimate sandesh ~370 kcal, 13 g P/100 g x 30 g"
+ },
+ {
+  "name": "Mishti doi",
+  "bangla": "মিষ্টি দই",
+  "category": "sweet",
+  "serving": "1 small cup (~100 g)",
+  "kcal": 130,
+  "protein": 3.5,
+  "rare": true,
+  "basis": "FCT BD sweetened curd 94 kcal/100 g; adjusted up for sweeter commercial (Bogura-style) doi"
+ },
+ {
+  "name": "Jilapi",
+  "bangla": "জিলাপি",
+  "category": "sweet",
+  "serving": "1 medium piece (~30 g)",
+  "kcal": 120,
+  "protein": 1.0,
+  "rare": true,
+  "basis": "USDA/IFCT jalebi ~400 kcal/100 g x 30 g; iftar shahi jilapi much bigger"
+ },
+ {
+  "name": "Firni",
+  "bangla": "ফিরনি",
+  "category": "sweet",
+  "serving": "1 bowl (~120 g)",
+  "kcal": 200,
+  "protein": 5.0,
+  "rare": true,
+  "basis": "Estimate: rice-milk-sugar pudding ~165 kcal/100 g"
+ },
+ {
+  "name": "Payesh",
+  "bangla": "পায়েস",
+  "category": "sweet",
+  "serving": "1 small bowl (~120 g)",
+  "kcal": 246,
+  "protein": 5.2,
+  "rare": true,
+  "basis": "FCT BD payesh recipe 205 kcal, 4.3 g P/100 g x 120 g"
+ },
+ {
+  "name": "Shemai (sweet vermicelli)",
+  "bangla": "সেমাই",
+  "category": "sweet",
+  "serving": "1 bowl (~120 g)",
+  "kcal": 250,
+  "protein": 6.0,
+  "rare": true,
+  "basis": "FCT BD vermicelli + whole milk + sugar + ghee; estimate ~210/100 g"
+ },
+ {
+  "name": "Suji halua",
+  "bangla": "সুজির হালুয়া",
+  "category": "sweet",
+  "serving": "1 serving (~60 g)",
+  "kcal": 200,
+  "protein": 2.5,
+  "rare": true,
+  "basis": "Estimate: FCT BD semolina + ghee + sugar ~330 kcal/100 g"
+ },
+ {
+  "name": "Bhapa pitha",
+  "bangla": "ভাপা পিঠা",
+  "category": "sweet",
+  "serving": "1 piece (~70 g)",
+  "kcal": 160,
+  "protein": 2.5,
+  "rare": true,
+  "basis": "Estimate: rice flour + gur + coconut ~230 kcal/100 g"
+ },
+ {
+  "name": "Chitoi pitha (plain)",
+  "bangla": "চিতই পিঠা",
+  "category": "sweet",
+  "serving": "1 piece (~50 g)",
+  "kcal": 95,
+  "protein": 1.5,
+  "rare": false,
+  "basis": "Estimate: steamed rice-flour cake ~190 kcal/100 g; add gur/curry separately"
+ },
+ {
+  "name": "Patishapta",
+  "bangla": "পাটিসাপটা",
+  "category": "sweet",
+  "serving": "1 piece (~60 g)",
+  "kcal": 155,
+  "protein": 3.0,
+  "rare": true,
+  "basis": "Estimate: crepe with kheer/coconut-gur filling ~260 kcal/100 g"
+ },
+ {
+  "name": "Laddu (boondi)",
+  "bangla": "লাড্ডু",
+  "category": "sweet",
+  "serving": "1 piece (~40 g)",
+  "kcal": 180,
+  "protein": 3.0,
+  "rare": true,
+  "basis": "IFCT/USDA boondi laddu ~450 kcal/100 g x 40 g"
+ },
+ {
+  "name": "Ice cream",
+  "bangla": "আইসক্রিম",
+  "category": "sweet",
+  "serving": "1 cup (~100 ml, ~60 g)",
+  "kcal": 120,
+  "protein": 2.0,
+  "rare": true,
+  "basis": "USDA vanilla ice cream ~200 kcal/100 g x 60 g"
+ },
+ {
+  "name": "Chocolate bar (small)",
+  "bangla": "চকলেট",
+  "category": "sweet",
+  "serving": "1 small bar (~25 g)",
+  "kcal": 135,
+  "protein": 2.0,
+  "rare": true,
+  "basis": "Label: milk chocolate ~535 kcal/100 g x 25 g"
+ },
+ {
+  "name": "Dudh cha (tong, condensed milk)",
+  "bangla": "দুধ চা (টং)",
+  "category": "drink",
+  "serving": "1 cup (~100 ml)",
+  "kcal": 70,
+  "protein": 1.5,
+  "rare": false,
+  "basis": "Estimate: ~12 g condensed milk (FCT BD 334/100 g) + 1 tsp sugar; FCT BD dudh cha 41/100 ml is home-style"
+ },
+ {
+  "name": "Dudh cha (home)",
+  "bangla": "দুধ চা",
+  "category": "drink",
+  "serving": "1 cup (~150 ml)",
+  "kcal": 62,
+  "protein": 1.1,
+  "rare": false,
+  "basis": "FCT BD tea with sugar & milk powder 41 kcal, 0.7 g P/100 ml x 150 ml"
+ },
+ {
+  "name": "Rong cha with sugar",
+  "bangla": "রং চা (চিনি সহ)",
+  "category": "drink",
+  "serving": "1 cup (~120 ml)",
+  "kcal": 35,
+  "protein": 0.2,
+  "rare": false,
+  "basis": "FCT BD liquor tea with sugar 29 kcal/100 ml x 120 ml"
+ },
+ {
+  "name": "Black tea, no sugar",
+  "bangla": "রং চা (চিনি ছাড়া)",
+  "category": "drink",
+  "serving": "1 cup",
+  "kcal": 2,
+  "protein": 0.0,
+  "rare": false,
+  "basis": "USDA brewed tea ~1 kcal/100 ml"
+ },
+ {
+  "name": "Coffee (instant, milk & sugar)",
+  "bangla": "কফি",
+  "category": "drink",
+  "serving": "1 cup (~150 ml)",
+  "kcal": 57,
+  "protein": 1.4,
+  "rare": false,
+  "basis": "FCT BD coffee with sugar & milk powder 38 kcal, 0.9 g P/100 ml x 150 ml"
+ },
+ {
+  "name": "Cappuccino / latte (café)",
+  "bangla": "ক্যাপুচিনো / লাতে",
+  "category": "drink",
+  "serving": "1 regular cup (~300 ml)",
+  "kcal": 180,
+  "protein": 8.0,
+  "rare": false,
+  "basis": "Chain data: whole-milk 12 oz latte ~180 kcal; add ~20 per sugar sachet"
+ },
+ {
+  "name": "Cold coffee (café, with ice cream)",
+  "bangla": "কোল্ড কফি",
+  "category": "drink",
+  "serving": "1 glass (~350 ml)",
+  "kcal": 350,
+  "protein": 8.0,
+  "rare": true,
+  "basis": "Estimate: milk + sugar syrup + ice cream scoop"
+ },
+ {
+  "name": "Lassi (sweet)",
+  "bangla": "লাচ্ছি",
+  "category": "drink",
+  "serving": "1 glass (~300 ml)",
+  "kcal": 260,
+  "protein": 7.0,
+  "rare": true,
+  "basis": "Recipe: FCT BD curd ~200 g + ~30 g sugar"
+ },
+ {
+  "name": "Borhani",
+  "bangla": "বোরহানি",
+  "category": "drink",
+  "serving": "1 glass (~250 ml)",
+  "kcal": 130,
+  "protein": 5.0,
+  "rare": false,
+  "basis": "Recipe: ~150 g yogurt + ~15 g sugar + spices; sweetness varies"
+ },
+ {
+  "name": "Matha / ghol (buttermilk)",
+  "bangla": "মাঠা",
+  "category": "drink",
+  "serving": "1 glass (~250 ml)",
+  "kcal": 83,
+  "protein": 8.5,
+  "rare": false,
+  "basis": "FCT BD buttermilk low fat 33 kcal, 3.4 g P/100 ml x 250 ml; bottled may add sugar"
+ },
+ {
+  "name": "Milk (full cream)",
+  "bangla": "দুধ",
+  "category": "drink",
+  "serving": "1 glass (~250 ml)",
+  "kcal": 158,
+  "protein": 7.8,
+  "rare": false,
+  "basis": "FCT BD cow milk whole 63 kcal, 3.1 g P/100 ml x 250 ml"
+ },
+ {
+  "name": "Milk (low fat/skimmed)",
+  "bangla": "লো-ফ্যাট দুধ",
+  "category": "drink",
+  "serving": "1 glass (~250 ml)",
+  "kcal": 85,
+  "protein": 8.0,
+  "rare": false,
+  "basis": "FCT BD skimmed milk 30 kcal/100 ml; USDA 1% milk ~42; midpoint"
+ },
+ {
+  "name": "Akher ros (sugarcane juice)",
+  "bangla": "আখের রস",
+  "category": "drink",
+  "serving": "1 glass (~250 ml)",
+  "kcal": 150,
+  "protein": 0.5,
+  "rare": true,
+  "basis": "FCT BD lists 33 kcal/100 g (likely diluted); fresh juice ~70/100 ml; street with ice ~60/100 ml; UNCERTAIN"
+ },
+ {
+  "name": "Fresh juice (malta/orange, with sugar)",
+  "bangla": "ফলের রস",
+  "category": "drink",
+  "serving": "1 glass (~300 ml)",
+  "kcal": 180,
+  "protein": 1.5,
+  "rare": true,
+  "basis": "USDA orange juice 45 kcal/100 ml x 300 + ~10 g sugar added by juice bars"
+ },
+ {
+  "name": "Lebur shorbot (lemon water with sugar)",
+  "bangla": "লেবুর শরবত",
+  "category": "drink",
+  "serving": "1 glass (~250 ml)",
+  "kcal": 80,
+  "protein": 0.0,
+  "rare": true,
+  "basis": "~20 g sugar (FCT BD 398 kcal/100 g); without sugar ~5 kcal"
+ },
+ {
+  "name": "Packaged mango/fruit drink",
+  "bangla": "প্যাকেট জুস",
+  "category": "drink",
+  "serving": "1 pack (250 ml)",
+  "kcal": 145,
+  "protein": 0.0,
+  "rare": true,
+  "basis": "Labels (Pran/Frutika-type) ~55-60 kcal/100 ml"
+ },
+ {
+  "name": "Soft drink (Coke/Pepsi/Sprite/Mojo)",
+  "bangla": "কোমল পানীয়",
+  "category": "drink",
+  "serving": "1 can/bottle (250 ml)",
+  "kcal": 105,
+  "protein": 0.0,
+  "rare": true,
+  "basis": "Labels ~42 kcal/100 ml (10.6 g sugar)"
+ },
+ {
+  "name": "Soft drink, large",
+  "bangla": "কোমল পানীয় (বড়)",
+  "category": "drink",
+  "serving": "1 bottle (500 ml)",
+  "kcal": 210,
+  "protein": 0.0,
+  "rare": true,
+  "basis": "Labels ~42 kcal/100 ml x 500 ml"
+ },
+ {
+  "name": "Energy drink (Speed/Tiger)",
+  "bangla": "এনার্জি ড্রিংক",
+  "category": "drink",
+  "serving": "1 can/bottle (250 ml)",
+  "kcal": 115,
+  "protein": 0.0,
+  "rare": true,
+  "basis": "Labels ~45-48 kcal/100 ml (sugar ~11-12 g/100 ml); verify local label"
+ },
+ {
+  "name": "Milkshake",
+  "bangla": "মিল্কশেক",
+  "category": "drink",
+  "serving": "1 glass (~350 ml)",
+  "kcal": 450,
+  "protein": 10.0,
+  "rare": true,
+  "basis": "USDA/chain data milkshake ~120-130 kcal/100 ml"
+ },
+ {
+  "name": "Daber pani (coconut water)",
+  "bangla": "ডাবের পানি",
+  "category": "drink",
+  "serving": "1 dab (~300 ml)",
+  "kcal": 60,
+  "protein": 1.8,
+  "rare": false,
+  "basis": "FCT BD coconut water 20 kcal, 0.6 g P/100 ml x 300 ml"
+ },
+ {
+  "name": "Sagor kola (banana)",
+  "bangla": "সাগর কলা",
+  "category": "fruit",
+  "serving": "1 medium (~100 g edible)",
+  "kcal": 95,
+  "protein": 1.3,
+  "rare": false,
+  "basis": "FCT BD banana Sagar ripe 95 kcal, 1.3 g P/100 g"
+ },
+ {
+  "name": "Chompa / deshi kola (small banana)",
+  "bangla": "চাঁপা কলা",
+  "category": "fruit",
+  "serving": "1 small (~70 g edible)",
+  "kcal": 65,
+  "protein": 0.8,
+  "rare": false,
+  "basis": "FCT BD banana ~95 kcal/100 g x 70 g (no separate Chompa entry)"
+ },
+ {
+  "name": "Peyara (guava)",
+  "bangla": "পেয়ারা",
+  "category": "fruit",
+  "serving": "1 medium (~150 g)",
+  "kcal": 95,
+  "protein": 1.5,
+  "rare": false,
+  "basis": "FCT BD guava 63 kcal, 1.0 g P/100 g x 150 g"
+ },
+ {
+  "name": "Apple",
+  "bangla": "আপেল",
+  "category": "fruit",
+  "serving": "1 medium (~150 g)",
+  "kcal": 93,
+  "protein": 0.5,
+  "rare": false,
+  "basis": "FCT BD apple with skin 62 kcal/100 g x 150 g"
+ },
+ {
+  "name": "Mango (aam)",
+  "bangla": "আম",
+  "category": "fruit",
+  "serving": "1 medium (~200 g edible)",
+  "kcal": 164,
+  "protein": 1.6,
+  "rare": false,
+  "basis": "FCT BD Langra 82 kcal/100 g x 200 g; Fazli 70/100 g but bigger fruit"
+ },
+ {
+  "name": "Papaya (pepe)",
+  "bangla": "পেঁপে",
+  "category": "fruit",
+  "serving": "1 plate/cup (~150 g)",
+  "kcal": 50,
+  "protein": 0.9,
+  "rare": false,
+  "basis": "FCT BD ripe papaya 33 kcal, 0.6 g P/100 g x 150 g"
+ },
+ {
+  "name": "Pineapple (anaros)",
+  "bangla": "আনারস",
+  "category": "fruit",
+  "serving": "1 cup pieces (~150 g)",
+  "kcal": 70,
+  "protein": 1.5,
+  "rare": false,
+  "basis": "FCT BD pineapple 47 kcal, 1.0 g P/100 g x 150 g"
+ },
+ {
+  "name": "Orange (komola)",
+  "bangla": "কমলা",
+  "category": "fruit",
+  "serving": "1 medium (~130 g edible)",
+  "kcal": 57,
+  "protein": 0.9,
+  "rare": false,
+  "basis": "FCT BD orange 44 kcal, 0.7 g P/100 g x 130 g"
+ },
+ {
+  "name": "Malta",
+  "bangla": "মাল্টা",
+  "category": "fruit",
+  "serving": "1 medium (~150 g edible)",
+  "kcal": 74,
+  "protein": 0.3,
+  "rare": false,
+  "basis": "FCT BD sweet orange (malta) 49 kcal/100 g x 150 g"
+ },
+ {
+  "name": "Watermelon (tormuj)",
+  "bangla": "তরমুজ",
+  "category": "fruit",
+  "serving": "1 plate (~300 g)",
+  "kcal": 66,
+  "protein": 1.5,
+  "rare": false,
+  "basis": "FCT BD watermelon 22 kcal, 0.5 g P/100 g x 300 g"
+ },
+ {
+  "name": "Jackfruit (kathal)",
+  "bangla": "কাঁঠাল",
+  "category": "fruit",
+  "serving": "10 koa / bulbs (~150 g)",
+  "kcal": 111,
+  "protein": 1.8,
+  "rare": false,
+  "basis": "FCT BD ripe jackfruit 74 kcal, 1.2 g P/100 g x 150 g"
+ },
+ {
+  "name": "Dates (khejur, dried)",
+  "bangla": "খেজুর",
+  "category": "fruit",
+  "serving": "1 piece (~8 g)",
+  "kcal": 24,
+  "protein": 0.2,
+  "rare": false,
+  "basis": "FCT BD dates dried 301 kcal/100 g x 8 g; Medjool ~20 g = 60 kcal"
+ },
+ {
+  "name": "Litchi",
+  "bangla": "লিচু",
+  "category": "fruit",
+  "serving": "10 pieces (~100 g edible)",
+  "kcal": 66,
+  "protein": 0.8,
+  "rare": false,
+  "basis": "USDA litchi raw 66 kcal, 0.8 g P/100 g"
+ },
+ {
+  "name": "Grapes (angur)",
+  "bangla": "আঙুর",
+  "category": "fruit",
+  "serving": "1 cup (~100 g)",
+  "kcal": 69,
+  "protein": 0.7,
+  "rare": false,
+  "basis": "USDA grapes 69 kcal, 0.7 g P/100 g"
+ }
+]

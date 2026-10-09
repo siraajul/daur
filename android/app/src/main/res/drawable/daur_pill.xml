@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Runner-yellow button: the one "do this next" action on a widget. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#FFD23F" />
+    <corners android:radius="22dp" />
+</shape>

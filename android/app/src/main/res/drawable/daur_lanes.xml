@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lane texture under every widget: a far bigger track curving past (8% ink). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="364dp" android:height="170dp" android:viewportWidth="364" android:viewportHeight="170">
+    <path android:strokeColor="#14FFF8F3" android:strokeWidth="1" android:fillColor="#00000000" android:pathData="M138,275 A204,204 0 0,1 342,71 H364 M138,275 V170" />
+    <path android:strokeColor="#14FFF8F3" android:strokeWidth="1" android:fillColor="#00000000" android:pathData="M148,275 A194,194 0 0,1 342,81 H364 M148,275 V170" />
+    <path android:strokeColor="#14FFF8F3" android:strokeWidth="1" android:fillColor="#00000000" android:pathData="M158,275 A184,184 0 0,1 342,91 H364 M158,275 V170" />
+    <path android:strokeColor="#14FFF8F3" android:strokeWidth="1" android:fillColor="#00000000" android:pathData="M168,275 A174,174 0 0,1 342,101 H364 M168,275 V170" />
+</vector>

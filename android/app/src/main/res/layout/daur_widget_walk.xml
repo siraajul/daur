@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Daur · Walk: steps against this week's target, the runner on the home straight. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/daur_widget_bg" android:clipToOutline="true" android:orientation="vertical" android:padding="14dp">
+    <TextView android:id="@+id/walk_label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Walk" android:textColor="#FFD9CC" android:textSize="13sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+    <TextView android:id="@+id/walk_big" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFF8F3" android:textSize="30sp" android:fontFamily="@font/unbounded_black" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="4dp"/>
+    <TextView android:id="@+id/walk_sub" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="#FFD9CC" android:textSize="12sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="4dp"/>
+    <View android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" />
+    <ImageView android:id="@+id/walk_lane" android:layout_width="match_parent" android:layout_height="30dp" android:scaleType="fitXY" android:importantForAccessibility="no" />
+</LinearLayout>

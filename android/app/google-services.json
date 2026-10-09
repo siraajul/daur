@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "179925532044",
+    "project_id": "daurfit",
+    "storage_bucket": "daurfit.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:179925532044:android:6756796d5a2804a454aaa9",
+        "android_client_info": {
+          "package_name": "com.siraj.daur"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "179925532044-uhdmntns5466kjvpavdlv60n5f5imr1j.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.siraj.daur",
+            "certificate_hash": "73b4b3ceb5f504913af3653063dc26caafd1915a"
+          }
+        },
+        {
+          "client_id": "179925532044-qgiffj4m3vs4vgt4n0sjo5vunvian539.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKp5dMZOawNskJMJktu_53MnmccEaUzZk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "179925532044-qgiffj4m3vs4vgt4n0sjo5vunvian539.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "179925532044-0vbu0hp2odi7ekq9h470sakm5j81hc2i.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.siraj.daur"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

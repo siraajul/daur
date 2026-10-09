@@ -1,0 +1,425 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Daur: widgets</title>
+<link rel="stylesheet" href="file:///Users/sirajul/.claude/skills/app-designer/assets/device.css">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&display=swap" rel="stylesheet">
+<style>
+:root{--tartan:#AD3B26;--infield:#98321F;--ink:#FFF8F3;--ink2:#FFD9CC;--lane:rgba(255,248,243,.5);--faint:rgba(255,248,243,.22);--runner:#FFD23F;--on:#3A1208;--x:var(--sf)}
+.x{font-family:var(--sf);font-stretch:150%;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+p{margin:0}
+
+/* ---------- wallpapers ---------- */
+.home{background:radial-gradient(120% 70% at 30% 10%,#5d6b7a 0%,#2b3440 45%,#14181e 100%);color:#fff}
+.home.tint{background:radial-gradient(120% 70% at 30% 10%,#3a3f47 0%,#1e2228 50%,#0d0f12 100%)}
+.lock{background:radial-gradient(120% 80% at 60% 0%,#6a7c8c 0%,#33404d 45%,#161b21 100%);color:#fff}
+
+/* ---------- iOS widget grid (402 pt: 2 × 170 + 24 gap, 19 side) ---------- */
+.grid{position:absolute;left:19px;right:19px;top:76px;display:grid;grid-template-columns:170px 170px;gap:24px 24px}
+.w{position:relative;border-radius:22px;overflow:hidden;background:var(--tartan);color:var(--ink);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.w.s{width:170px;height:170px}
+.w.m{grid-column:span 2;width:364px;height:170px}
+.lbl{display:block;font:500 13px var(--sf);color:var(--ink2)}
+.cap{position:absolute;left:0;right:0;text-align:center;font:500 12px var(--sf);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.grid figure{margin:0;position:relative}
+.grid figcaption{text-align:center;font:500 12px var(--sf);margin-top:6px;color:rgba(255,255,255,.92)}
+
+/* lanes: the track runs through every widget */
+.lanes{position:absolute;inset:auto 0 0 0;height:22px;pointer-events:none}
+.lanes i{position:absolute;left:0;right:0;border-top:1px solid var(--faint)}
+
+/* Today (medium) */
+.today .trk{position:absolute;left:12px;top:14px;width:178px;height:142px}
+.today .trk svg{width:100%;height:100%;overflow:visible}
+.today .in{position:absolute;left:12px;top:14px;width:178px;height:142px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.today .in .x{font-size:34px;line-height:.9}
+.today .in .x i{font-style:normal;font-size:14px;margin-left:2px}
+.today .side{position:absolute;left:204px;right:16px;top:16px;bottom:16px;display:flex;flex-direction:column}
+.today .lap{font:900 12px var(--sf);font-stretch:150%;letter-spacing:.06em;color:var(--ink2)}
+.today .next{margin-top:auto;font:800 22px/1.05 var(--sf);font-stretch:125%;letter-spacing:-.01em}
+.today .when{font:600 13px var(--sf);color:var(--ink);margin-top:3px}
+.today .bar{height:6px;border-radius:3px;background:var(--faint);margin-top:12px;overflow:hidden}
+.today .bar b{display:block;height:100%;width:56%;background:var(--ink);border-radius:3px}
+.today .k{font:500 12px var(--sf);color:var(--ink2);margin-top:5px;font-variant-numeric:tabular-nums}
+
+/* lane texture: a far bigger track curving under every widget */
+.tex{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.w > *:not(.tex){position:relative}
+.w .trk,.w .in,.w .side,.w .num,.meal .when,.w .info,.w .gl,.w .plus,.w .ln,.tsmall .b,.w .legs,.w .cap2,.large .hd,.large .rows{position:absolute}
+
+/* leg strip under the next-meal numeral */
+.legs{left:16px;top:88px;display:flex;gap:4px;width:150px}
+.legs i{flex:1;height:7px;border-radius:4px;background:var(--ink)}
+.legs i.n{background:none;box-shadow:inset 0 0 0 2px var(--runner)}
+.legs i.f{background:var(--faint)}
+.cap2{left:16px;top:86px;font:700 13px var(--sf);color:var(--ink);display:flex;align-items:center;gap:6px}
+.cap2:before{content:'';width:8px;height:8px;border-radius:4px;background:var(--runner)}
+
+/* Today (large) */
+.w.l{grid-column:span 2;width:364px;height:382px}
+.large .hd{position:absolute;left:18px;right:18px;top:16px;display:flex;justify-content:space-between;font:900 12px var(--sf);font-stretch:150%;letter-spacing:.06em;color:var(--ink2)}
+.large .trk{position:absolute;left:34px;right:34px;top:50px;height:184px}
+.large .trk svg{width:100%;height:100%;overflow:visible}
+.large .in{position:absolute;left:34px;right:34px;top:50px;height:184px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.large .in small{font:900 12px var(--sf);font-stretch:150%;letter-spacing:.08em;color:var(--ink2)}
+.large .in .x{font-size:40px;line-height:.95;margin-top:2px}
+.large .in .x i{font-style:normal;font-size:15px;margin-left:2px}
+.large .rows{position:absolute;background:var(--tartan);box-shadow:0 0 0 8px var(--tartan);left:18px;right:18px;bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.large .rows > div{display:grid;grid-template-columns:34px 1fr;align-items:center}
+.large .rows .x{font:900 24px/1 var(--sf);font-stretch:150%;color:var(--ink2)}
+.large .rows .n .x{color:var(--runner)}
+.large .rows .d .x{color:var(--ink)}
+.large .rows b{display:block;font:700 15px var(--sf)}
+.large .rows span{display:block;font:500 12px var(--sf);color:var(--ink2);font-variant-numeric:tabular-nums}
+.large .rows .n b{color:var(--ink)}
+
+/* Today (small) */
+.tsmall .trk{position:absolute;left:10px;right:10px;top:12px;height:98px}
+.tsmall .trk svg{width:100%;height:100%;overflow:visible}
+.tsmall .in{position:absolute;left:10px;right:10px;top:12px;height:98px;display:grid;place-items:center}
+.tsmall .in .x{font-size:24px}
+.tsmall .in .x i{font-style:normal;font-size:11px;margin-left:1px}
+.tsmall .b{position:absolute;left:14px;right:14px;bottom:12px}
+.tsmall .b b{display:block;font:800 15px var(--sf);font-stretch:125%}
+.tsmall .b span{font:600 12px var(--sf);color:var(--ink)}
+
+/* Water */
+.water{padding:14px}
+.water .top{display:flex;align-items:baseline;gap:4px;margin-top:2px}
+.water .top .x{font-size:34px;line-height:.9}
+.water .top span{font:800 15px var(--sf);font-stretch:150%}
+.water .of{font:500 12px var(--sf);color:var(--ink2);margin-top:4px}
+.water .gl{position:absolute;left:14px;right:60px;bottom:16px;display:grid;grid-template-columns:repeat(7,1fr);gap:4px 3px}
+.water .gl i{height:17px;border-radius:3px 3px 5px 5px;border:1.5px solid var(--lane)}
+.water .gl i.f{background:var(--ink);border-color:var(--ink)}
+.water .gl i.n{border:2px solid var(--runner)}
+.plus{position:absolute;right:12px;bottom:12px;width:40px;height:40px;border-radius:20px;background:var(--runner);display:grid;place-items:center}
+.plus svg{width:20px;height:20px;stroke:var(--on);stroke-width:2.6;stroke-linecap:round;fill:none}
+
+/* Walk */
+.walk{padding:14px}
+.walk .x{font-size:34px;line-height:.95;display:block;margin-top:2px}
+.walk .of{font:500 12px var(--sf);color:var(--ink2);margin-top:4px}
+.walk .ln{position:absolute;left:0;right:0;bottom:22px;height:30px}
+.walk .ln svg{width:100%;height:100%;overflow:visible}
+
+/* Next meal (medium) */
+.meal .num{position:absolute;left:14px;top:8px;font-size:72px;line-height:1;color:var(--runner);letter-spacing:-.04em}
+.meal .num i{font-style:normal;font-size:22px;letter-spacing:0;margin-left:2px}
+.meal .info{position:absolute;left:16px;right:16px;bottom:16px;display:flex;align-items:flex-end;gap:12px}
+.meal .info div{flex:1;min-width:0}
+.meal .info b{display:block;font:800 22px/1.05 var(--sf);font-stretch:125%}
+.meal .info span{display:block;font:500 13px var(--sf);color:var(--ink2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.info .pill,.pill{flex:none;margin:0;height:40px;border-radius:20px;background:var(--runner);color:var(--on);font:700 15px var(--sf);display:flex;align-items:center;padding:0 18px;white-space:nowrap}
+.meal .info .pill,.thin .info .pill{display:flex;align-items:center;color:var(--on);font:700 15px var(--sf);margin:0;white-space:nowrap}
+.android .meal .info .pill,.android .thin .info .pill{font-family:"Roboto Flex"}
+.meal .when{position:absolute;right:16px;top:16px;font:600 13px var(--sf);color:var(--ink2);text-align:right}
+.meal .when b{display:block;font:900 12px var(--sf);font-stretch:150%;letter-spacing:.06em;color:var(--ink2)}
+
+/* ---------- iOS tinted mode: background removed, content in one tint ---------- */
+.tint .w{background:rgba(255,255,255,.08);-webkit-backdrop-filter:blur(20px) saturate(.6);backdrop-filter:blur(20px) saturate(.6);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.18);
+  --ink:rgba(255,226,196,.95);--ink2:rgba(255,226,196,.62);--lane:rgba(255,226,196,.38);--faint:rgba(255,226,196,.18);--runner:#FFE2C4;--on:#2a1e14;--tartan:transparent;--infield:rgba(255,226,196,.06)}
+
+/* ---------- dock ---------- */
+.dock{position:absolute;left:12px;right:12px;bottom:14px;height:92px;border-radius:34px;display:flex;justify-content:space-around;align-items:center}
+.app{width:62px;height:62px;border-radius:15px;background:#3c4652}
+.icon{width:62px;height:62px;border-radius:15px;overflow:hidden}
+.icon svg{width:100%;height:100%}
+
+/* ---------- Lock screen ---------- */
+.lk-date{position:absolute;top:96px;left:0;right:0;text-align:center;font:600 22px var(--sf);color:rgba(255,255,255,.85)}
+.lk-time{position:absolute;top:118px;left:0;right:0;text-align:center;font:700 96px/1 var(--sf);font-stretch:110%;letter-spacing:-.02em;color:rgba(255,255,255,.92)}
+.acc{position:absolute;top:236px;left:40px;right:40px;display:flex;gap:12px;justify-content:center}
+.acc .c{width:72px;height:72px;border-radius:36px;background:rgba(255,255,255,.16);display:grid;place-items:center;color:#fff;position:relative}
+.acc .c svg{width:56px;height:56px}
+.acc .r{width:170px;height:72px;border-radius:14px;padding:8px 4px;color:#fff}
+.acc .r b{display:block;font:900 15px var(--sf);font-stretch:150%;letter-spacing:-.01em}
+.acc .r span{display:block;font:600 13px var(--sf);opacity:.85;margin-top:3px}
+.acc .r small{display:block;font:500 13px var(--sf);opacity:.7}
+.la{position:absolute;left:14px;right:14px;bottom:118px;height:132px;border-radius:24px;background:var(--tartan);color:var(--ink);padding:16px 18px;display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:10px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.la .mini{width:64px;height:42px;overflow:visible}
+.la .t{min-width:0;overflow:hidden}
+.la .t span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.la .clock{padding-left:6px}
+.la .t b{display:block;font:800 22px var(--sf);font-stretch:125%}
+.la .t span{display:block;font:500 13px var(--sf);color:var(--ink2);margin-top:2px}
+.la .clock{font-size:34px;color:var(--runner);line-height:1}
+.la .rail{grid-column:1/-1;height:6px;border-radius:3px;background:var(--faint);overflow:hidden;align-self:end}
+.la .rail b{display:block;height:100%;width:42%;background:var(--ink)}
+.lk-bottom{position:absolute;bottom:40px;left:46px;right:46px;display:flex;justify-content:space-between}
+.lk-bottom i{width:50px;height:50px;border-radius:25px;background:rgba(255,255,255,.18)}
+
+/* ---------- Dynamic Island board ---------- */
+.board{position:absolute;inset:0;background:#0e0f11;color:#fff;padding:40px 22px}
+.board h2{font:800 22px var(--sf);font-stretch:150%;margin:0}
+.board > p{font:400 15px var(--sf);color:rgba(255,255,255,.65);margin-top:6px}
+.di-row{margin-top:26px}
+.di-row small{display:block;font:600 13px var(--sf);color:rgba(255,255,255,.6);margin-bottom:10px}
+.island{background:#000;border-radius:22px;color:#fff;margin:0 auto}
+.compact{width:250px;height:37px;border-radius:20px;display:flex;align-items:center;justify-content:space-between;padding:0 14px}
+.compact .x{font-size:15px;color:var(--runner)}
+.compact svg,.minimal svg{overflow:visible}
+.compact svg{width:22px;height:14px}
+.minimal{width:37px;height:37px;border-radius:19px;display:grid;place-items:center}
+.minimal svg{width:22px;height:14px}
+.expanded{width:358px;height:150px;border-radius:44px;padding:18px 22px;display:grid;grid-template-columns:96px 1fr auto;grid-template-rows:1fr auto;column-gap:14px;align-items:center}
+.expanded svg{width:96px;height:60px;overflow:visible;grid-row:1}
+.expanded .l b{display:block;font:700 15px var(--sf)}
+.expanded .l{min-width:0}
+.expanded .l span{font:500 13px var(--sf);color:rgba(255,255,255,.6);white-space:nowrap}
+.expanded .r{font-size:34px;color:var(--runner);text-align:right;line-height:1}
+.expanded .rail{grid-column:1/-1;height:6px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden;margin-top:14px}
+.expanded .rail b{display:block;height:100%;width:42%;background:#fff}
+.expanded .foot{grid-column:1/-1;align-self:end;margin-top:8px;font:500 13px var(--sf);color:rgba(255,255,255,.75);display:flex;justify-content:space-between}
+
+/* ---------- Android (Pixel) ---------- */
+.android{font-family:"Roboto Flex",system-ui,sans-serif}
+.android .x{font-family:"Roboto Flex";font-stretch:151%;font-weight:1000;font-variation-settings:"wdth" 151,"wght" 1000}
+.astatus{position:absolute;top:0;left:0;right:0;height:40px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font:500 15px "Roboto Flex";color:#fff;z-index:5}
+.agrid{position:absolute;left:16px;right:16px;top:58px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.android .w{border-radius:28px;font-family:"Roboto Flex",system-ui}
+.android .w.m{width:auto;height:178px}
+.android .w.s{width:auto;height:178px}
+.android .w.thin{grid-column:span 2;height:96px}
+.android .lbl,.android .of,.android .k,.android .when,.android .info span{font-family:"Roboto Flex"}
+.asearch{position:absolute;left:16px;right:16px;bottom:118px;height:56px;border-radius:28px;background:rgba(255,255,255,.14)}
+.adock{position:absolute;left:30px;right:30px;bottom:30px;display:flex;justify-content:space-between}
+.adock .app,.adock .icon{width:58px;height:58px;border-radius:29px}
+.thin .num{position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:40px;color:var(--runner);letter-spacing:-.03em}
+.thin .info{position:absolute;left:132px;right:16px;top:0;bottom:0;display:flex;align-items:center;gap:10px}
+.thin .info div{flex:1;min-width:0}
+.thin .info b{display:block;font:800 17px "Roboto Flex";font-stretch:125%}
+.thin .info span{display:block;font:500 13px "Roboto Flex";color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Android notification */
+.shade{background:linear-gradient(#1d1b20,#141218);color:#e6e1e5}
+.qs{position:absolute;top:56px;left:16px;right:16px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.qs i{height:64px;border-radius:32px;background:#2b2930}
+.notif{position:absolute;left:12px;right:12px;border-radius:24px;background:#2b2930;padding:16px 18px}
+.notif .hd{display:flex;align-items:center;gap:8px;font:500 13px "Roboto Flex";color:#cac4d0}
+.notif .hd .ic{width:22px;height:22px;border-radius:11px;background:var(--tartan);display:grid;place-items:center}
+.notif .hd .ic svg{width:14px;height:10px}
+.notif .hd .ch{color:var(--runner)}
+.notif b{display:block;font:600 17px "Roboto Flex";margin-top:10px;color:#fff}
+.notif span{display:block;font:400 15px "Roboto Flex";color:#cac4d0;margin-top:2px}
+.notif .rail{height:6px;border-radius:3px;background:#49454f;margin-top:12px;overflow:hidden}
+.notif .rail b{display:block;margin:0;height:100%;width:42%;background:var(--runner)}
+.shade h4{position:absolute;left:28px;font:500 13px "Roboto Flex";color:#cac4d0;margin:0}
+
+/* States board */
+.states{position:absolute;inset:0;background:#20252c;padding:36px 19px 0;color:#fff}
+.states h2{font:800 22px var(--sf);font-stretch:150%;margin:0 0 4px}
+.states > p{font:400 15px var(--sf);color:rgba(255,255,255,.65);margin:0 0 18px}
+.states .grid{position:static}
+</style></head><body>
+
+<!-- 1 iOS home -->
+<section class="screen home" data-name="ios-home" data-time="17:12" data-chrome="light">
+ <div class="grid">
+  <figure style="grid-column:span 2"><div class="w m today" id="w-today"></div><figcaption>Daur · Today</figcaption></figure>
+  <figure><div class="w s water" id="w-water"></div><figcaption>Water</figcaption></figure>
+  <figure><div class="w s walk" id="w-walk"></div><figcaption>Walk</figcaption></figure>
+  <figure style="grid-column:span 2"><div class="w m meal" id="w-meal"></div><figcaption>Next meal</figcaption></figure>
+ </div>
+ <div class="dock glass-dark"><i class="app"></i><div class="icon" data-icon></div><i class="app"></i><i class="app"></i></div>
+</section>
+
+<!-- 2 iOS home, tinted mode -->
+<section class="screen home tint" data-name="ios-home-tinted" data-time="17:12" data-chrome="light">
+ <div class="grid">
+  <figure style="grid-column:span 2"><div class="w m today" data-clone="w-today"></div><figcaption>Tinted: background removed, one tint</figcaption></figure>
+  <figure><div class="w s water" data-clone="w-water"></div><figcaption>Water</figcaption></figure>
+  <figure><div class="w s walk" data-clone="w-walk"></div><figcaption>Walk</figcaption></figure>
+  <figure style="grid-column:span 2"><div class="w m meal" data-clone="w-meal"></div><figcaption>Next meal</figcaption></figure>
+ </div>
+ <div class="dock glass-dark"><i class="app"></i><div class="icon" data-icon-tint></div><i class="app"></i><i class="app"></i></div>
+</section>
+
+<!-- 3 Lock screen + Live Activity -->
+<section class="screen lock" data-name="ios-lock-live" data-time="19:39" data-chrome="light">
+ <p class="lk-date">Thursday 9 October</p>
+ <p class="lk-time">19:39</p>
+ <div class="acc">
+  <div class="c" aria-label="Lap 23, 200 metres"><svg viewBox="0 0 56 56" id="acc-oval"></svg></div>
+  <div class="r"><b>LAP 23 · 300 m</b><span>Dinner 20:00–21:00</span><small>1,214 of 1,800 kcal</small></div>
+ </div>
+ <div class="la">
+  <span class="mini" data-lapc="0.42" data-w="64" data-h="42"></span>
+  <div class="t"><b>Rest</b><span>Romanian deadlift</span><span>Next 10 × 40 kg</span></div>
+  <span class="x clock">0:52</span>
+ </div>
+ <div class="lk-bottom"><i></i><i></i></div>
+</section>
+
+<!-- 4 Dynamic Island states -->
+<section class="screen" data-name="dynamic-island" data-chrome="none">
+ <div class="board">
+  <h2>Dynamic Island</h2>
+  <p>Rest counts down and treadmill counts up by themselves. No background work.</p>
+  <div class="di-row"><small>Compact · rest timer</small>
+   <div class="island compact"><svg viewBox="0 0 22 14" class="oval-ic"></svg><span class="x">0:52</span></div></div>
+  <div class="di-row"><small>Minimal · shared with another activity</small>
+   <div class="island minimal"><svg viewBox="0 0 22 14" class="oval-ic"></svg></div></div>
+  <div class="di-row"><small>Expanded · rest timer</small>
+   <div class="island expanded">
+    <span data-lapc="0.42" data-w="96" data-h="60"></span><div class="l"><b>Rest</b><span>set 2 of 3</span></div><span class="x r">0:52</span>
+    <div class="foot"><span>Romanian deadlift</span><span>next 10 × 40 kg</span></div>
+   </div></div>
+  <div class="di-row"><small>Compact · treadmill (straight-lane glyph)</small>
+   <div class="island compact"><svg viewBox="0 0 22 14" class="straight-ic"></svg><span class="x">18:24</span></div></div>
+ </div>
+</section>
+
+<!-- 5 Android home (Pixel) -->
+<section class="screen home android" data-name="android-home" data-chrome="none">
+ <div class="astatus"><span>17:12</span><span>●●● ▲ 91%</span></div>
+ <div class="agrid">
+  <div class="w m today" data-clone="w-today" style="grid-column:span 2"></div>
+  <div class="w s water" data-clone="w-water"></div>
+  <div class="w s walk" data-clone="w-walk"></div>
+  <div class="w thin" id="w-thin"></div>
+ </div>
+ <div class="asearch"></div>
+ <div class="adock"><i class="app"></i><i class="app"></i><div class="icon" data-icon></div><i class="app"></i><i class="app"></i></div>
+</section>
+
+<!-- 6 Android notification shade -->
+<section class="screen shade android" data-name="android-live" data-chrome="none" data-dense>
+ <div class="astatus"><span>19:39</span><span>●●● ▲ 88%</span></div>
+ <div class="qs"><i></i><i></i><i></i><i></i></div>
+ <h4 style="top:222px">Ongoing</h4>
+ <div class="notif" style="top:248px">
+  <div class="hd"><span class="ic"><svg viewBox="0 0 22 14" class="oval-ic-w"></svg></span>Daur · <span class="ch">0:52</span></div>
+  <b>Rest · Romanian deadlift</b><span>Next: set 2 · 10 × 40 kg</span>
+  <div class="rail"><b></b></div>
+ </div>
+ <div class="notif" style="top:420px">
+  <div class="hd"><span class="ic"><svg viewBox="0 0 22 14" class="oval-ic-w"></svg></span>Daur · <span class="ch">18:24</span></div>
+  <b>Treadmill</b><span>1.74 km · ≈ 165 kcal · lap 5</span>
+ </div>
+</section>
+
+<!-- 6b Large Today -->
+<section class="screen home" data-name="ios-large" data-time="17:12" data-chrome="light">
+ <div class="grid">
+  <figure style="grid-column:span 2"><div class="w l large" id="w-large"></div><figcaption>Daur · Today, large</figcaption></figure>
+  <figure><div class="w s water" data-clone="w-water"></div><figcaption>Water</figcaption></figure>
+  <figure><div class="w s walk" data-clone="w-walk"></div><figcaption>Walk</figcaption></figure>
+ </div>
+</section>
+
+<!-- 6c Day 84 -->
+<section class="screen home" data-name="ios-finish" data-time="20:40" data-chrome="light">
+ <div class="grid">
+  <figure style="grid-column:span 2"><div class="w l large" id="w-large-84"></div><figcaption>Day 84 · the cut closes</figcaption></figure>
+ </div>
+</section>
+
+<!-- 7 States -->
+<section class="screen" data-name="widget-states" data-chrome="none">
+ <div class="states">
+  <h2>States</h2>
+  <p>Morning, a closed lap, a full day of water, a walked target.</p>
+  <div class="grid">
+   <figure style="grid-column:span 2"><div class="w m today" id="w-today-0"></div><figcaption>7:52 · lap starts</figcaption></figure>
+   <figure><div class="w s water" id="w-water-full"></div><figcaption>3.5 L done</figcaption></figure>
+   <figure><div class="w s walk" id="w-walk-done"></div><figcaption>Target walked</figcaption></figure>
+   <figure style="grid-column:span 2"><div class="w m meal" id="w-meal-done"></div><figcaption>All four logged</figcaption></figure>
+  </div>
+ </div>
+</section>
+
+<script>
+const NS='http://www.w3.org/2000/svg';
+const LANE='M267 215 A90 90 0 0 0 267 35 L135 35 A90 90 0 0 0 135 215 Z';
+// the track from above, as in the app (viewBox 402×250)
+function trackSVG(m,{lanes=3,stroke=1.5}={}){
+ const rects=[[24,14,354,222],[38,28,326,194],[52,42,298,166]].slice(3-lanes);
+ return `<svg viewBox="16 6 370 238" preserveAspectRatio="xMidYMid meet" data-m="${m}">
+  ${rects.map(([x,y,w,h])=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h/2}" fill="none" style="stroke:var(--lane)" stroke-width="${stroke*2.2}"/>`).join('')}
+  <rect x="66" y="56" width="270" height="138" rx="69" style="fill:var(--infield);stroke:var(--lane)" stroke-width="${stroke*2.2}"/>
+  <line x1="267" y1="194" x2="267" y2="236" style="stroke:var(--ink)" stroke-width="5"/>
+  <path class="ln" d="${LANE}" fill="none" style="stroke:var(--ink)" stroke-width="13" stroke-linecap="round" pathLength="400" stroke-dasharray="${m} 400" ${m?'':'stroke-opacity="0"'}/>
+  <g class="mk"></g></svg>`}
+function mark(svg){
+ const p=svg.querySelector('.ln'),L=p.getTotalLength(),m=+svg.dataset.m,g=svg.querySelector('.mk');
+ if(svg.closest('.large')){ // stencilled leg numerals just outside the lane, like painted lane numbers
+  [[50,1],[150,2],[250,3],[350,4]].forEach(([d,n])=>{const q=p.getPointAtLength(L*d/400),cx=201,cy=125,dx=q.x-cx,dy=q.y-cy,k=Math.hypot(dx,dy);
+   g.insertAdjacentHTML('beforeend',`<text x="${q.x+dx/k*58}" y="${q.y+dy/k*46+9}" text-anchor="middle" font-family="SF Pro" font-weight="900" font-size="26" style="font-stretch:150%;fill:${d<m?'var(--ink)':d-100<m?'var(--runner)':'var(--ink2)'};opacity:${d<m||d-100<m?1:.55}">${n}</text>`)})}
+ [100,200,300].forEach(d=>{const q=p.getPointAtLength(L*d/400);g.insertAdjacentHTML('beforeend',`<circle cx="${q.x}" cy="${q.y}" r="9" style="fill:${d<=m?'var(--ink)':'var(--tartan)'};stroke:var(--ink)" stroke-width="4"/>`)});
+ const q=p.getPointAtLength(L*(m%400)/400);
+ g.insertAdjacentHTML('beforeend',`<circle cx="${q.x}" cy="${q.y}" r="21" style="fill:var(--runner);stroke:var(--tartan)" stroke-width="8"/>`)}
+// a far bigger track curving under each widget: four 1pt lanes at 8%
+const tex=(w,h)=>`<svg class="tex" viewBox="0 0 ${w} ${h}">${[0,10,20,30].map(d=>`<rect x="${w*.38+d}" y="${h*.42+d}" width="${w*2.2-2*d}" height="${h*2.4-2*d}" rx="${h*1.2-d}" fill="none" stroke="rgba(255,248,243,.08)" stroke-width="1"/>`).join('')}</svg>`;
+// lap glyph: an oval lane with the runner [p] of the way round (0..1); straight lane for treadmill
+function lapSVG(p,{w=92,h=58,ink='#FFF8F3',dot='#FFD23F',sw=4}={}){
+ return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" data-lap="${p}" data-w="${w}" data-h="${h}" data-sw="${sw}" data-ink="${ink}" data-dot="${dot}"></svg>`}
+function drawLap(svg){
+ const w=+svg.dataset.w,h=+svg.dataset.h,sw=+svg.dataset.sw,p=+svg.dataset.lap,ink=svg.dataset.ink,dot=svg.dataset.dot,r=(h-sw*2)/2;
+ const x0=sw+r,x1=w-sw-r,yb=h-sw,yt=sw, mid=(x0+x1)/2;
+ const d=`M${mid} ${yb} L${x1} ${yb} A${r} ${r} 0 0 0 ${x1} ${yt} L${x0} ${yt} A${r} ${r} 0 0 0 ${x0} ${yb} Z`;
+ svg.innerHTML=`<path d="${d}" fill="none" stroke="${ink}" stroke-opacity=".3" stroke-width="${sw}"/><path class="lp" d="${d}" fill="none" stroke="${ink}" stroke-width="${sw}" stroke-linecap="round" pathLength="400" stroke-dasharray="${p*400} 400"/><line x1="${mid}" y1="${yb-sw*1.6}" x2="${mid}" y2="${yb+sw*1.6}" stroke="${ink}" stroke-width="2"/>`;
+ const path=svg.querySelector('.lp'),L=path.getTotalLength(),q=path.getPointAtLength(L*p);
+ svg.insertAdjacentHTML('beforeend',`<circle cx="${q.x}" cy="${q.y}" r="${sw*1.6}" fill="${dot}" stroke="#AD3B26" stroke-width="${sw*.6}"/>`)}
+const STRAIGHT=(c,dot)=>`<line x1="1" y1="2" x2="21" y2="2" stroke="${c}" stroke-width="1.6"/><line x1="1" y1="12" x2="21" y2="12" stroke="${c}" stroke-width="1.6"/><line x1="2" y1="7" x2="13" y2="7" stroke="${c}" stroke-width="2.4" stroke-linecap="round"/><circle cx="14" cy="7" r="3" fill="${dot}"/>`;
+
+function today(el,{m=200,lap=23,next='Snack',when='16:30–18:00',kcal='1,002 / 1,800 kcal',pct=56}={}){
+ el.innerHTML=tex(364,170)+`<div class="trk">${trackSVG(m)}</div><div class="in"><span class="x">${m}<i>m</i></span></div>
+ <div class="side"><span class="lap">LAP ${lap} OF 84</span><span class="next">${next}</span><span class="when">${when}</span>
+ <div class="bar"><b style="width:${pct}%"></b></div><span class="k">${kcal}</span></div>`}
+function water(el,g=7){
+ el.innerHTML=tex(170,170)+`<span class="lbl">Water</span><div class="top"><span class="x">${(g/4).toString()}</span><span>L</span></div>
+ ${g>=14?'':'<p class="of">of 3.5 L</p>'}
+ <div class="gl">${Array.from({length:14},(_,i)=>`<i class="${i<g?'f':i==g?'n':''}"></i>`).join('')}</div>
+ ${g>=14?'':`<span class="plus" aria-label="Add a glass"><svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg></span>`}`}
+function walk(el,steps=5410,target=8000){
+ const x=v=>10+Math.min(v/target,1)*150, done=steps>=target;
+ let s=`<line x1="0" y1="2" x2="170" y2="2" style="stroke:var(--lane)" stroke-width="1"/><line x1="0" y1="28" x2="170" y2="28" style="stroke:var(--lane)" stroke-width="1"/>`;
+ for(let k=1000;k<=target;k+=1000)s+=`<line x1="${x(k)}" y1="6" x2="${x(k)}" y2="${k%4000?11:24}" style="stroke:${k<=steps?'var(--ink)':'var(--faint)'}" stroke-width="1.6"/>`;
+ s+=`<line x1="${x(0)}" y1="15" x2="${x(steps)}" y2="15" style="stroke:var(--ink)" stroke-width="4" stroke-linecap="round"/><circle cx="${x(steps)}" cy="15" r="8" style="fill:var(--runner);stroke:var(--tartan)" stroke-width="3"/>`;
+ el.innerHTML=tex(170,170)+`<span class="lbl">Walk</span><span class="x">${steps.toLocaleString('en')}</span>
+ <p class="of">${done?'8,000 done · bonus now':`${(target-steps).toLocaleString('en')} to go`}</p><div class="ln"><svg viewBox="0 0 170 30">${s}</svg></div>`}
+function meal(el,{n=300,name='Snack',when='16:30–18:00',sub='Gym day: banana + whey · 212 kcal',btn='Log',done=false}={}){
+ const leg=n/100;
+ el.innerHTML=tex(364,170)+`<span class="x num" style="${done?'color:var(--ink)':''}">${n}<i>m</i></span><span class="when"><b>LAP 23</b>${when}</span>
+ ${done?'<span class="cap2">Lap 24 · 08:00</span>':`<div class="legs">${[1,2,3,4].map(i=>`<i class="${i<leg?'':i==leg?'n':'f'}"></i>`).join('')}</div>`}
+ <div class="info"><div><b>${name}</b><span>${sub}</span></div>${btn?`<span class="pill">${btn}</span>`:''}</div>`}
+function thin(el){
+ el.innerHTML=tex(380,96)+`<span class="x num">300</span><div class="info"><div><b>Snack · 16:30</b><span>Banana + whey</span></div><span class="pill">Log</span></div>`}
+// large Today: the oval fills the widget, stencilled leg numerals at each 100 m mark
+function large(el,{m=200,lap=23,date='Thu 9 Oct',rows,finish=false}={}){
+ rows=rows||[['1','Breakfast','8:41 · 384 kcal','d'],['2','Lunch','13:52 · 618 kcal','d'],['3','Snack','16:30–18:00','n'],['4','Dinner','20:00–21:00','']];
+ el.innerHTML=tex(364,382)+`<div class="hd"><span>LAP ${lap} OF 84</span><span>${date}</span></div>
+ <div class="trk">${trackSVG(m)}</div>
+ <div class="in">${finish?`<small>THE CUT</small><span class="x" style="color:var(--runner)">84/84</span><small style="margin-top:6px">LAPS</small>`:`<span class="x">${m}<i>m</i></span><small style="margin-top:6px">OF 400</small>`}</div>
+ <div class="rows">${rows.map(([n,a,b,c])=>`<div class="${c}"><span class="x">${n}</span><div><b>${a}</b><span>${b}</span></div></div>`).join('')}</div>`}
+
+today(document.getElementById('w-today'));
+water(document.getElementById('w-water'));
+walk(document.getElementById('w-walk'));
+meal(document.getElementById('w-meal'));
+thin(document.getElementById('w-thin'));
+today(document.getElementById('w-today-0'),{m:0,lap:23,next:'Breakfast',when:'08:00–09:00',kcal:'0 / 1,800 kcal',pct:0});
+water(document.getElementById('w-water-full'),14);
+walk(document.getElementById('w-walk-done'),8612);
+meal(document.getElementById('w-meal-done'),{n:400,name:'Lap 23 done',when:'20:52',sub:'1,752 kcal · 142 g protein',btn:'',done:true});
+large(document.getElementById('w-large'));
+large(document.getElementById('w-large-84'),{m:400,lap:84,date:'Tue 9 Dec',finish:true,rows:[['1','Breakfast','8:22 · 384 kcal','d'],['2','Lunch','13:40 · 618 kcal','d'],['3','Snack','17:05 · 212 kcal','d'],['4','Dinner','20:31 · 538 kcal','d']]});
+document.querySelectorAll('[data-clone]').forEach(el=>el.innerHTML=document.getElementById(el.dataset.clone).innerHTML);
+
+// app icon in docks
+const ICON=`<svg viewBox="0 0 344 344"><rect width="344" height="344" fill="#AD3B26"/><g fill="none" stroke="#FFF8F3" stroke-width="13"><rect x="40" y="86" width="264" height="172" rx="86"/><rect x="74" y="120" width="196" height="104" rx="52" stroke-opacity=".55"/></g><line x1="214" y1="224" x2="214" y2="258" stroke="#FFF8F3" stroke-width="7"/><circle cx="98" cy="113" r="27" fill="#FFD23F" stroke="#AD3B26" stroke-width="9"/></svg>`;
+document.querySelectorAll('[data-icon]').forEach(e=>e.innerHTML=ICON);
+document.querySelectorAll('[data-icon-tint]').forEach(e=>e.innerHTML=ICON.replaceAll('#AD3B26','#2a2620').replaceAll('#FFF8F3','#FFE2C4').replaceAll('#FFD23F','#FFE2C4'));
+// tiny oval glyphs
+const OV=(c,dot)=>`<rect x="1.5" y="1.5" width="19" height="11" rx="5.5" fill="none" stroke="${c}" stroke-width="2"/><circle cx="6" cy="2.5" r="2.6" fill="${dot}"/>`;
+document.querySelectorAll('.oval-ic').forEach(s=>s.innerHTML=OV('#FFF8F3','#FFD23F'));
+document.querySelectorAll('.straight-ic').forEach(s=>s.innerHTML=STRAIGHT('#FFF8F3','#FFD23F'));
+document.querySelectorAll('[data-lapc]').forEach(e=>{e.outerHTML=lapSVG(+e.dataset.lapc,{w:+(e.dataset.w||92),h:+(e.dataset.h||58)})});
+document.querySelectorAll('svg[data-lap]').forEach(drawLap);
+document.querySelectorAll('.oval-ic-w').forEach(s=>s.innerHTML=OV('#fff','#FFD23F'));
+// lock-screen accessory: half a lap drawn
+document.getElementById('acc-oval').innerHTML=`<rect x="4" y="15" width="48" height="26" rx="13" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="3"/><rect x="4" y="15" width="48" height="26" rx="13" fill="none" stroke="#fff" stroke-width="4" pathLength="400" stroke-dasharray="300 400" stroke-linecap="round"/><text x="28" y="33" text-anchor="middle" fill="#fff" font-family="SF Pro" font-weight="900" font-size="12" style="font-stretch:150%">300</text>`;
+// live activity: rest as a lap that fills (38 of 90 s)
+document.querySelectorAll('svg[data-m]').forEach(mark);
+</script>
+<script src="file:///Users/sirajul/.claude/skills/app-designer/assets/device.js"></script>
+</body></html>

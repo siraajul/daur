@@ -1,0 +1,180 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Daur: notifications</title>
+<link rel="stylesheet" href="file:///Users/sirajul/.claude/skills/app-designer/assets/device.css">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&display=swap" rel="stylesheet">
+<style>
+:root{--tartan:#AD3B26;--infield:#98321F;--ink:#FFF8F3;--ink2:#FFD9CC;--rule:rgba(255,248,243,.28);--runner:#FFD23F;--on:#3A1208}
+.x{font-family:var(--sf);font-stretch:150%;font-weight:900;font-variant-numeric:tabular-nums}
+p{margin:0}
+.android{font-family:"Roboto Flex",system-ui,sans-serif}
+.astatus{position:absolute;top:0;left:0;right:0;height:40px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font:500 15px "Roboto Flex";color:#fff;z-index:5}
+.shade{background:linear-gradient(#1d1b20,#141218);color:#e6e1e5}
+.qs{position:absolute;top:56px;left:16px;right:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qs i{height:64px;border-radius:32px;background:#2b2930}
+.sect{position:absolute;left:28px;font:500 13px "Roboto Flex";color:#cac4d0}
+.n{position:absolute;left:12px;right:12px;border-radius:24px;background:#2b2930;padding:14px 16px}
+.n + .n{}
+.n .hd{display:flex;align-items:center;gap:8px;font:500 13px "Roboto Flex";color:#cac4d0}
+.ic{width:24px;height:24px;border-radius:12px;background:var(--tartan);display:grid;place-items:center;flex:none}
+.ic svg{width:15px;height:10px}
+.n b{display:block;font:600 16px "Roboto Flex";color:#fff;margin-top:8px}
+.n span.t{display:block;font:400 14px/1.35 "Roboto Flex";color:#cac4d0;margin-top:2px}
+.acts{display:flex;gap:8px;margin-top:12px}
+.acts i{font-style:normal;height:36px;border-radius:18px;padding:0 14px;display:inline-flex;align-items:center;font:600 14px "Roboto Flex";color:#e6e1e5;background:#3b383e}
+.acts i.p{background:var(--runner);color:var(--on)}
+.grp{border-radius:24px;background:#2b2930;position:absolute;left:12px;right:12px;overflow:hidden}
+.grp .row{padding:12px 16px;border-top:1px solid #3b383e;display:flex;gap:10px;align-items:flex-start}
+.grp .row:first-child{border-top:0}
+.grp .row b{display:block;font:600 15px "Roboto Flex";color:#fff}
+.grp .row span{display:block;font:400 13px "Roboto Flex";color:#cac4d0;margin-top:1px}
+.grp .row small{margin-left:auto;font:400 12px "Roboto Flex";color:#938f99;white-space:nowrap}
+
+/* Android lock */
+.alock{background:radial-gradient(120% 80% at 60% 0%,#4a5562 0%,#232a31 50%,#0f1316 100%);color:#fff}
+.alock .time{position:absolute;top:84px;left:28px;font:400 84px/1 "Roboto Flex";letter-spacing:-.02em}
+.alock .date{position:absolute;top:184px;left:30px;font:500 15px "Roboto Flex";color:rgba(255,255,255,.8)}
+
+/* iOS lock */
+.lock{background:radial-gradient(120% 80% at 60% 0%,#6a7c8c 0%,#33404d 45%,#161b21 100%);color:#fff}
+.lk-date{position:absolute;top:96px;left:0;right:0;text-align:center;font:600 22px var(--sf);color:rgba(255,255,255,.85)}
+.lk-time{position:absolute;top:118px;left:0;right:0;text-align:center;font:700 96px/1 var(--sf);font-stretch:110%;letter-spacing:-.02em;color:rgba(255,255,255,.92)}
+.inote{position:absolute;left:10px;right:10px;border-radius:24px;padding:12px 14px;display:grid;grid-template-columns:38px 1fr;gap:10px;color:#fff;background:rgba(40,40,46,.55);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
+.inote .app{width:38px;height:38px;border-radius:9px;overflow:hidden}
+.inote .app svg{width:100%;height:100%}
+.inote b{font:600 15px var(--sf);display:flex;justify-content:space-between}
+.inote b small{font:400 13px var(--sf);color:rgba(255,255,255,.6)}
+.inote span{display:block;font:400 15px/1.3 var(--sf);color:rgba(255,255,255,.9);margin-top:1px}
+.stack2{position:absolute;left:20px;right:20px;height:14px;border-radius:0 0 18px 18px;background:rgba(40,40,46,.4)}
+.imenu{position:absolute;left:10px;right:10px;border-radius:16px;overflow:hidden;background:rgba(40,40,46,.7);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
+.imenu div{padding:13px 16px;font:400 17px var(--sf);color:#fff;border-top:.5px solid rgba(255,255,255,.15);display:flex;justify-content:space-between}
+.imenu div:first-child{border-top:0}
+.imenu div.p{font-weight:600}
+
+/* In-app: Reminders (Daur ground) */
+.app-scr{background:var(--tartan);color:var(--ink)}
+.body{position:absolute;inset:var(--safe-top) 0 0;padding:0 20px;overflow:hidden}
+.tb{display:flex;align-items:center;gap:8px;height:48px}
+.tb svg{width:22px;height:22px;stroke:var(--ink);stroke-width:2;fill:none;stroke-linecap:round}
+.tb span{font:500 15px var(--sf);color:var(--ink2)}
+h1{font:800 28px/1.1 var(--sf);font-stretch:150%;margin:4px 0 0}
+.sub{font:400 15px var(--sf);color:var(--ink2);margin-top:6px}
+.next{margin-top:22px;padding:14px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:baseline}
+.next b{font:600 17px var(--sf)}
+.next span{display:block;font:500 13px var(--sf);color:var(--ink2);margin-top:4px}
+.next .x{font-size:28px;color:var(--runner)}
+.rem{display:grid;grid-template-columns:1fr auto;align-items:center;min-height:64px;border-bottom:.5px solid var(--rule)}
+.rem b{display:block;font:600 17px var(--sf)}
+.rem span{display:block;font:400 13px var(--sf);color:var(--ink2);margin-top:3px;font-variant-numeric:tabular-nums}
+.tog{width:51px;height:31px;border-radius:16px;background:rgba(255,248,243,.22);position:relative}
+.tog:after{content:'';position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:14px;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.tog.on{background:var(--ink)}
+.tog.on:after{left:22px;background:var(--tartan)}
+.quiet{margin-top:22px;font:400 13px/1.4 var(--sf);color:var(--ink2)}
+
+/* Today coach card (the onboarding hint) */
+.coach{position:absolute;left:16px;right:16px;border-radius:20px;background:var(--infield);padding:16px;color:var(--ink)}
+.coach b{display:block;font:700 17px var(--sf)}
+.coach p{font:400 15px/1.35 var(--sf);color:var(--ink2);margin-top:4px}
+.coach .acts2{display:flex;gap:10px;margin-top:14px}
+.coach .acts2 i{font-style:normal;height:40px;border-radius:20px;padding:0 18px;display:inline-flex;align-items:center;font:700 15px var(--sf)}
+.coach .acts2 i.p{background:var(--runner);color:var(--on)}
+.coach .acts2 i.s{color:var(--ink);box-shadow:inset 0 0 0 1.5px rgba(255,248,243,.5)}
+.legs{position:absolute;left:20px;right:20px}
+.leg{display:grid;grid-template-columns:76px 1fr auto;align-items:center;min-height:58px;border-top:.5px solid var(--rule)}
+.leg:first-child{border-top:0}
+.leg .x{font-size:22px}
+.leg b{display:block;font:600 17px var(--sf)}
+.leg p{font:400 13px var(--sf);color:var(--ink2)}
+.leg .t{font:500 15px var(--sf);text-align:right}
+.leg .t small{display:block;font:500 13px var(--sf);color:var(--ink2)}
+</style></head><body>
+
+<!-- 1 Android shade: expanded meal reminder + grouped others -->
+<section class="screen shade android" data-name="android-shade" data-chrome="none" data-dense>
+ <div class="astatus"><span>16:30</span><span>●●● ▲ 71%</span></div>
+ <div class="qs"><i></i><i></i><i></i><i></i></div>
+ <p class="sect" style="top:222px">Notifications</p>
+ <div class="n" style="top:248px">
+  <div class="hd"><span class="ic"><svg viewBox="0 0 22 14" class="ov"></svg></span>Daur · Meals · now</div>
+  <b>Snack · 300 m</b>
+  <span class="t">Gym day: banana + whey · 212 kcal. Log it and the runner runs the leg.</span>
+  <div class="acts"><i class="p">Log as planned</i><i>Something else</i><i>Skip</i></div>
+ </div>
+ <div class="grp" style="top:424px">
+  <div class="row"><span class="ic"><svg viewBox="0 0 22 14" class="ov"></svg></span><div><b>Water · 1 of 3.5 L</b><span>Aim for 1.75 L by now. One glass, 250 ml.</span></div><small>14:30</small></div>
+  <div class="row"><span class="ic"><svg viewBox="0 0 22 14" class="ov"></svg></span><div><b>Lunch · 200 m</b><span>Fish: rui + 1 cup rice · 618 kcal</span></div><small>13:00</small></div>
+  <div class="row"><span class="ic"><svg viewBox="0 0 22 14" class="ov"></svg></span><div><b>Weigh-in · lap 23</b><span>After the bathroom, before breakfast.</span></div><small>07:30</small></div>
+ </div>
+</section>
+
+<!-- 2 Android lock screen -->
+<section class="screen alock android" data-name="android-lock" data-chrome="none">
+ <div class="astatus"><span></span><span>●●● ▲ 64%</span></div>
+ <p class="time">20:00</p>
+ <p class="date">Thursday 9 October</p>
+ <div class="n" style="top:250px;background:rgba(43,41,48,.86)">
+  <div class="hd"><span class="ic"><svg viewBox="0 0 22 14" class="ov"></svg></span>Daur · Meals · now</div>
+  <b>Dinner · 400 m, the last leg</b>
+  <span class="t">Chicken + potol · 538 kcal. Logging it closes lap 23.</span>
+  <div class="acts"><i class="p">Log as planned</i><i>Something else</i></div>
+ </div>
+ <div class="n" style="top:438px;background:rgba(43,41,48,.86)">
+  <div class="hd"><span class="ic"><svg viewBox="0 0 22 14" class="ov"></svg></span>Daur · Walk · 21:15</div>
+  <b>Walk · 5,410 of 8,000</b>
+  <span class="t">20 minutes after dinner covers the rest.</span>
+ </div>
+</section>
+
+<!-- 3 iOS lock: stack + long-press actions -->
+<section class="screen lock" data-name="ios-lock" data-time="16:30" data-chrome="light">
+ <p class="lk-date">Thursday 9 October</p>
+ <p class="lk-time">16:30</p>
+ <div class="inote" style="bottom:340px"><div class="app" data-icon></div><div><b>Snack · 300 m <small>now</small></b><span>Gym day: banana + whey · 212 kcal. Log it and the runner runs the leg.</span></div></div>
+ <div class="stack2" style="bottom:326px"></div>
+ <div class="imenu" style="bottom:150px"><div class="p">Log as planned<span>✓</span></div><div>Something else</div><div>Skip snack</div></div>
+ <p style="position:absolute;bottom:120px;left:0;right:0;text-align:center;font:500 13px var(--sf);color:rgba(255,255,255,.6)">Press and hold for actions</p>
+</section>
+
+<!-- 4 In-app: Reminders -->
+<section class="screen app-scr" data-name="app-reminders" data-time="16:12" data-chrome="light">
+ <div class="body">
+  <div class="tb"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span>Back</span></div>
+  <h1>Reminders</h1>
+  <p class="sub">On this phone only. Nothing between 22:00 and 07:00.</p>
+  <div class="next"><div><b>Next: Snack</b><span>16:30 · Gym day: banana + whey</span></div><span class="x">300</span></div>
+  <div class="rem"><div><b>Meals</b><span>08:00 · 13:00 · 16:30 · 20:00, skipped once logged</span></div><i class="tog on"></i></div>
+  <div class="rem"><div><b>Water</b><span>11:00 · 14:30 · 18:00, with + glass</span></div><i class="tog on"></i></div>
+  <div class="rem"><div><b>Weigh-in</b><span>07:30 every morning</span></div><i class="tog on"></i></div>
+  <div class="rem"><div><b>Evening walk</b><span>21:15, only if you're short of steps</span></div><i class="tog on"></i></div>
+  <div class="rem"><div><b>Check-ins</b><span>Lap 28 pace, lap 31 junk rule, lap 84</span></div><i class="tog on"></i></div>
+  <div class="rem"><div><b>Pause for today</b><span>Back tomorrow at 07:30</span></div><i class="tog"></i></div>
+  <p class="quiet">Daur schedules these on the phone. No account, no server, no Firebase. Each type also has its own channel in Android settings.</p>
+ </div>
+</section>
+
+<!-- 5 Today with the reminders hint card -->
+<section class="screen app-scr" data-name="today-hint" data-time="13:58" data-chrome="light">
+ <div class="body">
+  <div class="tb" style="justify-content:space-between"><span class="x" style="font-size:22px;color:var(--ink)">LAP 2 <small style="font:500 13px var(--sf);color:var(--ink2)">of 84</small></span><span>Fri 10 Oct</span></div>
+ </div>
+ <div class="coach" style="top:126px">
+  <b>A nudge at each meal?</b>
+  <p>Daur can remind you when a window opens: 08:00, 13:00, 16:30, 20:00. Already logged? It stays quiet.</p>
+  <div class="acts2"><i class="p">Turn on reminders</i><i class="s">Not now</i></div>
+ </div>
+ <div class="legs" style="top:316px">
+  <div class="leg"><span class="x" style="color:var(--ink2)">100</span><div><b>Breakfast</b><p>Eggs + roti</p></div><div class="t">8:47<small>384 kcal</small></div></div>
+  <div class="leg"><span class="x" style="color:var(--ink2)">200</span><div><b>Lunch</b><p>Fish: rui + 1 cup rice</p></div><div class="t">13:52<small>618 kcal</small></div></div>
+  <div class="leg"><span class="x" style="color:var(--runner)">300</span><div><b>Snack</b><p>Gym day: banana + whey</p></div><div class="t">16:30–18:00<small>212 kcal</small></div></div>
+  <div class="leg"><span class="x">400</span><div><b>Dinner</b><p>Chicken + potol</p></div><div class="t">20:00–21:00<small>538 kcal</small></div></div>
+ </div>
+</section>
+
+<script>
+const OV=`<rect x="1.5" y="1.5" width="19" height="11" rx="5.5" fill="none" stroke="#FFF8F3" stroke-width="2"/><circle cx="6" cy="2.5" r="2.6" fill="#FFD23F"/>`;
+document.querySelectorAll('svg.ov').forEach(s=>s.innerHTML=OV);
+const ICON=`<svg viewBox="0 0 344 344"><rect width="344" height="344" fill="#AD3B26"/><g fill="none" stroke="#FFF8F3" stroke-width="13"><rect x="40" y="86" width="264" height="172" rx="86"/><rect x="74" y="120" width="196" height="104" rx="52" stroke-opacity=".55"/></g><circle cx="98" cy="113" r="27" fill="#FFD23F" stroke="#AD3B26" stroke-width="9"/></svg>`;
+document.querySelectorAll('[data-icon]').forEach(e=>e.innerHTML=ICON);
+</script>
+<script src="file:///Users/sirajul/.claude/skills/app-designer/assets/device.js"></script>
+</body></html>

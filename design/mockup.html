@@ -1,0 +1,648 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Daur: screens</title>
+<link rel="stylesheet" href="file:///Users/sirajul/.claude/skills/app-designer/assets/device.css">
+<style>
+:root{
+  --ground:#AD3B26;--infield:#98321F;--ink:#FFF8F3;--ink-2:#FFD9CC;
+  --lane:rgba(255,248,243,.55);--rule:rgba(255,248,243,.28);--faint:rgba(255,248,243,.22);
+  --accent:#FFD23F;--on-accent:#3A1208;
+  --sheet:#FFF6EF;--sheet-ink:#2A0E07;--sheet-ink-2:#7A4A3C;--sheet-rule:#EBD9CF;
+  --glass:rgba(255,236,226,.20);
+}
+.screen[data-theme="dark"],.mini-screen[data-theme="dark"]{
+  --ground:#3D140C;--infield:#2C0E08;--ink:#FFF1EA;--ink-2:#E8B3A3;
+  --lane:rgba(255,241,234,.38);--rule:rgba(255,241,234,.20);--faint:rgba(255,241,234,.16);
+  --accent:#F5CB45;--glass-dark:rgba(70,24,14,.55);
+}
+.screen,.mini-screen{background:var(--ground);color:var(--ink)}
+p,h1,h2,h3,ul{margin:0;padding:0}
+.x{font-family:var(--sf);font-stretch:150%;font-weight:900;font-variant-numeric:tabular-nums}
+.tnum{font-variant-numeric:tabular-nums}
+.body{position:absolute;inset:var(--safe-top) 0 0;display:flex;flex-direction:column}
+.screen{container-type:size}
+.screen[data-scroll]{container-type:inline-size}
+
+/* top row */
+.top{display:flex;justify-content:space-between;align-items:center;padding:8px 20px 0;min-height:48px}
+.lap{display:flex;align-items:baseline;gap:8px}
+.lap .x{font-size:22px;letter-spacing:-0.01em}
+.lap small{font:500 13px var(--sf);color:var(--ink-2)}
+.date{font:500 15px var(--sf);color:var(--ink-2)}
+
+/* track */
+.trk{position:relative;flex:1 1 250px;min-height:150px;max-height:256px;margin-top:4px}
+.trk svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.infield{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.infield .x{font-size:68px;line-height:.86;letter-spacing:-0.03em}
+.infield .x i{font-style:normal;font-size:28px;letter-spacing:0;margin-left:4px}
+.infield small{font:500 13px/1.35 var(--sf);color:var(--ink-2);margin-top:10px;text-align:center}
+
+/* legs */
+.legs{padding:4px 20px 0}
+.leg{display:grid;grid-template-columns:76px 1fr auto;align-items:center;column-gap:4px;min-height:58px;border-top:.5px solid var(--rule)}
+.leg:first-child{border-top:0}
+.leg .x{font-size:22px}
+.leg b{display:block;font:600 17px/1.2 var(--sf)}
+.leg p{font:400 13px/1.3 var(--sf);color:var(--ink-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.leg>div{min-width:0}
+.leg .t{font:500 15px var(--sf);text-align:right}
+.leg .t small{display:block;font:500 13px var(--sf);color:var(--ink-2);margin-top:3px}
+.leg.done .x{color:var(--ink-2)}
+.leg.now .x{color:var(--accent)}
+.leg.now .t span{display:inline-flex;align-items:center;gap:6px}
+.leg.now .t span:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.sum{font:500 13px var(--sf);color:var(--ink-2);padding:10px 20px 0}
+.sum b{color:var(--ink);font-weight:600}
+
+/* water */
+.day{margin-top:28px}
+.water{display:flex;align-items:center;gap:12px;margin:0 20px;min-height:44px}
+.water+.water{margin-top:8px}
+.spacer{width:44px;flex:none}
+.water .lbl{font:600 15px var(--sf);white-space:nowrap}
+.water .lbl span{display:block;font:500 13px var(--sf);color:var(--ink-2);margin-top:1px}
+.glasses{flex:1;display:flex;gap:4px;justify-content:flex-end}
+.glasses i{width:7px;height:20px;border-radius:4px;border:1.5px solid var(--lane)}
+.glasses i.f{background:var(--ink);border-color:var(--ink)}
+.plus{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;flex:none}
+.plus svg,.ib svg{width:20px;height:20px;fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+
+/* cta + tab bar */
+.cta{position:absolute;left:16px;right:16px;bottom:100px;height:54px;border-radius:27px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:space-between;padding:0 24px;font:700 17px var(--sf);z-index:40}
+.cta span{font-weight:500;font-variant-numeric:tabular-nums}
+.cta.c{justify-content:center}
+.cta.muted{background:rgba(255,248,243,.14);color:var(--ink);font-weight:600}
+.cta.pressed{transform:scale(.97);filter:brightness(.92)}
+.tabbar{position:absolute;left:20px;right:20px;bottom:21px;height:62px;border-radius:31px;display:flex;align-items:center;padding:0 5px;z-index:50;color:var(--ink)}
+.tabbar a{flex:1;height:52px;border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font:500 10px/1 var(--sf);color:inherit}
+.tabbar a.on{background:rgba(255,248,243,.24);font-weight:600}
+.tabbar svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tabbar a.on svg{stroke-width:2.2}
+.ib{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;flex:none}
+.screen .glass,.mini-screen .glass{background:linear-gradient(180deg,rgba(255,244,238,.20),rgba(255,244,238,.07));-webkit-backdrop-filter:blur(14px) saturate(.9);backdrop-filter:blur(14px) saturate(.9);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.62),inset 0 -1px 0 rgba(255,255,255,.14),inset 0 0 0 .5px rgba(255,255,255,.32),0 10px 28px rgba(70,12,0,.26)}
+.screen[data-theme="dark"] .glass{background:linear-gradient(180deg,rgba(255,236,226,.14),rgba(255,236,226,.04));box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 0 0 .5px rgba(255,255,255,.14),0 10px 28px rgba(0,0,0,.4)}
+
+@container (max-height:760px){
+  .screen .day{display:none}
+  .screen .leg{min-height:50px}
+  .screen .infield .x{font-size:56px}
+  .screen .intro p,.screen .weighs{display:none}
+  .screen .hurdles.sm,.screen .last,.screen .hero.ex-h,.screen .week,.screen .wnote,.screen .ladder{display:none}
+}
+
+/* ---------- meal sheet ---------- */
+.dim{position:absolute;inset:0;background:rgba(20,5,2,.38);z-index:60}
+.sheet{position:absolute;left:8px;right:8px;bottom:8px;border-radius:34px 34px 47px 47px;background:var(--sheet);color:var(--sheet-ink);z-index:70;padding:8px 20px 0;display:flex;flex-direction:column}
+.grab{width:36px;height:5px;border-radius:3px;background:#D9C2B6;margin:0 auto 10px}
+.sh-head{display:flex;justify-content:space-between;align-items:flex-start}
+.sh-head .x{font-size:22px;color:var(--ground)}
+.sh-head h2{font:800 28px/1.1 var(--sf);font-stretch:150%;letter-spacing:-0.01em;margin-top:2px}
+.sh-head p{font:400 15px var(--sf);color:var(--sheet-ink-2);margin-top:4px}
+.sh-head .ib{background:#F2E3DA}
+.sh-head .ib svg{stroke:var(--sheet-ink)}
+.opts{margin-top:24px}
+.opt{display:grid;grid-template-columns:32px 1fr auto;column-gap:8px;align-items:start;padding:12px 0;border-top:.5px solid var(--sheet-rule)}
+.opt:first-child{border-top:0}
+.radio{width:24px;height:24px;border-radius:50%;border:1.5px solid #C9AFA3;margin-top:1px}
+.opt.sel .radio{border:0;background:var(--accent);display:grid;place-items:center}
+.opt.sel .radio svg{width:14px;height:14px;fill:none;stroke:var(--on-accent);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.opt b{font:600 17px var(--sf)}
+.opt p{font:400 15px/1.3 var(--sf);color:var(--sheet-ink-2);margin-top:2px}
+.opt .k{text-align:right;font:600 15px var(--sf)}
+.opt .k small{display:block;font:500 13px var(--sf);color:var(--sheet-ink-2);margin-top:2px}
+.note{font:400 13px/1.4 var(--sf);color:var(--sheet-ink-2);margin-top:16px;padding-top:14px;border-top:.5px solid var(--sheet-rule)}
+.sheet .cta{position:relative;left:auto;right:auto;bottom:auto;margin:24px -8px 12px}
+.skip{display:grid;grid-template-columns:32px 1fr;column-gap:8px;margin-top:4px;padding-top:14px;border-top:.5px solid var(--sheet-rule)}
+.skip svg{width:24px;height:24px;fill:none;stroke:var(--ground);stroke-width:2;stroke-linecap:round}
+.skip b{font:600 15px var(--sf);color:var(--ground)}
+.skip p{font:400 15px/1.35 var(--sf);color:var(--sheet-ink-2);margin-top:1px}
+
+/* ---------- gym ---------- */
+.title{padding:8px 20px 0;display:flex;justify-content:space-between;align-items:flex-start}
+.title h1{font:800 28px/1.1 var(--sf);font-stretch:150%;letter-spacing:-0.01em}
+.title p{font:500 15px var(--sf);color:var(--ink-2);margin-top:4px}
+.hero{padding:28px 20px 0;display:flex;align-items:baseline;gap:10px}
+.hero .x{font-size:68px;line-height:.86;letter-spacing:-0.03em}
+.hero span{font:800 28px var(--sf);font-stretch:150%}
+.hero small{font:500 15px var(--sf);color:var(--ink-2);margin-left:auto}
+.hurdles{margin:20px 0 0;height:56px}
+.hurdles svg{width:100%;height:100%;display:block;overflow:visible}
+.list{flex:1;min-height:0;overflow:hidden;padding:12px 20px 0;position:relative;-webkit-mask-image:linear-gradient(#000 calc(100% - 64px),transparent calc(100% - 24px));mask-image:linear-gradient(#000 calc(100% - 64px),transparent calc(100% - 24px))}
+.ex{display:grid;grid-template-columns:36px 1fr auto;align-items:center;min-height:46px;border-top:.5px solid var(--rule)}
+.ex:first-child{border-top:0}
+.ck{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--lane);display:grid;place-items:center}
+.ex.done .ck{background:var(--ink);border-color:var(--ink)}
+.ex.done .ck svg{width:14px;height:14px;fill:none;stroke:var(--ground);stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round}
+.ex.next .ck{border:2.5px solid var(--accent)}
+.ex b{font:400 17px var(--sf)}
+.ex.done b{color:var(--ink-2)}
+.ex.next b{font-weight:600}
+.ex .s{display:flex;gap:3px}
+.ex .s i{width:5px;height:16px;border-radius:3px;background:var(--faint)}
+.ex.done .s i,.ex .s i.f{background:var(--ink-2)}
+.ex.next .s i.f{background:var(--accent)}
+.ex .tag{font:600 13px var(--sf);color:var(--on-accent);background:var(--accent);border-radius:10px;padding:3px 9px}
+.addrow{display:flex;align-items:center;gap:12px;min-height:46px;border-top:.5px solid var(--rule);font:600 17px var(--sf)}
+.addrow svg{width:22px;height:22px;fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.menu{position:absolute;top:112px;right:16px;width:240px;border-radius:22px;background:linear-gradient(180deg,rgba(255,246,239,.86),rgba(255,240,232,.74));-webkit-backdrop-filter:blur(24px) saturate(1.2);backdrop-filter:blur(24px) saturate(1.2);color:var(--sheet-ink);z-index:60;box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 0 0 .5px rgba(255,255,255,.6),0 18px 50px rgba(50,8,0,.35);overflow:hidden}
+.menu div{display:flex;justify-content:space-between;align-items:center;min-height:48px;padding:0 16px;font:400 17px var(--sf);border-top:.5px solid var(--sheet-rule)}
+.menu div:first-child{border-top:0}
+.menu svg{width:20px;height:20px;fill:none;stroke:var(--sheet-ink);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.walk{margin-top:28px;padding-bottom:120px}
+.walk h3{font:600 17px var(--sf)}
+.walk p{font:400 15px var(--sf);color:var(--ink-2);margin-top:4px}
+.walkbar{height:8px;border-radius:4px;background:var(--faint);margin-top:12px;overflow:hidden}
+.walkbar i{display:block;height:100%;width:77%;background:var(--ink);border-radius:4px}
+
+
+/* ---------- gym tracking ---------- */
+.ex>div{min-width:0}
+.ex p{font:400 13px var(--sf);color:var(--ink-2);margin-top:2px}
+.ex.next p{color:var(--ink)}
+.list.gl .ex{min-height:54px}
+.list.gl .ex b{display:block}
+.ex.cardio .ck{border-style:dashed}
+.title.tb{align-items:center;justify-content:flex-start;gap:12px;padding-top:4px}
+.title.tb p{margin:0;font:500 15px var(--sf);color:var(--ink-2)}
+.ib svg{stroke-linejoin:round}
+h1.bal{text-wrap:balance}
+.hurdles.sm{height:44px;margin-top:16px}
+.sets{padding:16px 20px 0}
+.set{display:grid;grid-template-columns:40px 1fr auto;align-items:center;min-height:44px;border-top:.5px solid var(--rule)}
+.set:first-child{border-top:0}
+.set .x{font-size:22px}
+.set b{font:400 17px var(--sf)}
+.set>span:last-child{font:500 15px var(--sf);color:var(--ink-2)}
+.set.done .x,.set.done b{color:var(--ink-2)}
+.set.now .x{color:var(--accent)}
+.set.now b{font-weight:600}
+.steps{padding:8px 20px 0}
+.step{display:flex;justify-content:space-between;align-items:center;min-height:68px;border-top:.5px solid var(--rule)}
+.step b{font:600 17px var(--sf)}
+.step p{font:400 13px var(--sf);color:var(--ink-2);margin-top:2px}
+.ctl{display:flex;align-items:center;gap:14px}
+.ctl .v{min-width:84px;text-align:center;font-size:28px}
+.ctl .v small{font:500 15px var(--sf);margin-left:3px;color:var(--ink-2)}
+.sb{width:44px;height:44px;border-radius:22px;display:grid;place-items:center}
+.sb svg,.pz svg{width:20px;height:20px;fill:none;stroke:var(--ink);stroke-width:2.2;stroke-linecap:round}
+.last{font:400 15px/1.35 var(--sf);color:var(--ink-2);padding:12px 20px 0}
+.trk.big{max-height:340px;flex:1 1 320px;margin-top:20px}
+.trk.big .infield .x{font-size:68px}
+.trk.mid2 .infield .x{font-size:54px}
+.trk.mid2{max-height:240px;margin-top:4px}
+.next2{padding:28px 20px 0;text-align:center}
+.next2 small{font:600 13px var(--sf);color:var(--ink-2)}
+.next2 h2{font:800 28px var(--sf);font-stretch:150%;margin-top:6px}
+.adj{display:flex;justify-content:center;gap:12px;padding-top:24px}
+.pill{height:44px;border-radius:22px;padding:0 22px;display:inline-flex;align-items:center;font:600 17px var(--sf)}
+.tm{display:flex;justify-content:space-between;align-items:baseline;padding:16px 20px 0;border-top:.5px solid var(--rule);margin:0 20px;padding-left:0;padding-right:0;font:500 15px var(--sf);color:var(--ink-2)}
+.tm b{font-size:28px;color:var(--ink)}
+.cta2{position:absolute;left:16px;right:16px;bottom:40px;display:flex;gap:12px;align-items:center;z-index:40}
+.pz{width:54px;height:54px;border-radius:27px;display:grid;place-items:center;flex:none}
+
+/* ---------- water ---------- */
+.glassgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px 10px;padding:24px 20px 0}
+.glassgrid i{height:58px;border-radius:12px 12px 16px 16px;border:1.5px solid var(--lane);display:block}
+.glassgrid i.f{background:var(--ink);border-color:var(--ink)}
+.glassgrid i.n{border:2.5px solid var(--accent)}
+.week{padding:28px 20px 0}
+.week h3,.fg h3{font:600 13px var(--sf);color:var(--ink-2);margin:0}
+.bars{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;align-items:end;height:84px;margin-top:10px}
+.bars div{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px}
+.bars i{width:100%;border-radius:6px;background:var(--faint)}
+.bars div.t i{background:var(--ink)}
+.bars span{font:500 12px var(--sf);color:var(--ink-2)}
+.bars div.t span{color:var(--ink);font-weight:700}
+.wnote{font:400 15px/1.35 var(--sf);color:var(--ink-2);padding:24px 20px 0}
+/* ---------- food ---------- */
+.rice{padding:28px 20px 0}
+.rice h2,.rare h2,.rules h2{font:800 28px/1.1 var(--sf);font-stretch:150%;letter-spacing:-0.01em;margin:0;text-wrap:balance}
+.rr{display:grid;grid-template-columns:56px 1fr;align-items:center;min-height:56px;border-bottom:.5px solid var(--rule)}
+.rr:first-of-type{margin-top:12px}
+.rr .x{font-size:28px}
+.rr b{font:600 17px var(--sf)}
+.rr p{font:400 13px var(--sf);color:var(--ink-2);margin-top:2px}
+.rnote{font:400 15px/1.35 var(--sf);color:var(--ink-2);margin-top:12px}
+.fg{padding:32px 20px 0;flex:1;min-height:0;overflow:hidden;-webkit-mask-image:linear-gradient(#000 calc(100% - 64px),transparent calc(100% - 24px));mask-image:linear-gradient(#000 calc(100% - 64px),transparent calc(100% - 24px))}
+.fg h3+.chips{margin-top:10px}
+.chips+h3{margin-top:24px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:baseline;gap:6px;padding:8px 14px;border-radius:20px;border:1.5px solid var(--lane);font:500 15px var(--sf)}
+.chip.some{border-style:dashed}
+.chip small{font:500 12px var(--sf);color:var(--ink-2)}
+.fnote{font:400 15px/1.4 var(--sf);color:var(--ink-2);margin-top:24px}
+.fnote b{color:var(--ink);font-weight:600}
+.inl{text-align:center;font:600 17px var(--sf);padding:12px 0 0;min-height:44px}
+.rare{padding:16px 20px 0}
+.rh{display:grid;grid-template-columns:40px 1fr;align-items:start;margin-bottom:12px}
+.rh svg{width:30px;height:30px;fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round;margin-top:2px}
+.rh p{font:400 15px var(--sf);color:var(--ink-2);margin-top:4px}
+.rrow{display:grid;grid-template-columns:116px 1fr;column-gap:8px;padding:11px 0;border-top:.5px solid var(--rule)}
+.rrow b{font:600 15px var(--sf)}
+.rrow p{font:400 15px/1.35 var(--sf);color:var(--ink-2)}
+.junk{margin:28px 20px 0;padding-top:20px;border-top:1.5px solid var(--lane)}
+.jh{display:flex;align-items:baseline;gap:10px}
+.jh .x{font-size:68px;line-height:.86;letter-spacing:-0.03em}
+.jh span:last-child{font:800 22px var(--sf);font-stretch:150%}
+.junk h3{font:600 17px var(--sf);margin:16px 0 0}
+.junk p{font:400 15px/1.4 var(--sf);color:var(--ink-2);margin-top:6px}
+.rules{padding:16px 20px 0}
+.rsub{font:400 15px var(--sf);color:var(--ink-2);margin-top:6px}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;column-gap:16px;margin-top:20px}
+.rg{display:grid;grid-template-columns:50px 1fr;align-items:center;min-height:62px;border-top:.5px solid var(--rule)}
+.rg .x{font-size:22px;color:var(--ink-2)}
+.rg b{font:600 15px/1.25 var(--sf)}
+.rnote2{font:400 15px/1.4 var(--sf);color:var(--ink-2);margin-top:20px;padding-top:16px;border-top:.5px solid var(--rule)}
+
+/* ---------- walk ---------- */
+.togo{font:400 15px/1.35 var(--sf);color:var(--ink-2);padding:12px 20px 0}
+.togo b{color:var(--ink);font-weight:600}
+.togo span{display:block;margin-top:2px}
+.ladder{padding:14px 20px 0}
+.lad{display:grid;grid-template-columns:136px 1fr;align-items:center;min-height:46px;border-top:.5px solid var(--rule)}
+.lad:first-child{border-top:0}
+.lad .x{font-size:22px}
+.lad b{font:600 15px var(--sf)}
+.lad p{font:400 13px var(--sf);color:var(--ink-2);margin-top:1px}
+.lad.done .x,.lad.done b{color:var(--ink-2)}
+.lad.now .x{color:var(--accent)}
+.wk2{padding-top:16px;position:relative}
+.wk2 .bars{position:relative;height:66px}
+.wk2 .tl{position:absolute;left:0;right:0;border-top:1.5px dashed var(--lane);bottom:calc(19px + 8000/10000*50px)}
+/* ---------- progress ---------- */
+.lead{font:600 17px/1.3 var(--sf);padding:14px 20px 0}
+.lead span{display:block;font:400 15px var(--sf);color:var(--ink-2);margin-top:4px}
+.lead em{display:block;font:400 15px/1.35 var(--sf);font-style:normal;color:var(--ink-2);margin-top:10px}
+.season{padding:28px 20px 0}
+.season .grid{display:grid;grid-template-columns:repeat(12,1fr);grid-auto-flow:column;grid-template-rows:repeat(7,18px);row-gap:4px}
+.season svg{width:24px;height:14px;display:block;overflow:visible}
+.axis{position:relative;height:52px;margin-top:4px}
+.axis .ms{position:absolute;top:0;text-align:right;padding-top:8px;border-right:1.5px solid var(--lane);padding-right:6px}
+.axis .ms b{display:block;font-size:15px;font-weight:800;line-height:1.1}
+.axis .ms small{display:block;font:500 12px var(--sf);color:var(--ink-2);margin-top:3px;white-space:nowrap}
+
+.axis .sh{display:none}
+@container (max-width:390px){.screen .axis .lg{display:none}.screen .axis .sh{display:inline}.screen .infield small{font-size:12px;margin-top:4px}.screen .infield{padding-bottom:10px}}
+.miles{padding:28px 20px 0}
+.weighs{flex:1;min-height:0;overflow:hidden;padding:20px 20px 0;-webkit-mask-image:linear-gradient(#000 calc(100% - 64px),transparent calc(100% - 24px));mask-image:linear-gradient(#000 calc(100% - 64px),transparent calc(100% - 24px))}
+.weighs h3{font:600 13px var(--sf);color:var(--ink-2);margin-bottom:4px}
+.wrow{display:grid;grid-template-columns:1fr auto 84px;column-gap:16px;min-height:44px;align-items:center;border-top:.5px solid var(--rule);font:400 17px var(--sf)}
+.wrow small{font:500 15px var(--sf);color:var(--ink-2)}
+.wrow b{text-align:right;font-size:17px;font-weight:800}
+.mile{display:grid;grid-template-columns:1fr auto auto;column-gap:18px;align-items:baseline;min-height:40px;padding-top:10px;border-top:.5px solid var(--rule)}
+.mile:first-child{border-top:0}
+.mile b{font:600 17px var(--sf)}
+.mile .x{font-size:17px;font-weight:800}
+.mile span{font:500 15px var(--sf);color:var(--ink-2);width:56px;text-align:right}
+
+/* ---------- first run ---------- */
+.intro{padding:24px 20px 0}
+.intro h2{font:800 28px/1.12 var(--sf);font-stretch:150%;letter-spacing:-0.01em;text-wrap:balance}
+.intro p{font:400 17px/1.35 var(--sf);color:var(--ink-2);margin-top:12px}
+.field{margin:24px 20px 0;display:flex;align-items:center;justify-content:space-between;background:var(--infield);border-radius:16px;padding:0 16px;height:56px}
+.field label{font:500 15px var(--sf);color:var(--ink-2)}
+.field b{font-size:22px}
+.field b small{font:500 15px var(--sf);color:var(--ink-2);margin-left:4px}
+
+/* ---------- storyboard ---------- */
+.board{position:relative;min-height:874px;padding:40px 24px 40px;background:var(--infield)}
+.board h2{font:800 22px var(--sf);font-stretch:150%}
+.board > p{font:400 15px var(--sf);color:var(--ink-2);margin-top:4px}
+.frames{display:grid;grid-template-columns:1fr 1fr;gap:20px 16px;margin-top:22px;justify-items:center}
+.frame figcaption{font:500 13px/1.3 var(--sf);color:var(--ink-2);margin-top:8px;width:161px}
+.frame figcaption b{color:var(--ink);font-weight:600}
+figure{margin:0}
+
+/* ---------- icon ---------- */
+.app-icon{background:#AD3B26}
+.app-icon svg{width:100%;height:100%}
+</style></head><body>
+
+<!-- 1 Today -->
+<section class="screen" data-name="today" data-time="17:12" data-chrome="light" id="s-today"></section>
+
+<!-- 2 Meal sheet -->
+<section class="screen" data-name="meal-sheet" data-time="17:12" data-chrome="light" data-home="dark" id="s-sheet"></section>
+
+<!-- 2b Water -->
+<section class="screen" data-name="water" data-time="17:14" data-chrome="light">
+ <div class="body" style="padding-bottom:178px">
+  <div class="title tb"><div class="ib glass" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></div><p>Today</p><div class="ib glass" style="margin-left:auto" aria-label="More"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></div></div>
+  <div class="title"><div><h1>Water</h1><p>Thu 9 Oct · each glass is 250 ml</p></div></div>
+  <div class="hero"><span class="x">1.75</span><span>of 3.5 L</span></div>
+  <div class="glassgrid" id="glassgrid"></div>
+  <div class="week"><h3>This week</h3><div class="bars" id="wbars"></div></div>
+  <p class="wnote">Build up from 2.5 L to 3–3.5 L. Drink more on gym days, when sweating or in hot weather. If a doctor has told you to limit fluids, follow that instead.</p>
+ </div>
+ <div class="cta"><b>Drink a glass</b><span>glass 8 of 14</span></div>
+ <nav class="tabbar glass" data-system data-tab="0"></nav>
+</section>
+
+<!-- 2c Walk -->
+<section class="screen" data-name="walk" data-time="17:20" data-chrome="light">
+ <div class="body" style="padding-bottom:178px">
+  <div class="title tb"><div class="ib glass" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></div><p>Today</p></div>
+  <div class="title"><div><h1>Walk</h1><p>Week 4 · target 8,000 steps</p></div></div>
+  <div class="hero"><span class="x">5,410</span><span>steps</span></div>
+  <div class="hurdles"><svg viewBox="0 0 402 56" id="walklane"></svg></div>
+  <p class="togo tnum"><b>2,590 to go,</b> about 25 minutes of brisk walking.<span>3.9 km so far · ≈ 210 kcal</span></p>
+  <div class="ladder">
+   <div class="lad done"><span class="x tnum">7,000</span><div><b>Weeks 1–2</b><p>about 5 km a day</p></div></div>
+   <div class="lad now"><span class="x tnum">8,000</span><div><b>Weeks 3–4 · now</b><p>about 6 km a day</p></div></div>
+   <div class="lad"><span class="x tnum">10,000</span><div><b>Weeks 5–12</b><p>9,000–10,000, about 7 km</p></div></div>
+  </div>
+  <div class="week wk2"><h3>This week</h3><div class="bars" id="sbars"><i class="tl"></i></div></div>
+ </div>
+ <div class="cta"><b>Start a walk</b><span>25 min to target</span></div>
+ <nav class="tabbar glass" data-system data-tab="0"></nav>
+</section>
+
+<!-- 3 Gym: session with sets, reps, weight -->
+<section class="screen" data-name="gym" data-time="19:41" data-chrome="light">
+ <div class="body">
+  <div class="title"><div><h1>Gym</h1><p>Session 11 · Thursday · 31 min</p></div><div class="ib glass" aria-label="More"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></div></div>
+  <div class="hero"><span class="x">5</span><span>of 9</span><small class="tnum">14 of 27 sets</small></div>
+  <div class="hurdles"><svg viewBox="0 0 402 56" class="hrd" data-n="9" data-d="5"></svg></div>
+  <div class="list gl" data-scrolls></div>
+ </div>
+ <nav class="tabbar glass" data-system data-tab="1"></nav>
+</section>
+
+<!-- 3b Gym menu state -->
+<section class="screen" data-name="gym-menu" data-time="19:41" data-chrome="light">
+ <div class="body">
+  <div class="title"><div><h1>Gym</h1><p>Session 11 · Thursday · 31 min</p></div><div class="ib glass" aria-label="More"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></div></div>
+  <div class="hero"><span class="x">5</span><span>of 9</span></div>
+  <div class="hurdles"><svg viewBox="0 0 402 56" class="hrd" data-n="9" data-d="5"></svg></div>
+  <div class="list gl" data-scrolls></div>
+ </div>
+ <div class="menu" data-float>
+  <div>Edit list<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13 7l4 4"/></svg></div>
+  <div>Clear ticks<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8.5 15.5l7-7"/></svg></div>
+  <div>Restore default list<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg></div>
+ </div>
+ <nav class="tabbar glass" data-system data-tab="1"></nav>
+</section>
+
+<!-- 3c Exercise: log a set -->
+<section class="screen" data-name="exercise" data-time="19:41" data-chrome="light">
+ <div class="body" style="padding-bottom:178px">
+  <div class="title tb"><div class="ib glass" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></div><p class="tnum">Exercise 6 of 9</p></div>
+  <div class="title"><div><h1 class="bal">Romanian deadlift</h1><p>Barbell · hamstrings, glutes</p></div></div>
+  <div class="hero ex-h"><span class="x">2</span><span>of 3 sets</span></div>
+  <div class="hurdles sm"><svg viewBox="0 0 402 56" class="hrd" data-n="3" data-d="1"></svg></div>
+  <div class="sets">
+   <div class="set done"><span class="x">1</span><b class="tnum">10 reps × 40 kg</b><span class="tnum">19:38</span></div>
+   <div class="set now"><span class="x">2</span><b>Now</b><span>rest done</span></div>
+   <div class="set"><span class="x">3</span><b class="tnum">10 reps × 40 kg</b><span>planned</span></div>
+  </div>
+  <div class="steps"><div class="step"><div><b>Reps</b><p>planned 10</p></div><div class="ctl"><span class="sb glass" aria-label="Less"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></span><span class="v x">10<small></small></span><span class="sb glass" aria-label="More"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></span></div></div><div class="step"><div><b>Weight</b><p>2.5 kg steps</p></div><div class="ctl"><span class="sb glass" aria-label="Less"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></span><span class="v x">40<small>kg</small></span><span class="sb glass" aria-label="More"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></span></div></div></div>
+  <p class="last tnum">Last time, Mon 6 Oct: 3 × 10 at 37.5 kg. Up 2.5 kg today.</p>
+ </div>
+ <div class="cta"><b>Log set 2</b><span>10 × 40 kg</span></div>
+ <nav class="tabbar glass" data-system data-tab="1"></nav>
+</section>
+
+<!-- 3d Rest timer (full-screen mode) -->
+<section class="screen" data-name="rest-timer" data-time="19:39" data-chrome="light">
+ <div class="body" style="padding-bottom:110px">
+  <div class="title tb"><div class="ib glass" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M5 9l7 7 7-7"/></svg></div><p>Rest · Romanian deadlift</p></div>
+  <div class="trk big"><span class="tk" data-id="tr1" data-m="168"></span><div class="infield"><span class="x tnum">0:52</span><small>of 1:30 rest</small></div></div>
+  <div class="next2"><small>Next · set 2 of 3</small><h2 class="tnum">10 reps × 40 kg</h2></div>
+  <div class="adj"><span class="pill glass tnum">−15 s</span><span class="pill glass tnum">+15 s</span></div>
+ </div>
+ <div class="cta c" style="bottom:40px">Start set 2</div>
+</section>
+
+<!-- 3e Treadmill (full-screen mode) -->
+<section class="screen" data-name="treadmill" data-time="20:02" data-chrome="light">
+ <div class="body" style="padding-bottom:110px">
+  <div class="title tb"><div class="ib glass" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M5 9l7 7 7-7"/></svg></div><p>Cardio · optional, 20–30 min</p></div>
+  <div class="title"><div><h1>Treadmill</h1></div></div>
+  <div class="trk mid2"><span class="tk" data-id="tr2" data-m="140"></span><div class="infield"><span class="x tnum">18:24</span><small>of 25:00 · lap 5</small></div></div>
+  <div class="steps"><div class="step"><div><b>Speed</b><p>brisk walk</p></div><div class="ctl"><span class="sb glass" aria-label="Less"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></span><span class="v x">5.8<small>km/h</small></span><span class="sb glass" aria-label="More"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></span></div></div><div class="step"><div><b>Incline</b><p>hills burn more</p></div><div class="ctl"><span class="sb glass" aria-label="Less"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></span><span class="v x">6<small>%</small></span><span class="sb glass" aria-label="More"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></span></div></div></div>
+  <div class="tm tnum"><span><b class="x">1.74</b> km</span><span>≈ 165 kcal · 4 laps of 400 m</span></div>
+ </div>
+ <div class="cta2"><span class="pz glass" aria-label="Pause"><svg viewBox="0 0 24 24"><path d="M9 6v12M15 6v12"/></svg></span><div class="cta" style="position:static;flex:1"><b>End cardio</b><span>18 min</span></div></div>
+</section>
+
+<!-- 3f Food guide -->
+<section class="screen" data-name="food" data-time="12:48" data-chrome="light">
+ <div class="body">
+  <div class="title"><div><h1>Food</h1><p>What goes on the plate</p></div></div>
+  <div class="rice"><h2>Rice is not banned.</h2>
+   <div class="rr"><span class="x">1</span><div><b>cup at lunch</b><p>cooked rice, about one fist</p></div></div>
+   <div class="rr"><span class="x">½</span><div><b>cup at dinner</b><p>only if you want it, instead of roti</p></div></div>
+   <p class="rnote">No second serving. The problem is quantity, oil and extras.</p></div>
+  <div class="fg" data-scrolls>
+   <h3>Fish</h3><div class="chips"><span class="chip">Rui</span><span class="chip">Katla</span><span class="chip">Tilapia</span><span class="chip">Pabda</span><span class="chip">Koi</span><span class="chip some">Pangas<small>sometimes</small></span><span class="chip some">Ilish<small>sometimes</small></span></div>
+   <h3>Vegetables</h3><div class="chips"><span class="chip">Lau</span><span class="chip">Jhinga</span><span class="chip">Potol</span><span class="chip">Papaya</span><span class="chip">Beans</span><span class="chip">Shak</span><span class="chip">Cauliflower</span><span class="chip">Cabbage</span><span class="chip">Begun</span><span class="chip">Mixed veg</span></div>
+   <p class="fnote"><b>Dal:</b> ½ cup is fine, but it has calories too. <b>Oil</b> is the biggest hidden calorie source in Bengali cooking. Measure it with a spoon.</p>
+  </div>
+ </div>
+ <nav class="tabbar glass" data-system data-tab="2"></nav>
+</section>
+
+<!-- 3g Food guide, scrolled: keep rare + junk rule -->
+<section class="screen" data-name="food-rare" data-time="12:49" data-chrome="light">
+ <div class="body">
+  <div class="inl">Food</div>
+  <div class="rare">
+   <div class="rh"><svg viewBox="0 0 24 24"><path d="M6 21V8M18 21V8M3 9h18M3 13h18"/></svg><div><h2>Keep rare, not routine</h2><p>Hurdles, not the track.</p></div></div>
+   <div class="rrow"><b>Fried</b><p>Singara, samosa, puri, beguni, pakora, fried chicken</p></div>
+   <div class="rrow"><b>Fast food</b><p>Burger, pizza, shawarma, french fries</p></div>
+   <div class="rrow"><b>Heavy Bengali</b><p>Kacchi, biryani, tehari, oily beef kala bhuna, paratha + beef curry</p></div>
+   <div class="rrow"><b>Drinks</b><p>Coke, Pepsi, sweet juice, milkshake, energy drinks, sugary tea or coffee</p></div>
+   <div class="rrow"><b>Snacks</b><p>Chanachur, chips, biscuits, chocolate, cake, sweets</p></div>
+  </div>
+  <div class="junk"><div class="jh"><span class="x">7</span><span>days to month 2</span></div>
+   <h3>The junk-food rule</h3>
+   <p>Month 1, until 16 Oct: keep junk to a minimum. After that, one controlled meal a week at most: 1 burger, or 2 slices of pizza, or a small biryani. Never a whole cheat day.</p></div>
+ </div>
+ <nav class="tabbar glass" data-system data-tab="2"></nav>
+</section>
+
+<!-- 3h Food guide, scrolled further: 10 non-negotiables -->
+<section class="screen" data-name="food-rules" data-time="12:49" data-chrome="light">
+ <div class="body">
+  <div class="inl">Food</div>
+  <div class="rules"><h2>The 10 non‑negotiables</h2><p class="rsub">Twelve weeks of these, not one perfect day.</p>
+   <div class="rgrid" id="rgrid"></div>
+   <p class="rnote2">Eat enough protein and real Bengali food while keeping a steady deficit. Don't aim to eat as little as possible. Poor sleep makes hunger and the plan harder.</p></div>
+ </div>
+ <nav class="tabbar glass" data-system data-tab="2"></nav>
+</section>
+
+<!-- 4 Progress -->
+<section class="screen" data-name="progress" data-time="7:06" data-chrome="light">
+ <div class="body" style="padding-bottom:0">
+  <div class="title"><div><h1>Progress</h1><p>Day 23 of 84 · Thu 9 Oct</p></div><div class="ib glass" aria-label="Log weight"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div></div>
+  <div class="hero"><span class="x">−2.2</span><span>kg</span></div>
+  <p class="lead">Down 0.7 kg this week. Stay at 1,800 kcal.<span class="tnum">106.8 kg this morning · 7-day average 107.1</span><em>The rule: 0.6–⁠0.9 kg a week, hold. Under 0.4 for 2–⁠3 weeks, cut 100–⁠150 kcal or walk more.</em></p>
+  <div class="season"><div class="grid" id="season"></div><div class="axis"><div class="ms" style="right:64.3%"><b class="x">105–106</b><small><span class="lg">Month 1</span><span class="sh">M1</span> · 16 Oct</small></div><div class="ms" style="right:28.6%"><b class="x">102–103</b><small><span class="lg">Month 2</span><span class="sh">M2</span> · 15 Nov</small></div><div class="ms" style="right:0"><b class="x">99–101</b><small><span class="lg">Month 3</span><span class="sh">M3</span> · 9 Dec</small></div></div></div>
+  <div class="weighs" data-scrolls><h3>Weigh-ins</h3>
+   <div class="wrow tnum"><span>Thu 9 Oct</span><small>−0.2</small><b class="x">106.8</b></div>
+   <div class="wrow tnum"><span>Wed 8 Oct</span><small>−0.3</small><b class="x">107.0</b></div>
+   <div class="wrow tnum"><span>Mon 6 Oct</span><small>+0.2</small><b class="x">107.3</b></div>
+   <div class="wrow tnum"><span>Sat 4 Oct</span><small>−0.5</small><b class="x">107.1</b></div>
+  </div>
+ </div>
+ <nav class="tabbar glass" data-system data-tab="3"></nav>
+</section>
+
+<!-- 5 Signature storyboard -->
+<section class="screen" data-name="signature" data-chrome="none" data-scroll>
+ <div class="board">
+  <h2>Run the leg</h2>
+  <p>Tap Log snack, or drag the runner to the next mark.</p>
+  <div class="frames" id="frames"></div>
+ </div>
+</section>
+
+<!-- 6 Today dark -->
+<section class="screen" data-name="today-dark" data-time="20:41" data-theme="dark" id="s-dark"></section>
+
+<!-- 7 First run -->
+<section class="screen" data-name="first-run" data-time="7:52" data-chrome="light" id="s-first"></section>
+
+<!-- 8 Icon -->
+<section class="app-icon" data-name="icon">
+ <svg viewBox="0 0 344 344">
+  <g fill="none" stroke="#FFF8F3" stroke-width="13">
+   <rect x="40" y="86" width="264" height="172" rx="86"/>
+   <rect x="74" y="120" width="196" height="104" rx="52" stroke-opacity=".55"/>
+  </g>
+  <line x1="214" y1="224" x2="214" y2="258" stroke="#FFF8F3" stroke-width="7"/>
+  <circle cx="98" cy="113" r="27" fill="#FFD23F" stroke="#AD3B26" stroke-width="9"/>
+ </svg>
+</section>
+
+<script>
+const NS='http://www.w3.org/2000/svg';
+const ICON={
+ today:'<rect x="3" y="6.5" width="18" height="11" rx="5.5"/><rect x="7" y="9.5" width="10" height="5" rx="2.5"/>',
+ gym:'<path d="M3 12h18M6 8.5v7M9 6.5v11M15 6.5v11M18 8.5v7"/>',
+ food:'<path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 21V3c-2 1-3 4-3 7h3"/>',
+ prog:'<path d="M4 5v15h16M7 8l4 4 3-2 5 6"/>'};
+function tabbar(on){return [['today','Today'],['gym','Gym'],['food','Food'],['prog','Progress']].map(([k,l],i)=>`<a class="${i==on?'on':''}"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${l}</a>`).join('')}
+document.querySelectorAll('nav.tabbar[data-tab]').forEach(n=>n.innerHTML=tabbar(+n.dataset.tab));
+
+// the track, from above. lane path runs counter-clockwise from the start line.
+const LANE='M267 215 A90 90 0 0 0 267 35 L135 35 A90 90 0 0 0 135 215 Z';
+function trackSVG(id,m,runner){
+ return `<svg viewBox="0 0 402 250" preserveAspectRatio="xMidYMid meet" data-m="${m}" data-r="${runner}" id="${id}">
+  <rect x="24" y="14" width="354" height="222" rx="111" fill="none" style="stroke:var(--lane)" stroke-width="1.5"/>
+  <rect x="38" y="28" width="326" height="194" rx="97" fill="none" style="stroke:var(--lane)" stroke-width="1.5"/>
+  <rect x="52" y="42" width="298" height="166" rx="83" fill="none" style="stroke:var(--lane)" stroke-width="1.5"/>
+  <rect x="66" y="56" width="270" height="138" rx="69" style="fill:var(--infield);stroke:var(--lane)" stroke-width="1.5"/>
+  <line x1="267" y1="194" x2="267" y2="236" style="stroke:var(--ink)" stroke-width="2.5"/>
+  <path class="ln" d="${LANE}" fill="none" style="stroke:var(--ink)" stroke-width="6" stroke-linecap="round" pathLength="400" stroke-dasharray="${m} 400" ${m?'':'stroke-opacity="0"'}/>
+  <g class="mk"></g></svg>`}
+function placeMarks(svg){
+ const p=svg.querySelector('.ln'),L=p.getTotalLength(),m=+svg.dataset.m,r=+svg.dataset.r,g=svg.querySelector('.mk');
+ [100,200,300].forEach(d=>{const q=p.getPointAtLength(L*d/400),c=document.createElementNS(NS,'circle');
+  c.setAttribute('cx',q.x);c.setAttribute('cy',q.y);c.setAttribute('r',5);
+  c.setAttribute('style',`fill:${d<=m?'var(--ink)':'var(--ground)'};stroke:var(--ink);stroke-width:2`);g.appendChild(c)});
+ if(r>=0){const q=p.getPointAtLength(L*(r%400)/400),c=document.createElementNS(NS,'circle');
+  c.setAttribute('cx',q.x);c.setAttribute('cy',q.y);c.setAttribute('r',10);
+  c.setAttribute('style','fill:var(--accent);stroke:var(--ground);stroke-width:3.5');g.appendChild(c)}}
+
+function leg(n,t,sub,time,k,st){return `<div class="leg ${st}"><span class="x">${n}</span><div><b>${t}</b><p>${sub}</p></div><div class="t tnum"><span>${time}</span><small>${k} kcal</small></div></div>`}
+const ticks=(n,f)=>Array.from({length:n},(_,i)=>`<i class="${i<f?'f':''}"></i>`).join('');
+function today(o){
+ return `<div class="body" style="${o.cta?'padding-bottom:178px':''}">
+  <div class="top"><div class="lap"><span class="x">LAP ${o.lap}</span><small>of 84</small></div><span class="date">${o.date}</span></div>
+  <div class="trk" style="${o.tall?'max-height:330px':''}">${trackSVG(o.id,o.m,o.r)}<div class="infield"><span class="x">${o.big}<i>m</i></span><small>${o.inSub}</small></div></div>
+  ${o.legs?`<div class="legs">${o.legs}</div>`:''}
+  ${o.water!=null?`<div class="day">
+   <div class="water"><div class="lbl tnum">Water<span>${(o.water*.25).toFixed(2).replace(/0$/,'')} of 3.5 L</span></div><div class="glasses">${ticks(14,o.water)}</div><div class="plus glass" aria-label="Add a glass"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div></div>
+   <div class="water"><div class="lbl tnum">Walk<span>${o.steps} of 8,000 steps</span></div><div class="glasses">${ticks(8,parseInt(o.steps))}</div><div class="spacer"></div></div>
+  </div>`:''}
+  ${o.extra||''}
+ </div>
+ ${o.cta?`<div class="cta ${o.ctaK?'':'c'} ${o.pressed?'pressed':''} ${o.muted?'muted':''}">${o.cta}${o.ctaK?`<span>${o.ctaK}</span>`:''}</div>`:''}
+ <nav class="tabbar glass" data-system>${tabbar(0)}</nav>`}
+
+const B=leg(100,'Breakfast','Eggs + roti','8:41',384,'done');
+const Lu=leg(200,'Lunch','Fish: rui + 1 cup rice','13:52',618,'done');
+const SnNow=leg(300,'Snack','Gym day: banana + whey','16:30–18:00',212,'now');
+const SnDone=leg(300,'Snack','Gym day: banana + whey','17:12',212,'done');
+const DiLater=leg(400,'Dinner','Chicken + potol','20:00–21:00',538,'');
+const DiNow=leg(400,'Dinner','Chicken + potol','20:00–21:00',538,'now');
+const DiDone=leg(400,'Dinner','Chicken + potol','20:52',538,'done');
+
+const T={id:'t1',lap:23,date:'Thu 9 Oct',m:200,r:200,big:'200',inSub:'1,002 of 1,800 kcal<br>68 of 130–150 g protein',
+ legs:B+Lu+SnNow+DiLater,water:7,steps:'5,410',cta:'Log snack',ctaK:'212 kcal'};
+document.getElementById('s-today').innerHTML=today(T);
+
+// sheet over today
+document.getElementById('s-sheet').innerHTML=`<div data-behind>${today({...T,id:'t2',inSub:''})}</div><div class="dim"></div>
+ <div class="sheet"><div class="grab"></div>
+  <div class="sh-head"><div><span class="x">300 m</span><h2>Snack</h2><p>16:30–18:00 · keep it small</p></div>
+   <div class="ib" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></div></div>
+  <div class="opts">
+   <div class="opt"><span class="radio"></span><div><b>Banana</b><p>1 small banana, black tea, no sugar</p></div><div class="k tnum">95 kcal<small>1 g protein</small></div></div>
+   <div class="opt"><span class="radio"></span><div><b>Guava + egg</b><p>1 guava, 1 boiled egg</p></div><div class="k tnum">140 kcal<small>8 g protein</small></div></div>
+   <div class="opt"><span class="radio"></span><div><b>Apple + almonds</b><p>1 apple, 10 almonds</p></div><div class="k tnum">165 kcal<small>4 g protein</small></div></div>
+   <div class="opt sel"><span class="radio"><svg viewBox="0 0 14 14"><path d="M3 7.5l2.5 2.5L11 4.5"/></svg></span><div><b>Gym day</b><p>1 banana, 1 scoop whey with water</p></div><div class="k tnum">212 kcal<small>25 g protein</small></div></div>
+  </div>
+  <div class="skip"><svg viewBox="0 0 24 24"><path d="M6 21V8M18 21V8M3 9h18M3 13h18"/></svg><div><b>Skip</b><p>chanachur, biscuits, singara, samosa, cake, soft drinks, sweet tea</p></div></div>
+  <div class="cta c">Log snack</div>
+ </div>`;
+
+// dark
+document.getElementById('s-dark').innerHTML=today({id:'t3',lap:23,date:'Thu 9 Oct',m:300,r:300,big:'300',inSub:'1,214 of 1,800 kcal<br>93 of 130–150 g protein',
+ legs:B+Lu+SnDone+DiNow,water:11,steps:'6,960',cta:'Log dinner',ctaK:'538 kcal'});
+
+// first run
+document.getElementById('s-first').innerHTML=today({id:'t4',lap:1,date:'Wed 17 Sep',m:0,r:0,big:'0',inSub:'of 400<br>four meals, one lap',tall:1,
+ extra:`<div class="intro"><h2>Day 1 starts with breakfast.</h2><p>Eggs + roti, 8:00–9:00. Each meal you log moves you 100 m. 84 laps takes you to 9 December.</p></div>
+ <div class="field"><label>Starting weight</label><b class="x">109.0<small>kg</small></b></div>`,cta:'Start lap 1'});
+
+// storyboard minis
+const F=[
+ [{...T,id:'f1',pressed:1},'0 ms','Press. Button dips to 0.97, selection haptic.'],
+ [{...T,id:'f2',m:262,r:262,big:'262',inSub:'running the snack leg'},'210 ms','The runner sprints, the lane draws behind it, metres roll.'],
+ [{...T,id:'f3',m:300,r:300,big:'300',inSub:'1,214 of 1,800 kcal<br>93 of 130–150 g protein',legs:B+Lu+SnDone+DiLater,cta:'Log dinner',ctaK:'538 kcal'},'420 ms','Docks on 300 m. Medium impact haptic. Snack shows 17:12.'],
+ [{...T,id:'f4',m:400,r:400,big:'400',inSub:'Lap 23 done<br>1,752 kcal · 142 g protein',legs:B+Lu+SnDone+DiDone,water:11,steps:'6,960',cta:'Lap 24 starts at 8:00',ctaK:null,muted:1},'20:52','Dinner closes the lap. Success haptic. The button goes quiet until tomorrow.']];
+document.getElementById('frames').innerHTML=F.map(([o,t,c])=>`<figure class="frame"><div class="mini" style="--mini:.4"><div class="mini-screen" data-chrome="light" data-time="${t.includes(':')?t:'17:12'}">${today(o)}</div></div><figcaption><b>${t}</b> · ${c}</figcaption></figure>`).join('');
+
+// gym: plan, reps and weight per exercise; sets as ticks
+const EX=[['Chest press','3 × 10 · 40 kg',3],['Lat pulldown','3 × 12 · 55 kg',3],['Seated row','3 × 12 · 50 kg',3],['Shoulder press','3 × 10 · 14 kg dumbbells',3],['Leg press','3 × 12 · 120 kg',3],
+ ['Romanian deadlift','Set 2 of 3 · 10 × 40 kg',1,'next'],['Biceps curl','3 × 12 · 10 kg',0],['Triceps pushdown','3 × 12 · 25 kg',0],['Core / plank','3 × 45 s',0],['Treadmill','Cardio, optional · 20–30 min at 6 %',-1,'cardio']];
+const CK='<svg viewBox="0 0 14 14"><path d="M3 7.5l2.5 2.5L11 4.5"/></svg>';
+document.querySelectorAll('.list.gl').forEach(l=>l.innerHTML=EX.map(([n,p,d,st])=>{const done=d==3;
+ return `<div class="ex ${done?'done':''} ${st||''}"><span class="ck">${done?CK:''}</span><div><b>${n}</b><p class="tnum">${p}</p></div>${d<0?'':`<span class="s">${[0,1,2].map(k=>`<i class="${k<d?'f':''}"></i>`).join('')}</span>`}</div>`}).join('')+
+ '<div class="addrow"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add exercise</div>');
+// hurdles: n hurdles on a straight, d cleared, runner just past the last cleared
+document.querySelectorAll('svg.hrd').forEach(s=>{const n=+s.dataset.n,d=+s.dataset.d,gap=(402-68)/(n-1||1),X=i=>34+i*gap;
+ let h=`<line x1="0" y1="12" x2="402" y2="12" style="stroke:var(--lane)" stroke-width="1.5"/><line x1="0" y1="50" x2="402" y2="50" style="stroke:var(--lane)" stroke-width="1.5"/>`;
+ for(let i=0;i<n;i++)h+=`<rect x="${X(i)-2}" y="16" width="5" height="30" rx="2.5" style="fill:${i<d?'var(--ink)':'var(--faint)'}"/>`;
+ const rx=d?X(d-1)+Math.min(20,gap/2):12;
+ h+=`<line x1="0" y1="31" x2="${rx}" y2="31" style="stroke:var(--ink)" stroke-width="5" stroke-linecap="round"/><circle cx="${rx}" cy="31" r="10" style="fill:var(--accent);stroke:var(--ground);stroke-width:3.5"/>`;s.innerHTML=h});
+
+// water: 14 glasses, 7 drunk, the next one marked
+document.getElementById('glassgrid').innerHTML=Array.from({length:14},(_,i)=>`<i class="${i<7?'f':i==7?'n':''}"></i>`).join('');
+document.getElementById('wbars').innerHTML=[['Fri',2.5],['Sat',2.75],['Sun',3.0],['Mon',2.5],['Tue',3.25],['Wed',3.0],['Today',1.75]].map(([d,v],i)=>`<div class="${i==6?'t':''}"><i style="height:${v/3.5*62}px"></i><span>${d}</span></div>`).join('');
+// the 10 non-negotiables
+document.getElementById('rgrid').innerHTML=['About 1,800 kcal a day','130–150 g protein a day','No sugary drinks','Measure cooking oil','No unlimited rice','Protein at every main meal','7,000–10,000 steps','Gym 3–5× a week','7–8 hours of sleep','Consistent for 12 weeks'].map((r,i)=>`<div class="rg"><span class="x">${i+1}</span><b>${r}</b></div>`).join('');
+
+// walk: a straight lane from 0 to the day's 8,000-step target
+(()=>{const s=document.getElementById('walklane'),X=v=>20+v/8000*362;let h=`<line x1="0" y1="12" x2="402" y2="12" style="stroke:var(--lane)" stroke-width="1.5"/><line x1="0" y1="50" x2="402" y2="50" style="stroke:var(--lane)" stroke-width="1.5"/>`;
+ for(let k=1;k<=8;k++)h+=`<line x1="${X(k*1000)}" y1="16" x2="${X(k*1000)}" y2="${k%4?24:46}" style="stroke:${k*1000<=5410?'var(--ink)':'var(--faint)'}" stroke-width="2"/>`;
+ h+=`<line x1="${X(0)}" y1="31" x2="${X(5410)}" y2="31" style="stroke:var(--ink)" stroke-width="5" stroke-linecap="round"/><circle cx="${X(5410)}" cy="31" r="10" style="fill:var(--accent);stroke:var(--ground);stroke-width:3.5"/>`;s.innerHTML=h})();
+document.getElementById('sbars').insertAdjacentHTML('beforeend',[['Fri',7820],['Sat',8410],['Sun',6250],['Mon',8930],['Tue',9140],['Wed',7560],['Today',5410]].map(([d,v],i)=>`<div class="${i==6?'t':''}"><i style="height:${v/10000*50}px"></i><span>${d}</span></div>`).join(''));
+
+// season: 84 laps as tiny ovals, drawn as much as the lap was run
+(()=>{const g=document.getElementById('season'),half=[12],tq=[5,9,16,20];let h='';
+ for(let d=1;d<=84;d++){let f=d<23?(half.includes(d)?200:tq.includes(d)?300:400):d==23?200:0;
+  const now=d==23;
+  h+=`<svg viewBox="0 0 24 14"><rect x="1" y="1" width="22" height="12" rx="6" fill="none" style="stroke:${f||now?'var(--faint)':'var(--faint)'}" stroke-width="1.2" ${f||now?'':'stroke-dasharray="1.5 2.5"'}/>${f?`<rect x="1" y="1" width="22" height="12" rx="6" fill="none" pathLength="400" stroke-dasharray="${f} 400" style="stroke:${now?'var(--accent)':'var(--ink)'}" stroke-width="2.4" stroke-linecap="round"/>`:''}</svg>`}
+ g.innerHTML=h})();
+
+document.querySelectorAll('span.tk').forEach(t=>{t.outerHTML=trackSVG(t.dataset.id,+t.dataset.m,+t.dataset.m)});
+document.querySelectorAll('svg[data-m]').forEach(placeMarks);
+</script>
+<script src="file:///Users/sirajul/.claude/skills/app-designer/assets/device.js"></script>
+</body></html>

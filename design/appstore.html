@@ -1,0 +1,61 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Daur: App Store panels</title>
+<link rel="stylesheet" href="file:///Users/sirajul/.claude/skills/app-designer/assets/device.css">
+<style>
+/* 440 x 956 at 3x = 1320 x 2868 (6.9" class) */
+.screen.panel{width:440px;height:956px;border-radius:0;background:#AD3B26;color:#FFF8F3;container-type:normal}
+.panel.night{background:#3D140C}
+.cap{position:absolute;left:32px;right:32px;top:52px;font:800 30px/1.08 var(--sf);font-stretch:150%;letter-spacing:-0.015em;text-wrap:balance}
+.cap em{font-style:normal;color:#FFD23F}
+.sub{position:absolute;left:32px;right:32px;top:150px;font:500 17px/1.35 var(--sf);color:#FFD9CC}
+.phone{position:absolute;left:50%;top:224px;width:360px;transform:translateX(-50%);border-radius:47px;box-shadow:0 30px 70px rgba(40,6,0,.45),0 0 0 1px rgba(255,248,243,.18)}
+.phone img{display:block;width:100%;border-radius:47px}
+.night .phone{box-shadow:0 30px 70px rgba(0,0,0,.6),0 0 0 1px rgba(255,241,234,.14)}
+/* the break: one component blown past the frame */
+.big{position:absolute;left:32px;top:236px;display:grid;grid-template-columns:repeat(6,104px);grid-auto-flow:column;grid-template-rows:repeat(7,64px)}
+.big svg{width:88px;height:49px;overflow:visible}
+.wk{font:600 13px var(--sf);color:#FFD9CC;align-self:end}
+.tag{position:absolute;left:32px;right:32px;top:722px;font:500 15px var(--sf);color:#FFD9CC}
+.tag b{display:block;font:800 28px var(--sf);font-stretch:150%;color:#FFF8F3;margin-bottom:4px}
+</style></head><body>
+
+<section class="screen panel" data-name="p1-promise" data-chrome="none">
+ <p class="cap">Every meal you eat moves you <em>100&nbsp;m</em>.</p>
+ <p class="sub">Four meals make a lap. Log one and the runner goes round the track.</p>
+ <div class="phone"><img src="shots/r4/01-today.png" alt="Today: lap 23, 200 m of 400"></div>
+</section>
+
+<section class="screen panel" data-name="p2-swap" data-chrome="none">
+ <p class="cap">Swap the meal. Keep&nbsp;the&nbsp;plan.</p>
+ <p class="sub">Every option is already counted, from banana to gym-day whey.</p>
+ <div class="phone"><img src="shots/r4/02-meal-sheet.png" alt="Snack options with kcal and protein"></div>
+</section>
+
+<section class="screen panel" data-name="p3-season" data-chrome="none">
+ <p class="cap">Twelve weeks. 84&nbsp;laps. One&nbsp;track.</p>
+ <p class="sub">Every day is drawn as far as you ran it.</p>
+ <div class="big" id="bigseason" data-bleed></div>
+ <p class="tag"><b>−2.2 kg by day 23</b>Down 0.7 kg this week. Month 1 target 105–106&nbsp;kg by 16&nbsp;Oct.</p>
+</section>
+
+<section class="screen panel" data-name="p4-gym" data-chrome="none">
+ <p class="cap">Clear every hurdle on&nbsp;gym&nbsp;day.</p>
+ <p class="sub">Reps, weight and rest, set by set.</p>
+ <div class="phone"><img src="shots/r4/05-gym.png" alt="Gym session, 5 of 9 done"></div>
+</section>
+
+<section class="screen panel night" data-name="p5-night" data-chrome="none">
+ <p class="cap">Same track, <em>night</em>&nbsp;session.</p>
+ <p class="sub">Dark mode keeps the red, deepened to oxblood.</p>
+ <div class="phone"><img src="shots/r4/15-today-dark.png" alt="Today in dark mode, 300 m"></div>
+</section>
+
+<script>
+// weeks 1-6 of the season, blown up: a lap is drawn as far as it was run
+(()=>{const half=[12],tq=[5,9,16,20];let h='';
+ for(let d=1;d<=42;d++){const f=d<23?(half.includes(d)?200:tq.includes(d)?300:400):d==23?200:0,now=d==23;
+  h+=`<svg viewBox="0 0 68 38"><rect x="2" y="2" width="64" height="34" rx="17" fill="none" stroke="rgba(255,248,243,${f||now?.22:.3})" stroke-width="2" ${f||now?'':'stroke-dasharray="3 5"'}/>${f?`<rect x="2" y="2" width="64" height="34" rx="17" fill="none" pathLength="400" stroke-dasharray="${f} 400" stroke="${now?'#FFD23F':'#FFF8F3'}" stroke-width="6" stroke-linecap="round"/>`:''}</svg>`}
+ document.getElementById('bigseason').innerHTML=h})();
+</script>
+<script src="file:///Users/sirajul/.claude/skills/app-designer/assets/device.js"></script>
+</body></html>

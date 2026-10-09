@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Daur · Today (large): the whole lap at a glance; on day 84 the cut closes. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/daur_widget_bg" android:clipToOutline="true" android:orientation="vertical" android:padding="16dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+        <TextView android:id="@+id/large_lap" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="DAY 1 OF 84" android:textColor="#FFD9CC" android:textSize="10sp" android:fontFamily="@font/unbounded_black" android:letterSpacing="0.06" android:maxLines="1" />
+        <TextView android:id="@+id/large_date" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="#FFD9CC" android:textSize="10sp" android:fontFamily="@font/unbounded_black" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:letterSpacing="0.06"/>
+    </LinearLayout>
+    <ImageView android:id="@+id/large_track" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        android:layout_marginVertical="6dp" android:scaleType="fitCenter" android:contentDescription="@string/widget_track" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:id="@+id/leg1_n" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1" android:textColor="#FFD9CC" android:textSize="22sp" android:fontFamily="@font/unbounded_black" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:minWidth="30dp"/>
+            <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical">
+                <TextView android:id="@+id/leg1_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="#FFF8F3" android:textSize="15sp" android:fontFamily="sans-serif-black" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+                <TextView android:id="@+id/leg1_sub" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="#FFD9CC" android:textSize="12sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:id="@+id/leg2_n" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="2" android:textColor="#FFD9CC" android:textSize="22sp" android:fontFamily="@font/unbounded_black" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:minWidth="30dp"/>
+            <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical">
+                <TextView android:id="@+id/leg2_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="#FFF8F3" android:textSize="15sp" android:fontFamily="sans-serif-black" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+                <TextView android:id="@+id/leg2_sub" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="#FFD9CC" android:textSize="12sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="10dp">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:id="@+id/leg3_n" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3" android:textColor="#FFD9CC" android:textSize="22sp" android:fontFamily="@font/unbounded_black" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:minWidth="30dp"/>
+            <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical">
+                <TextView android:id="@+id/leg3_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="#FFF8F3" android:textSize="15sp" android:fontFamily="sans-serif-black" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+                <TextView android:id="@+id/leg3_sub" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="#FFD9CC" android:textSize="12sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:id="@+id/leg4_n" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="4" android:textColor="#FFD9CC" android:textSize="22sp" android:fontFamily="@font/unbounded_black" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:minWidth="30dp"/>
+            <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical">
+                <TextView android:id="@+id/leg4_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="#FFF8F3" android:textSize="15sp" android:fontFamily="sans-serif-black" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+                <TextView android:id="@+id/leg4_sub" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="#FFD9CC" android:textSize="12sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
