@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'dau.dart';
 import 'badges.dart';
 import 'motion.dart';
 import 'plan.dart';
@@ -68,7 +69,13 @@ class ProgressScreen extends StatelessWidget {
             excludeSemantics: true,
             child: SizedBox(
               height: 200,
-              child: CustomPaint(painter: _WeightChart(t, s), size: Size.infinite),
+              child: Stack(
+                children: [
+                  Positioned.fill(child: CustomPaint(painter: _WeightChart(t, s))),
+                  // no weigh-ins yet: Dau waits on the empty chart
+                  if (s.weights.isEmpty) const Center(child: Dau(mood: DauMood.waiting, size: 110)),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 6),

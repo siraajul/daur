@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'dau.dart';
 import 'cloud.dart';
 import 'coaching.dart';
 import 'store.dart';
@@ -178,6 +179,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   JoinByCode(store: s),
                   if (rows.isEmpty) ...[
                     const SizedBox(height: 12),
+                    const Center(child: Dau(mood: DauMood.waiting, size: 130)),
                     const Tip(Icons.forum_outlined, 'They make the code in their Daur: Menu → Coaches → Trainer'),
                   ],
                 ],

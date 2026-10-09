@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'dau.dart';
 import 'store.dart';
 import 'theme.dart';
 import 'visuals.dart';
@@ -170,6 +171,7 @@ class _SpendingScreenState extends State<SpendingScreen> {
                             ),
                           ),
                       ],
+                      if (list.isEmpty) const Center(child: Dau(mood: DauMood.waiting, size: 130)),
                       if (list.isNotEmpty) ...[
                         const SizedBox(height: 24),
                         for (final e in list)

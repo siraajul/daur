@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'dau.dart';
 import 'adaptive.dart';
 import 'burn.dart';
 import 'coach.dart';
@@ -134,6 +135,8 @@ class TodayScreen extends StatelessWidget {
                         : '${thousands(s.kcal)} of ${thousands(s.kcalGoal)} kcal\n${s.protein} of ${s.proteinText} g protein',
                   ),
                   if (s.kcal > 0) Center(child: _BurnPill(store: s)),
+                  // the lap is run: Dau cheers (decoration; the caption already says it)
+                  if (s.legsDone == 4) const Center(child: Dau(mood: DauMood.cheer, size: 96)),
                   const SizedBox(height: 8),
                   for (final (i, m) in meals.indexed) _Leg(store: s, meal: m, n: (i + 1) * 100, isNext: m == next),
                   for (final (i, e) in s.extras.indexed)

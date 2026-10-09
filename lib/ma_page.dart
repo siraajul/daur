@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'dau.dart';
 import 'cloud.dart';
 import 'plan.dart' show Meal;
 import 'store.dart';
@@ -200,6 +201,16 @@ class _MaPageState extends State<MaPage> {
                           ),
                         ),
                       const SizedBox(height: 16),
+                      if (today && eaten == 4)
+                        Row(
+                          children: [
+                            const Dau(mood: DauMood.cheer, size: 72),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(tr('আজ সব খেয়েছে!', 'Ate everything today!'), style: t.x(20))),
+                          ],
+                        )
+                      else if (today && eaten < 3 && DateTime.now().hour >= 20)
+                        const Dau(mood: DauMood.tired, size: 72),
                       // one plain sentence, then the four meals as big circles
                       Text(
                         tr(
