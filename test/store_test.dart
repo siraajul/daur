@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:daur/badges.dart';
+import 'package:daur/diet_chart.dart' show chartChanges;
 import 'package:daur/fasting.dart' show stageAt;
 import 'package:daur/meal_ai.dart';
 import 'package:daur/plan.dart';
@@ -856,5 +857,27 @@ void main() {
     final sum = s.coachSummary();
     expect((sum['chart'] as List).length, 4);
     expect(((sum['meals'] as List)[3] as Map)['option'], 1);
+  });
+
+  test('chart changes say what a trainer changed, meal by meal', () {
+    final after = [
+      defaultMeals[0],
+      defaultMeals[1].withOptions([
+        defaultMeals[1].options[0],
+        const MealOption('Beef + rice', ['150 g beef', '1 cup rice'], 620, 45),
+      ]),
+      defaultMeals[2],
+      defaultMeals[3].withOptions([
+        for (final o in defaultMeals[3].options)
+          o.name == 'Fish' ? MealOption(o.name, o.items, o.kcal + 40, o.protein) : o,
+      ], 'Less oil'),
+    ];
+    expect(chartChanges(defaultMeals, after), [
+      'Lunch: Beef + rice added',
+      'Lunch: Fish: rui + 1 cup rice removed',
+      'Dinner: Fish changed',
+      'Dinner: note changed',
+    ]);
+    expect(chartChanges(defaultMeals, defaultMeals), isEmpty);
   });
 }

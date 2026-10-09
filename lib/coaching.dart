@@ -6,6 +6,8 @@ import 'package:share_plus/share_plus.dart';
 
 import 'adaptive.dart';
 import 'cloud.dart';
+import 'diet_chart.dart';
+import 'plan.dart' show Meal;
 import 'store.dart';
 import 'theme.dart';
 import 'today.dart' show Cta, MenuButton, niceDate, thousands;
@@ -487,7 +489,12 @@ class HelperView extends StatelessWidget {
                     _MealRow(m: {'name': 'Extra', 'status': 'extra', 'food': e['name'], 'kcal': e['kcal']}),
                   const SizedBox(height: 24),
                   _Weight(d: d),
-                  if (role == 'trainer') ...[const SizedBox(height: 24), _Gym(d: d)],
+                  if (role == 'trainer') ...[
+                    const SizedBox(height: 24),
+                    _Gym(d: d),
+                    const SizedBox(height: 24),
+                    _ChartSection(d: d, owner: owner, ownerName: p.name, store: store),
+                  ],
                 ],
                 const SizedBox(height: 24),
                 Text('Notes', style: t.meta()),
@@ -670,6 +677,72 @@ class _Gym extends StatelessWidget {
               ),
             ),
         ],
+      ],
+    );
+  }
+}
+
+/// For the trainer: the diet chart this person follows, one line per meal, and Edit.
+class _ChartSection extends StatelessWidget {
+  const _ChartSection({required this.d, required this.owner, required this.ownerName, required this.store});
+  final Map<String, dynamic> d;
+  final String owner, ownerName;
+  final Store store;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Daur.of(context);
+    final chart = [for (final m in (d['chart'] as List? ?? const [])) Meal.from(m as Map)];
+    if (chart.length != 4) return const SizedBox.shrink();
+    final by = d['chartBy'] as String? ?? '';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text('Diet chart', style: t.meta())),
+            Text(by.isEmpty ? 'the starting plan' : 'by $by', style: t.meta(t.ink)),
+          ],
+        ),
+        for (final m in chart)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: t.rule, width: .5)),
+            ),
+            child: Row(
+              children: [
+                Icon(mealIcon(m.id), size: 20, color: t.ink),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(m.name, style: t.body(weight: FontWeight.w500)),
+                      Text(m.options.map((o) => o.name).join(' · '), style: t.meta(), maxLines: 2),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 8),
+        Cta(
+          label: 'Edit diet chart',
+          trailing: '${(d['kcalGoal'] as num?)?.toInt() ?? 0} kcal a day',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DietChartEditor(
+                owner: owner,
+                ownerName: ownerName,
+                initial: chart,
+                kcalGoal: (d['kcalGoal'] as num?)?.toInt() ?? 1800,
+                store: store,
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
