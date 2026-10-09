@@ -49,7 +49,7 @@ class _MealSheetState extends State<MealSheet> {
   bool get logged => m != null && s.done.containsKey(m!.id);
 
   late _Mode mode = isExtra || s.ateOther(m!) ? _Mode.other : _Mode.plan;
-  late int opt = m == null ? 0 : s.option[m!.id] ?? 0;
+  late int opt = m == null ? 0 : m!.options.indexOf(s.chosen(m!)); // the same option Today shows
   late double portion = m == null ? 1 : s.portionOf(m!);
   late final List<Eaten> plate = [...?s.other[m?.id]];
   final _search = TextEditingController();
