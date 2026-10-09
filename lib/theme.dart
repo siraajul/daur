@@ -104,6 +104,16 @@ ThemeData buildTheme(Brightness b) {
         ),
       ),
     ),
+    // toasts: the cream of the sheets so they stand out on the red, Undo in tartan red
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: t.sheet,
+      contentTextStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: t.sheetInk),
+      actionTextColor: t.sheetRed,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      elevation: 6,
+      insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+    ),
     bottomSheetTheme: BottomSheetThemeData(backgroundColor: t.sheet, showDragHandle: true),
     // Android's predictive back: the swipe previews the screen underneath; iOS keeps its own slide
     pageTransitionsTheme: const PageTransitionsTheme(
