@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'adaptive.dart';
 import 'theme.dart';
 
 /// One icon vocabulary for food across the app (outlined/rounded Material, ink colour).
@@ -298,7 +300,7 @@ class GoogleButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           busy
-              ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
+              ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator.adaptive(strokeWidth: 2))
               : const GoogleG(size: 20),
           const SizedBox(width: 12),
           Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
@@ -495,7 +497,7 @@ class PageHeader extends StatelessWidget {
             IconButton(
               onPressed: onBack ?? () => Navigator.maybePop(context),
               tooltip: close ? 'Close' : 'Back',
-              icon: Icon(close ? Icons.keyboard_arrow_down_rounded : Icons.arrow_back, color: t.ink),
+              icon: Icon(backIcon(context, close: close), color: t.ink),
             ),
             Expanded(
               child: Text(title, style: t.title(), maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -553,21 +555,48 @@ Widget _popSide(Daur t, String label, VoidCallback onTap) => TextButton(
   child: Text(label),
 );
 
-/// "Are you sure?": the action as the yellow pill, Cancel under it.
-Future<bool> confirmPop(BuildContext context, String title, String body, String action) async =>
-    await showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        final t = Daur.of(ctx);
-        return _popCard(ctx, title, [
-          Text(body, style: t.sec()),
-          const SizedBox(height: 20),
-          _popMain(t, action, () => Navigator.pop(ctx, true)),
-          _popSide(t, 'Cancel', () => Navigator.pop(ctx, false)),
-        ]);
-      },
-    ) ??
-    false;
+/// "Are you sure?". Android: the action as the yellow pill, Cancel under it. iPhone: the system
+/// alert, Cancel and the action side by side, the action red when it deletes or signs out.
+Future<bool> confirmPop(
+  BuildContext context,
+  String title,
+  String body,
+  String action, {
+  bool destructive = false,
+}) async {
+  if (isIOS(context)) {
+    return await showCupertinoDialog<bool>(
+          context: context,
+          builder: (ctx) => CupertinoAlertDialog(
+            title: Text(title),
+            content: Text(body),
+            actions: [
+              CupertinoDialogAction(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              CupertinoDialogAction(
+                isDefaultAction: !destructive,
+                isDestructiveAction: destructive,
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(action),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+  return await showDialog<bool>(
+        context: context,
+        builder: (ctx) {
+          final t = Daur.of(ctx);
+          return _popCard(ctx, title, [
+            Text(body, style: t.sec()),
+            const SizedBox(height: 20),
+            _popMain(t, action, () => Navigator.pop(ctx, true)),
+            _popSide(t, 'Cancel', () => Navigator.pop(ctx, false)),
+          ]);
+        },
+      ) ??
+      false;
+}
 
 /// Asks for one number, typed big. [side] is an optional second action (closes first, then runs).
 Future<double?> askNumber(
@@ -581,6 +610,43 @@ Future<double?> askNumber(
   (String, VoidCallback)? side,
 }) {
   final c = TextEditingController(text: initial ?? '');
+  if (isIOS(context)) {
+    return showCupertinoDialog<double>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: Text(title),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: CupertinoTextField(
+            controller: c,
+            autofocus: true,
+            placeholder: hint,
+            prefix: prefix == null ? null : Padding(padding: const EdgeInsets.only(left: 8), child: Text(prefix)),
+            suffix: suffix == null ? null : Padding(padding: const EdgeInsets.only(right: 8), child: Text(suffix)),
+            keyboardType: TextInputType.numberWithOptions(decimal: decimal),
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(decimal ? r'[0-9.]' : r'[0-9]'))],
+            onSubmitted: (_) => Navigator.pop(ctx, double.tryParse(c.text.trim())),
+          ),
+        ),
+        actions: [
+          if (side != null)
+            CupertinoDialogAction(
+              onPressed: () {
+                Navigator.pop(ctx);
+                side.$2();
+              },
+              child: Text(side.$1),
+            ),
+          CupertinoDialogAction(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(ctx, double.tryParse(c.text.trim())),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
   return showDialog<double>(
     context: context,
     builder: (ctx) {

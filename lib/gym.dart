@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
 
+import 'adaptive.dart';
 import 'live.dart';
 import 'motion.dart';
 import 'plan.dart';
@@ -147,14 +148,10 @@ class _GymScreenState extends State<GymScreen> {
                   children: [
                     const MenuButton(),
                     Expanded(child: Text('Gym', style: t.title())),
-                    PopupMenuButton<String>(
-                      icon: Icon(Icons.more_horiz, color: t.ink),
-                      onSelected: (v) => v == 'clear' ? s.clearGymTicks() : s.restoreGym(),
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(value: 'clear', child: Text('Clear today')),
-                        PopupMenuItem(value: 'restore', child: Text('Restore default list')),
-                      ],
-                    ),
+                    MoreButton([
+                      MenuItem('Clear today', s.clearGymTicks, destructive: true),
+                      MenuItem('Restore default list', s.restoreGym),
+                    ]),
                   ],
                 ),
                 // the rule is 3–5 sessions a week, not every day: say where the week stands
@@ -168,31 +165,21 @@ class _GymScreenState extends State<GymScreen> {
                 ),
                 const SizedBox(height: 14),
                 // the split: today's day is picked from the rotation; tap another to switch
-                SegmentedButton<String>(
-                  segments: [
+                Segments<String>(
+                  items: [
                     for (final d in Store.splitDays)
-                      ButtonSegment(
-                        value: d,
-                        label: Text(d),
-                        icon: Icon(switch (d) {
+                      (
+                        d,
+                        d,
+                        switch (d) {
                           'Push' => Icons.north_east_rounded,
                           'Pull' => Icons.south_west_rounded,
                           _ => Icons.directions_run_rounded,
-                        }),
+                        },
                       ),
                   ],
-                  selected: {day},
-                  showSelectedIcon: false,
-                  onSelectionChanged: (v) {
-                    HapticFeedback.selectionClick();
-                    s.pickGymDay(v.first);
-                  },
-                  style: SegmentedButton.styleFrom(
-                    foregroundColor: t.ink,
-                    selectedForegroundColor: t.onAccent,
-                    selectedBackgroundColor: t.accent,
-                    side: BorderSide(color: t.lane),
-                  ),
+                  value: day,
+                  onChanged: s.pickGymDay,
                 ),
                 const SizedBox(height: 20),
                 Row(

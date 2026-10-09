@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons, CupertinoPageRoute;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -7,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:home_widget/home_widget.dart';
 
+import 'adaptive.dart';
 import 'badges.dart' show checkBadges;
 import 'cloud.dart';
 import 'firebase_options.dart';
@@ -41,16 +43,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  // light icons over the red track; the native splash stays up until the store has loaded
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      statusBarBrightness: Brightness.dark, // iOS
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.light,
-    ),
-  );
+  SystemChrome.setSystemUIOverlayStyle(_bars);
   // Firebase talks to native code, so it starts after ensureInitialized and before runApp.
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await MealAi.activateAppCheck(); // guards the AI meal estimate (Firebase AI Logic)
@@ -64,6 +57,16 @@ Future<void> main() async {
   Cloud.instance.attach(store); // Google sign-in + Firestore backup, when signed in
 }
 
+/// Light status-bar and nav-bar icons over the red track (set at start and on every frame below,
+/// because iOS otherwise falls back to dark icons).
+const _bars = SystemUiOverlayStyle(
+  statusBarColor: Colors.transparent,
+  statusBarIconBrightness: Brightness.light,
+  statusBarBrightness: Brightness.dark, // iOS
+  systemNavigationBarColor: Colors.transparent,
+  systemNavigationBarIconBrightness: Brightness.light,
+);
+
 class DaurApp extends StatelessWidget {
   const DaurApp({super.key, required this.store});
   final Store store;
@@ -74,7 +77,10 @@ class DaurApp extends StatelessWidget {
     debugShowCheckedModeBanner: false,
     theme: buildTheme(Brightness.light),
     darkTheme: buildTheme(Brightness.dark),
-    builder: (_, child) => SplashIntro(child: child!),
+    builder: (_, child) => AnnotatedRegion(
+      value: _bars,
+      child: SplashIntro(child: child!),
+    ),
     home: ListenableBuilder(
       listenable: store,
       builder: (_, _) => store.onboarded ? Shell(store: store) : OnboardingScreen(store: store),
@@ -102,6 +108,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    menuOpener = openMenu;
     _refreshSteps();
     _startStepsTimer();
     // iOS widget buttons open the app with daur://water or daur://meal (Android runs them in the background)
@@ -229,30 +236,94 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     _links?.cancel();
     Reminders.route.removeListener(_notificationRoute);
     widget.store.removeListener(_watchLap);
+    menuOpener = null;
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  /// Drawer: what isn't on the bottom bar or Today. Food, targets, reminders, widget, start date.
+  /// What isn't on the bottom bar or Today, in groups. Android shows it as the drawer; iPhone,
+  /// which has no drawers, as a More page opened from the profile button.
+  List<List<(IconData, String, Widget Function())>> get _pages {
+    final s = widget.store;
+    return [
+      [
+        (Icons.restaurant_outlined, 'Food guide', () => FoodScreen(store: s)),
+        (Icons.menu_book_outlined, 'Food database', () => FoodDbScreen(store: s)),
+      ],
+      [
+        (Icons.flag_outlined, 'Your targets', () => TargetsScreen(store: s)),
+        (Icons.hourglass_bottom_rounded, 'Fasting', () => FastingScreen(store: s)),
+        (Icons.account_balance_wallet_outlined, 'Spending', () => SpendingScreen(store: s)),
+        (Icons.groups_outlined, 'Family', () => FamilyScreen(store: s)),
+        (Icons.shield_outlined, 'Your data', () => DataScreen(store: s)),
+        (Icons.notifications_outlined, 'Reminders', () => RemindersScreen(store: s)),
+      ],
+    ];
+  }
+
+  /// The drawer on Android, the More page on iPhone (called from [MenuButton]).
+  void openMenu() {
+    if (!isIOS(context)) {
+      _scaffold.currentState?.openDrawer();
+      return;
+    }
+    if (widget.store.drawerDot) widget.store.dismissHint('drawer');
+    Navigator.push(context, CupertinoPageRoute(builder: (_) => _MorePage(shell: this)));
+  }
+
+  Future<void> _addWidget(BuildContext context) async {
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Hold the home screen → Edit → Add Widget → Daur'),
+        ),
+      );
+      return;
+    }
+    await showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (cls, name, sub) in WidgetSync.catalog)
+              ListTile(
+                leading: const Icon(Icons.add_to_home_screen),
+                title: Text(name),
+                subtitle: Text(sub),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await WidgetSync.pin(cls);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickStart(BuildContext context) async {
+    final s = widget.store;
+    final d = await pickDate(
+      context,
+      initial: DateTime.parse(s.startDay),
+      first: DateTime.now().subtract(const Duration(days: laps * 2)),
+      last: DateTime.now(),
+      help: 'Day 1 of the 12-week plan',
+    );
+    if (d != null) s.setStartDay(d);
+  }
+
   Widget _drawer(BuildContext context) {
     final t = Daur.of(context), s = widget.store;
-    void push(Widget w, {bool full = false}) =>
-        Navigator.push(context, MaterialPageRoute(fullscreenDialog: full, builder: (_) => w));
+    final pages = _pages.expand((g) => g).toList();
     return NavigationDrawer(
       backgroundColor: t.sheet,
       selectedIndex: null, // Today, Gym and Progress live on the bottom bar only
       onDestinationSelected: (i) {
         Navigator.pop(context); // close the drawer
-        push(switch (i) {
-          0 => FoodScreen(store: s),
-          1 => FoodDbScreen(store: s),
-          2 => TargetsScreen(store: s),
-          3 => FastingScreen(store: s),
-          4 => SpendingScreen(store: s),
-          5 => FamilyScreen(store: s),
-          6 => DataScreen(store: s),
-          _ => RemindersScreen(store: s),
-        });
+        Navigator.push(context, MaterialPageRoute(builder: (_) => pages[i].$3()));
       },
       children: [
         Padding(
@@ -267,15 +338,10 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           ),
         ),
         const _AccountTile(),
-        const NavigationDrawerDestination(icon: Icon(Icons.restaurant_outlined), label: Text('Food guide')),
-        const NavigationDrawerDestination(icon: Icon(Icons.menu_book_outlined), label: Text('Food database')),
-        const Divider(indent: 28, endIndent: 28),
-        const NavigationDrawerDestination(icon: Icon(Icons.flag_outlined), label: Text('Your targets')),
-        const NavigationDrawerDestination(icon: Icon(Icons.hourglass_bottom_rounded), label: Text('Fasting')),
-        const NavigationDrawerDestination(icon: Icon(Icons.account_balance_wallet_outlined), label: Text('Spending')),
-        const NavigationDrawerDestination(icon: Icon(Icons.groups_outlined), label: Text('Family')),
-        const NavigationDrawerDestination(icon: Icon(Icons.shield_outlined), label: Text('Your data')),
-        const NavigationDrawerDestination(icon: Icon(Icons.notifications_outlined), label: Text('Reminders')),
+        for (final (i, group) in _pages.indexed) ...[
+          if (i > 0) const Divider(indent: 28, endIndent: 28),
+          for (final (icon, label, _) in group) NavigationDrawerDestination(icon: Icon(icon), label: Text(label)),
+        ],
         const Divider(indent: 28, endIndent: 28),
         ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 28),
@@ -284,35 +350,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           subtitle: const Text('Meals, kcal, water, steps'),
           onTap: () {
             Navigator.pop(context);
-            if (defaultTargetPlatform != TargetPlatform.android) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  behavior: SnackBarBehavior.floating,
-                  content: Text('Hold the home screen → Edit → Add Widget → Daur'),
-                ),
-              );
-              return;
-            }
-            showModalBottomSheet(
-              context: context,
-              builder: (ctx) => SafeArea(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final (cls, name, sub) in WidgetSync.catalog)
-                      ListTile(
-                        leading: const Icon(Icons.add_to_home_screen),
-                        title: Text(name),
-                        subtitle: Text(sub),
-                        onTap: () async {
-                          Navigator.pop(ctx);
-                          await WidgetSync.pin(cls);
-                        },
-                      ),
-                  ],
-                ),
-              ),
-            );
+            _addWidget(context);
           },
         ),
         ListTile(
@@ -320,16 +358,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           leading: const Icon(Icons.flag_outlined),
           title: const Text('Plan start date'),
           subtitle: Text('${niceDate(DateTime.parse(s.startDay))} · today is day ${s.lap}'),
-          onTap: () async {
-            final d = await showDatePicker(
-              context: context,
-              initialDate: DateTime.parse(s.startDay),
-              firstDate: DateTime.now().subtract(const Duration(days: laps * 2)),
-              lastDate: DateTime.now(),
-              helpText: 'Day 1 of the 12-week plan',
-            );
-            if (d != null) s.setStartDay(d);
-          },
+          onTap: () => _pickStart(context),
         ),
       ],
     );
@@ -351,7 +380,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           setState(() => _drawerOpen = open);
           if (open && widget.store.drawerDot) widget.store.dismissHint('drawer');
         },
-        drawer: _drawer(context),
+        drawer: isIOS(context) ? null : _drawer(context),
         body: IndexedStack(
           index: _tab,
           children: [
@@ -360,30 +389,103 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
             ProgressScreen(store: widget.store),
           ],
         ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _tab,
-          onDestinationSelected: (i) => setState(() => _tab = i),
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.track_changes_outlined),
-              selectedIcon: Icon(Icons.track_changes),
-              label: 'Today',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.fitness_center_outlined),
-              selectedIcon: Icon(Icons.fitness_center),
-              label: 'Gym',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.show_chart_outlined),
-              selectedIcon: Icon(Icons.show_chart),
-              label: 'Progress',
-            ),
+        extendBody: isIOS(context), // pages run under the floating glass tab bar
+        bottomNavigationBar: Tabs(
+          index: _tab,
+          onTap: (i) => setState(() => _tab = i),
+          items: const [
+            (Icons.track_changes_outlined, Icons.track_changes, 'Today'),
+            (Icons.fitness_center_outlined, Icons.fitness_center, 'Gym'),
+            (Icons.show_chart_outlined, Icons.show_chart, 'Progress'),
           ],
         ),
       ),
     ),
   );
+}
+
+/// iPhone's More page: the drawer's contents as grouped rows in Daur's colours, chevrons on the right.
+class _MorePage extends StatelessWidget {
+  const _MorePage({required this.shell});
+  final _ShellState shell;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Daur.of(context), s = shell.widget.store;
+    Widget group(List<(IconData, String, String?, VoidCallback)> rows) => Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(14)),
+      child: Column(
+        children: [
+          for (final (i, (icon, label, sub, onTap)) in rows.indexed)
+            InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 50),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  border: i == 0 ? null : Border(top: BorderSide(color: t.rule, width: .5)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(icon, size: 22, color: t.ink),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(label, style: t.body(weight: FontWeight.w500)),
+                          if (sub != null) Text(sub, style: t.meta()),
+                        ],
+                      ),
+                    ),
+                    Icon(CupertinoIcons.chevron_forward, size: 16, color: t.ink2),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+    void open(Widget Function() page) => Navigator.push(context, CupertinoPageRoute(builder: (_) => page()));
+    return Scaffold(
+      body: SafeArea(
+        child: ListenableBuilder(
+          listenable: s,
+          builder: (context, _) => ListView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+            children: [
+              PageHeader('More', sub: 'Day ${s.lap} of $laps · week ${s.cutWeek}'),
+              const SizedBox(height: 16),
+              Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.only(top: 12),
+                decoration: BoxDecoration(color: t.sheet, borderRadius: BorderRadius.circular(14)),
+                child: const _AccountTile(),
+              ),
+              for (final g in shell._pages)
+                group([for (final (icon, label, page) in g) (icon, label, null, () => open(page))]),
+              group([
+                (
+                  Icons.widgets_outlined,
+                  'Add home-screen widget',
+                  'Meals, kcal, water, steps',
+                  () => shell._addWidget(context),
+                ),
+                (
+                  Icons.flag_outlined,
+                  'Plan start date',
+                  '${niceDate(DateTime.parse(s.startDay))} · today is day ${s.lap}',
+                  () => shell._pickStart(context),
+                ),
+              ]),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Drawer: Google account and backup status. Signed out it's a "Continue with Google" button.
@@ -487,7 +589,13 @@ class _AccountTile extends StatelessWidget {
   }
 
   Future<void> _signOut(BuildContext context) async {
-    final ok = await confirmPop(context, 'Sign out?', 'Your data stays here and in the cloud.', 'Sign out');
+    final ok = await confirmPop(
+      context,
+      'Sign out?',
+      'Your data stays here and in the cloud.',
+      'Sign out',
+      destructive: true,
+    );
     if (ok) await Cloud.instance.signOut();
   }
 }

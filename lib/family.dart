@@ -125,7 +125,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
                         return l != 0 ? l : (b['streak'] as int? ?? 0).compareTo(a['streak'] as int? ?? 0);
                       });
                       if (snap.hasError) return Text('Couldn\'t load the board.', style: t.sec());
-                      if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+                      if (!snap.hasData) return const Center(child: CircularProgressIndicator.adaptive());
                       return Column(
                         children: [for (final r in rows) _Member(row: r, legs: legs(r), me: r['uid'] == c.user?.uid)],
                       );

@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder, CupertinoThemeData;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -85,6 +85,8 @@ ThemeData buildTheme(Brightness b) {
     scaffoldBackgroundColor: t.ground,
     colorScheme: ColorScheme.fromSeed(seedColor: t.ground, brightness: b, surface: t.ground, primary: t.ink),
     splashFactory: InkSparkle.splashFactory,
+    // iPhone's own controls (action sheets, alerts, switches) take Daur red as their tint, not cream
+    cupertinoOverrideTheme: CupertinoThemeData(primaryColor: t.sheetRed),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: t.infield,
       indicatorColor: t.ink.withValues(alpha: .22),

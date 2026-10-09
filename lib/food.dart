@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
+import 'adaptive.dart';
 import 'plan.dart';
 import 'store.dart';
 import 'theme.dart';
@@ -28,24 +28,14 @@ class _FoodScreenState extends State<FoodScreen> {
           children: [
             const PageHeader('Food guide'),
             const SizedBox(height: 14),
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'Plate', icon: Icon(Icons.rice_bowl_outlined), label: Text('Plate')),
-                ButtonSegment(value: 'Rules', icon: Icon(Icons.checklist_rounded), label: Text('Rules')),
-                ButtonSegment(value: 'Junk', icon: Icon(Icons.fastfood_outlined), label: Text('Junk')),
+            Segments<String>(
+              items: const [
+                ('Plate', 'Plate', Icons.rice_bowl_outlined),
+                ('Rules', 'Rules', Icons.checklist_rounded),
+                ('Junk', 'Junk', Icons.fastfood_outlined),
               ],
-              selected: {_tab},
-              showSelectedIcon: false,
-              onSelectionChanged: (v) {
-                HapticFeedback.selectionClick();
-                setState(() => _tab = v.first);
-              },
-              style: SegmentedButton.styleFrom(
-                foregroundColor: t.ink,
-                selectedForegroundColor: t.onAccent,
-                selectedBackgroundColor: t.accent,
-                side: BorderSide(color: t.lane),
-              ),
+              value: _tab,
+              onChanged: (v) => setState(() => _tab = v),
             ),
             const SizedBox(height: 24),
             ...switch (_tab) {

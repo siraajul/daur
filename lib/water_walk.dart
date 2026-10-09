@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'adaptive.dart';
 import 'motion.dart';
 import 'plan.dart';
 import 'steps.dart';
@@ -48,8 +49,8 @@ class WaterScreen extends StatelessWidget {
                         title: 'Water',
                         sub: '${niceDate(now)} · each glass is 250 ml',
                         menu: [
-                          ('Undo last glass', g > 0 ? () => s.setWater(g - 1) : null),
-                          ('Reset today', g > 0 ? () => s.setWater(0) : null),
+                          MenuItem('Undo last glass', g > 0 ? () => s.setWater(g - 1) : null),
+                          MenuItem('Reset today', g > 0 ? () => s.setWater(0) : null, destructive: true),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -191,7 +192,9 @@ class SleepScreen extends StatelessWidget {
                       _Header(
                         title: 'Sleep',
                         sub: 'Last night · aim for 7–8 hours',
-                        menu: [('Clear last night', m != null ? () => s.setSleep(null) : null)],
+                        menu: [
+                          MenuItem('Clear last night', m != null ? () => s.setSleep(null) : null, destructive: true),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       RingHero(
@@ -326,7 +329,7 @@ class _WalkScreenState extends State<WalkScreen> {
             child: Column(
               children: [
                 Expanded(
-                  child: RefreshIndicator(
+                  child: RefreshIndicator.adaptive(
                     onRefresh: _load,
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
@@ -536,27 +539,10 @@ class _HourBars extends CustomPainter {
 class _Header extends StatelessWidget {
   const _Header({required this.title, required this.sub, this.menu = const []});
   final String title, sub;
-  final List<(String, VoidCallback?)> menu;
+  final List<MenuItem> menu;
 
   @override
-  Widget build(BuildContext context) {
-    final t = Daur.of(context);
-    return PageHeader(
-      title,
-      sub: sub,
-      actions: [
-        if (menu.isNotEmpty)
-          PopupMenuButton<int>(
-            icon: Icon(Icons.more_horiz, color: t.ink),
-            onSelected: (i) => menu[i].$2?.call(),
-            itemBuilder: (_) => [
-              for (final (i, (label, f)) in menu.indexed)
-                PopupMenuItem(value: i, enabled: f != null, child: Text(label)),
-            ],
-          ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => PageHeader(title, sub: sub, actions: [if (menu.isNotEmpty) MoreButton(menu)]);
 }
 
 /// A ring that fills to today's target, a yellow dot at its tip; the number inside, a pill under it.

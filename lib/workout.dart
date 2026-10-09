@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'adaptive.dart';
 import 'gym.dart';
 import 'motion.dart';
 import 'live.dart';
@@ -109,36 +110,23 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                         sub:
                             '${s.splitDayOf(ex)} · ${widget.index + 1} of ${s.exercisesOn(s.splitDayOf(ex)).length} · plan ${planText(p)}',
                         actions: [
-                          PopupMenuButton<String>(
-                            tooltip: 'Move or remove',
-                            icon: Icon(Icons.more_horiz, color: t.ink),
-                            onSelected: (v) async {
-                              if (v != 'remove') {
-                                s.moveExercise(ex, v);
-                                return;
-                              }
-                              final ok = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: Text('Remove $ex?'),
-                                  content: const Text('Its history stays. Add it back any time.'),
-                                  actions: [
-                                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                                    TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Remove')),
-                                  ],
-                                ),
+                          MoreButton(tooltip: 'Move or remove', [
+                            for (final d in Store.splitDays)
+                              if (d != s.splitDayOf(ex)) MenuItem('Move to $d day', () => s.moveExercise(ex, d)),
+                            MenuItem('Remove from the list', destructive: true, () async {
+                              final ok = await confirmPop(
+                                context,
+                                'Remove $ex?',
+                                'Its history stays. Add it back any time.',
+                                'Remove',
+                                destructive: true,
                               );
-                              if (ok == true && context.mounted) {
+                              if (ok && context.mounted) {
                                 s.removeExercise(ex);
                                 Navigator.pop(context);
                               }
-                            },
-                            itemBuilder: (_) => [
-                              for (final d in Store.splitDays)
-                                if (d != s.splitDayOf(ex)) PopupMenuItem(value: d, child: Text('Move to $d day')),
-                              const PopupMenuItem(value: 'remove', child: Text('Remove from the list')),
-                            ],
-                          ),
+                            }),
+                          ]),
                         ],
                       ),
                       Column(

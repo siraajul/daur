@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'adaptive.dart';
 import 'coach.dart';
 import 'fasting.dart';
 import 'meal_sheet.dart';
@@ -38,12 +40,13 @@ class MenuButton extends StatelessWidget {
   final bool dot; // a one-time hint that the drawer holds more (day 3)
   @override
   Widget build(BuildContext context) => IconButton(
-    onPressed: () => Scaffold.of(context).openDrawer(),
+    onPressed: () => openMenu(context),
     icon: Badge(
       isLabelVisible: dot,
       backgroundColor: Daur.of(context).accent,
       smallSize: 9,
-      child: Icon(Icons.menu, color: Daur.of(context).ink),
+      // Android: the drawer's ≡; iPhone: a profile button that opens the More page
+      child: Icon(isIOS(context) ? CupertinoIcons.person_crop_circle : Icons.menu, color: Daur.of(context).ink),
     ),
     tooltip: dot ? 'Menu: Food guide, Reminders and more' : 'Menu',
   );

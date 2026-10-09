@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'adaptive.dart';
 import 'cloud.dart';
 import 'plan.dart';
 import 'steps.dart';
@@ -74,12 +75,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _pickStart() async {
-    final d = await showDatePicker(
-      context: context,
-      initialDate: _start,
-      firstDate: DateTime.now().subtract(const Duration(days: laps * 2)),
-      lastDate: DateTime.now(),
-      helpText: 'Day 1 of the 12-week plan',
+    final d = await pickDate(
+      context,
+      initial: _start,
+      first: DateTime.now().subtract(const Duration(days: laps * 2)),
+      last: DateTime.now(),
+      help: 'Day 1 of the 12-week plan',
     );
     if (d != null) setState(() => _start = d);
   }
@@ -338,7 +339,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     icon: _connecting
                         ? SizedBox.square(
                             dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: t.onAccent),
+                            child: CircularProgressIndicator.adaptive(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(t.onAccent),
+                            ),
                           )
                         : Icon(Icons.favorite_border, color: t.onAccent),
                     label: Text('Connect', style: t.body(color: t.onAccent)),

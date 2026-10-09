@@ -56,7 +56,7 @@ class RemindersScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: t.rule, width: .5)),
               ),
-              child: SwitchListTile(
+              child: SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
                 value: value,
                 onChanged: enabled ? onChanged : null,
