@@ -152,6 +152,7 @@ class Store extends ChangeNotifier {
   Map<String, String> inviteCodes = {}; // role ('diet' | 'trainer') -> the code this person made
   List<Map<String, String>> helping = []; // people this person helps: {owner, name, role}
   bool helperOnly = false; // this phone only helps someone; it has no plan of its own
+  String? role; // how this person uses Daur: 'me' | 'trainer' | 'family'; null = not asked yet
   String notesSeen = ''; // ISO time of the newest note already shown on Today
   String? aiDay; // the Pacific-time day aiUsed counts (Google's free quota resets then)
   Map<String, int> aiUsed = {}; // 'flash' / 'lite' → AI estimates made on this phone that day
@@ -254,6 +255,7 @@ class Store extends ChangeNotifier {
     inviteCodes = Map<String, String>.from(j['inviteCodes'] ?? {});
     helping = [for (final h in (j['helping'] as List? ?? const [])) Map<String, String>.from(h as Map)];
     helperOnly = j['helperOnly'] as bool? ?? false;
+    role = j['role'] as String?;
     notesSeen = j['notesSeen'] as String? ?? '';
     aiDay = j['aiDay'] as String?;
     aiUsed = Map<String, int>.from(j['aiUsed'] ?? {});
@@ -344,6 +346,7 @@ class Store extends ChangeNotifier {
     'inviteCodes': inviteCodes,
     'helping': helping,
     'helperOnly': helperOnly,
+    'role': role,
     'notesSeen': notesSeen,
     'aiDay': aiDay,
     'aiUsed': aiUsed,
@@ -1350,12 +1353,23 @@ class Store extends ChangeNotifier {
     _save();
   }
 
-  /// A phone that only helps someone skips onboarding and opens on the people it helps.
+  /// A phone that only helps someone skips onboarding and opens on the people it helps; turning
+  /// it off starts their own plan's onboarding.
   void setHelperOnly(bool v) {
     helperOnly = v;
-    if (v) onboarded = true;
+    onboarded = v;
     _save();
   }
+
+  /// How this person uses Daur (asked once, after the account): just them, a trainer, or family.
+  void setRole(String r) {
+    role = r;
+    _save();
+  }
+
+  /// A Students / Family tab next to Today, Gym and Progress: trainers and family helpers, and
+  /// anyone who has started helping someone.
+  bool get helps => role == 'trainer' || role == 'family' || helping.isNotEmpty;
 
   void seeNotes(String newest) {
     if (newest.compareTo(notesSeen) <= 0) return;

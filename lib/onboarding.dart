@@ -14,6 +14,182 @@ import 'track.dart';
 import 'visuals.dart';
 import 'water_walk.dart' show litres;
 
+/// The very first screens: make an account (Google), then say how Daur will be used. A trainer or
+/// a family helper may also track their own fitness; without that they go straight to the people
+/// they help. Returning users get their backup back at sign-in and skip the rest.
+class WelcomeScreen extends StatefulWidget {
+  const WelcomeScreen({super.key, required this.store});
+  final Store store;
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  bool _account = false; // past the sign-in step (signed in, or "not now")
+  String _role = 'me';
+  bool _own = true; // also tracks their own fitness
+  String? _error;
+
+  static const _roles = [
+    ('me', Icons.person_rounded, 'Just me', 'My own diet and fitness'),
+    ('trainer', Icons.sports_rounded, 'I\'m a trainer', 'Follow my students\' progress'),
+    ('family', Icons.family_restroom_rounded, 'I help family', 'Follow a family member\'s diet'),
+  ];
+
+  Future<void> _signIn() async {
+    final msg = await Cloud.instance.signInWithGoogle();
+    if (!mounted) return;
+    setState(() {
+      _error = msg;
+      if (msg == null) _account = true;
+    });
+  }
+
+  void _go() {
+    HapticFeedback.mediumImpact();
+    final s = widget.store;
+    s.setRole(_role);
+    if (_role != 'me' && !_own) s.setHelperOnly(true); // straight to the people they help
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Daur.of(context);
+    return ListenableBuilder(
+      listenable: Cloud.instance,
+      builder: (context, _) {
+        final c = Cloud.instance;
+        final signedIn = c.signedIn;
+        return Scaffold(
+          body: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+                    children: [
+                      Text('Daur', style: t.x(40, weight: FontWeight.w900)),
+                      const SizedBox(height: 4),
+                      Text('12 weeks of meals, walks and the gym', style: t.sec()),
+                      const SizedBox(height: 24),
+                      // the lap closes once there's an account; smaller then, to leave room for the choice
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.easeOutCubic,
+                        height: _account || signedIn ? 110 : 220,
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0, end: _account || signedIn ? 400 : 100),
+                          duration: const Duration(milliseconds: 1200),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, m, _) => Center(
+                            child: AspectRatio(
+                              aspectRatio: 402 / 250,
+                              child: CustomPaint(painter: TrackPainter(m, t)),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      if (!_account && !signedIn) ...[
+                        Text('Make your account', style: t.title()),
+                        const SizedBox(height: 8),
+                        const Tip(Icons.cloud_done_outlined, 'Backed up, and safe on a new phone'),
+                        const Tip(
+                          Icons.family_restroom_rounded,
+                          'Needed to follow, or be followed by, a trainer or family',
+                        ),
+                        const SizedBox(height: 16),
+                        GoogleButton(busy: c.busy, onPressed: _signIn),
+                        const SizedBox(height: 4),
+                        Center(
+                          child: TextButton(
+                            onPressed: () => setState(() => _account = true),
+                            child: Text('Not now · this phone only', style: t.sec(t.ink)),
+                          ),
+                        ),
+                      ] else ...[
+                        Text('How will you use Daur?', style: t.title()),
+                        const SizedBox(height: 16),
+                        for (final (r, icon, title, sub) in _roles)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Material(
+                              color: _role == r ? t.accent : t.infield,
+                              borderRadius: BorderRadius.circular(20),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(20),
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  setState(() {
+                                    _role = r;
+                                    _own = r != 'family'; // a mother usually just follows; a trainer trains too
+                                    _error = null;
+                                  });
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                                  child: Row(
+                                    children: [
+                                      Icon(icon, color: _role == r ? t.onAccent : t.ink),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(title, style: t.body(color: _role == r ? t.onAccent : t.ink)),
+                                            Text(sub, style: t.meta(_role == r ? t.onAccent : null)),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (_role != 'me')
+                          SwitchListTile.adaptive(
+                            contentPadding: EdgeInsets.zero,
+                            value: _own,
+                            onChanged: (v) => setState(() => _own = v),
+                            activeThumbColor: t.ground,
+                            activeTrackColor: t.ink,
+                            title: Text('Also track my own fitness', style: t.body()),
+                            subtitle: Text(
+                              _own
+                                  ? 'Your own plan, plus a ${_role == 'trainer' ? 'Students' : 'Family'} tab'
+                                  : 'Only follow others',
+                              style: t.meta(),
+                            ),
+                          ),
+                      ],
+                      // following people needs an account: sign in right here (skipped earlier)
+                      if ((_account || signedIn) && _role != 'me' && !signedIn) ...[
+                        const SizedBox(height: 8),
+                        const Tip(Icons.vpn_key_outlined, 'Following someone needs an account'),
+                        const SizedBox(height: 8),
+                        GoogleButton(busy: c.busy, onPressed: _signIn),
+                      ],
+                      if (_error != null) ...[const SizedBox(height: 12), Text(_error!, style: t.body())],
+                    ],
+                  ),
+                ),
+                if (_account || signedIn)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                    child: _role != 'me' && !signedIn
+                        ? const Cta(label: 'Sign in to continue', muted: true)
+                        : Cta(label: _role != 'me' && !_own ? 'Enter their code' : 'Set up my plan', onTap: _go),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// First run, four steps: what a lap is, where you start, about you (the targets), steps.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key, required this.store});
@@ -114,12 +290,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                     ),
                   const Spacer(),
-                  // a mother or a trainer installs Daur only to follow someone's plan
-                  if (_page == 0)
-                    TextButton(
-                      onPressed: () => widget.store.setHelperOnly(true),
-                      child: Text('Helping someone?', style: t.sec(t.ink)),
-                    ),
                   if (_page < 3)
                     TextButton(
                       onPressed: _skip,

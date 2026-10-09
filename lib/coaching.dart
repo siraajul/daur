@@ -8,7 +8,7 @@ import 'adaptive.dart';
 import 'cloud.dart';
 import 'store.dart';
 import 'theme.dart';
-import 'today.dart' show Cta, thousands;
+import 'today.dart' show Cta, MenuButton, thousands;
 import 'visuals.dart';
 import 'water_walk.dart' show RingHero, Tiles, litres;
 
@@ -700,10 +700,31 @@ class _Line extends CustomPainter {
   bool shouldRepaint(_Line o) => o.pts != pts;
 }
 
-/// A phone that only helps someone (a mother, a trainer): the people it helps, and joining.
+/// A phone that only helps someone (a mother, a trainer): straight to the one person it helps,
+/// or the list when there are several.
 class HelperHome extends StatelessWidget {
   const HelperHome({super.key, required this.store});
   final Store store;
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: Listenable.merge([store, Cloud.instance]),
+    builder: (context, _) {
+      if (Cloud.instance.signedIn && store.helping.length == 1) {
+        final h = store.helping.first;
+        return HelperView(owner: h['owner']!, name: h['name']!, role: h['role']!, store: store);
+      }
+      return PeopleScreen(store: store, standalone: true);
+    },
+  );
+}
+
+/// The people this person helps (a trainer's students, a mother's children), each with their day at
+/// a glance; joining one more with their code. A tab for those who track their own plan too.
+class PeopleScreen extends StatelessWidget {
+  const PeopleScreen({super.key, required this.store, this.standalone = false});
+  final Store store;
+  final bool standalone; // the whole app (helper-only phone), not a tab
 
   @override
   Widget build(BuildContext context) {
@@ -713,32 +734,43 @@ class HelperHome extends StatelessWidget {
       listenable: Listenable.merge([store, c]),
       builder: (context, _) {
         final s = store;
-        // one person to help: open straight on them
-        if (c.signedIn && s.helping.length == 1) {
-          final h = s.helping.first;
-          return HelperView(owner: h['owner']!, name: h['name']!, role: h['role']!, store: s);
-        }
+        final title = s.role == 'trainer'
+            ? 'Students'
+            : s.role == 'family'
+            ? 'Family'
+            : 'People';
         return Scaffold(
           body: SafeArea(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
-                Text('Daur', style: t.x(32, weight: FontWeight.w900)),
-                Text('Helping someone with their plan', style: t.sec()),
-                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    if (!standalone) const MenuButton(),
+                    Expanded(child: Text(standalone ? 'Daur' : title, style: t.title())),
+                  ],
+                ),
+                Text(
+                  standalone ? 'Helping with their plan' : 'Their day at a glance · a dot needs a look',
+                  style: t.sec(),
+                ),
+                const SizedBox(height: 20),
                 if (!c.signedIn) ...[
                   const Tip(Icons.vpn_key_outlined, 'Sign in, then enter the code they sent you'),
                   const SizedBox(height: 16),
                   GoogleButton(busy: c.busy, onPressed: () => c.signInWithGoogle()),
                 ] else ...[
-                  Text('People you help', style: t.meta()),
-                  // the ones who need a look first: not opened today, or over their target
+                  if (s.helping.isEmpty)
+                    const Tip(Icons.vpn_key_outlined, 'Ask for their code: in their Daur, Menu → Coaches → Invite'),
                   for (final h in s.helping) _Helped(h: h, store: s),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
+                  Text('Add someone', style: t.meta()),
                   _JoinHome(store: s),
                 ],
-                const SizedBox(height: 32),
-                Cta(label: 'Start my own plan instead', muted: true, onTap: () => s.setHelperOnly(false)),
+                if (standalone) ...[
+                  const SizedBox(height: 32),
+                  Cta(label: 'Start my own plan too', muted: true, onTap: () => s.setHelperOnly(false)),
+                ],
               ],
             ),
           ),

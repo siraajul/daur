@@ -89,6 +89,8 @@ class DaurApp extends StatelessWidget {
           ? HelperHome(store: store)
           : store.onboarded
           ? Shell(store: store)
+          : store.role == null
+          ? WelcomeScreen(store: store) // account, then how Daur will be used
           : OnboardingScreen(store: store),
     ),
   );
@@ -249,6 +251,9 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  /// The tab on screen: the People tab can go away (left the last person), so fall back to Today.
+  int get _shown => _tab < (widget.store.helps ? 4 : 3) ? _tab : 0;
+
   /// What isn't on the bottom bar or Today, in groups. Android shows it as the drawer; iPhone,
   /// which has no drawers, as a More page opened from the profile button.
   List<List<(IconData, String, Widget Function())>> get _pages {
@@ -392,21 +397,33 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
         },
         drawer: isIOS(context) ? null : _drawer(context),
         body: IndexedStack(
-          index: _tab,
+          index: _shown,
           children: [
             TodayScreen(store: widget.store, steps: _steps, onRefreshSteps: _refreshSteps),
             GymScreen(store: widget.store),
             ProgressScreen(store: widget.store),
+            if (widget.store.helps) PeopleScreen(store: widget.store),
           ],
         ),
         extendBody: isIOS(context), // pages run under the floating glass tab bar
         bottomNavigationBar: Tabs(
-          index: _tab,
+          index: _shown,
           onTap: (i) => setState(() => _tab = i),
-          items: const [
+          items: [
             (Icons.track_changes_outlined, Icons.track_changes, 'Today'),
             (Icons.fitness_center_outlined, Icons.fitness_center, 'Gym'),
             (Icons.show_chart_outlined, Icons.show_chart, 'Progress'),
+            // trainers and family helpers: the people they follow, a tap away
+            if (widget.store.helps)
+              (
+                Icons.groups_outlined,
+                Icons.groups,
+                widget.store.role == 'trainer'
+                    ? 'Students'
+                    : widget.store.role == 'family'
+                    ? 'Family'
+                    : 'People',
+              ),
           ],
         ),
       ),
