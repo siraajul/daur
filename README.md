@@ -243,11 +243,19 @@ and build with `--dart-define-from-file=dart_defines.json`. Without it everythin
 
 ## Release to testers
 
-```bash
-./release.sh "What changed"
+Every merge to `main` ships itself:
+
+```mermaid
+flowchart LR
+    pr[Pull request] -->|merge| main[main]
+    main --> ci[GitHub Actions]
+    ci --> test[flutter test]
+    test --> build[Signed release APK<br/>build 100 + commits]
+    build --> dist[Firebase App Distribution]
+    dist --> tester[App Tester on<br/>Family phones]
 ```
 
-It bumps the build number, runs the tests, builds a release APK and sends it to the **Family** group through Firebase App Distribution. Testers install it with the Firebase App Tester app.
+The workflow is `.github/workflows/release.yml`. Release notes come from the merged commit. To ship by hand instead: `./release.sh "What changed"`. Testers install with the Firebase App Tester app, and each release shows up there as an update.
 
 ## Project map
 
