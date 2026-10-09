@@ -58,6 +58,7 @@ class Live {
         category: AndroidNotificationCategory.workout,
         color: const Color(0xFFAD3B26),
         icon: 'ic_stat_daur',
+        largeIcon: const DrawableResourceAndroidBitmap('notif_workout'),
       );
 
   /// Rest between sets: counts down to [end].

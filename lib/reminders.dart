@@ -104,10 +104,15 @@ class Reminders {
     _debounce = Timer(const Duration(seconds: 1), () => reschedule(s));
   }
 
+  /// Each kind of reminder in Daur's look: its own round icon, the plan day under the app name,
+  /// the whole message (not cut at one line) and, where there's a count, a progress bar.
   static NotificationDetails _details(
     String channel, {
     List<AndroidNotificationAction> actions = const [],
     String? cat,
+    String? sub,
+    String? body,
+    (int, int)? progress,
   }) {
     final (name, desc) = _channels[channel]!;
     return NotificationDetails(
@@ -120,10 +125,16 @@ class Reminders {
         color: const Color(0xFFAD3B26),
         icon: 'ic_stat_daur',
         groupKey: 'daur',
+        largeIcon: DrawableResourceAndroidBitmap('notif_$channel'),
+        subText: sub,
+        styleInformation: body == null ? null : BigTextStyleInformation(body),
+        showProgress: progress != null,
+        maxProgress: progress?.$2 ?? 0,
+        progress: progress == null ? 0 : progress.$1.clamp(0, progress.$2),
         actions: actions,
         category: AndroidNotificationCategory.reminder,
       ),
-      iOS: DarwinNotificationDetails(threadIdentifier: channel, categoryIdentifier: cat),
+      iOS: DarwinNotificationDetails(threadIdentifier: channel, categoryIdentifier: cat, subtitle: sub),
     );
   }
 
@@ -137,8 +148,29 @@ class Reminders {
       final day = DateTime(today.year, today.month, today.day + d);
       final lap = s.lapIn(d);
       DateTime at(int h, int m) => DateTime(day.year, day.month, day.day, h, m);
-      void add(int slot, DateTime when, String channel, String title, String body, String payload) {
-        if (when.isAfter(now)) out.add(Planned(_base + d * 50 + slot, when, channel, title, body, payload));
+      void add(
+        int slot,
+        DateTime when,
+        String channel,
+        String title,
+        String body,
+        String payload, {
+        (int, int)? progress,
+      }) {
+        if (when.isAfter(now)) {
+          out.add(
+            Planned(
+              _base + d * 50 + slot,
+              when,
+              channel,
+              title,
+              body,
+              payload,
+              sub: 'Day $lap of $laps',
+              progress: progress,
+            ),
+          );
+        }
       }
 
       if (s.reminderOn('weigh') && !(d == 0 && s.weighedToday)) {
@@ -171,6 +203,7 @@ class Reminders {
             d == 0 ? 'Water · ${litres(s.water)} of ${litres(s.waterGoal)} L' : 'Water',
             'Aim for ${litres(goal)} L by now. One glass, 250 ml.',
             'water',
+            progress: d == 0 ? (s.water, s.waterGoal) : null,
           );
         }
       }
@@ -193,6 +226,7 @@ class Reminders {
             'Walk · ${thousands(steps)} of ${thousands(target)}',
             '20 minutes after dinner covers the rest.',
             'walk',
+            progress: (steps, target),
           );
         }
       }
@@ -235,6 +269,7 @@ class Reminders {
               ? 'Log the last ${left == 1 ? 'meal' : '$left meals'}, or mark ${left == 1 ? 'it' : 'them'} skipped.'
               : 'Log what\'s left before midnight.',
           'open',
+          progress: d == 0 ? (s.legsDone, 4) : null,
         );
       }
       // Sunday evening: the week in one screen
@@ -308,6 +343,9 @@ class Reminders {
           notificationDetails: _details(
             p.channel,
             actions: actions,
+            sub: p.sub,
+            body: p.body,
+            progress: p.progress,
             cat: p.channel == 'meals'
                 ? 'meal'
                 : p.channel == 'water'
@@ -378,5 +416,7 @@ class Planned {
   final int id;
   final DateTime when;
   final String channel, title, body, payload;
-  const Planned(this.id, this.when, this.channel, this.title, this.body, this.payload);
+  final String? sub; // "Day 12 of 84", under the app name
+  final (int, int)? progress; // done of total, drawn as a bar
+  const Planned(this.id, this.when, this.channel, this.title, this.body, this.payload, {this.sub, this.progress});
 }
