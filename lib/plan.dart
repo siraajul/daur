@@ -12,15 +12,46 @@ class MealOption {
   final List<String> items;
   final int kcal, protein;
   const MealOption(this.name, this.items, this.kcal, this.protein);
+
+  Map<String, Object> toJson() => {'n': name, 'i': items, 'k': kcal, 'p': protein};
+  static MealOption from(Map j) => MealOption(
+    j['n'] as String,
+    [for (final x in j['i'] as List) x as String],
+    (j['k'] as num).toInt(),
+    (j['p'] as num).toInt(),
+  );
 }
 
 class Meal {
   final String id, name, window, note;
   final List<MealOption> options;
   const Meal(this.id, this.name, this.window, this.options, [this.note = '']);
+
+  Meal withOptions(List<MealOption> options, [String? note]) => Meal(id, name, window, options, note ?? this.note);
+
+  Map<String, Object> toJson() => {
+    'id': id,
+    'n': name,
+    'w': window,
+    'o': [for (final o in options) o.toJson()],
+    if (note.isNotEmpty) 'note': note,
+  };
+  static Meal from(Map j) => Meal(
+    j['id'] as String,
+    j['n'] as String,
+    j['w'] as String,
+    [for (final o in j['o'] as List) MealOption.from(o as Map)],
+    j['note'] as String? ?? '',
+  );
 }
 
-const meals = [
+/// Today's diet chart: the trainer's when there is one (Store.setChart), else the plan below.
+/// The four meals and their windows stay; what's in each meal is the chart's.
+List<Meal> get meals => _chart;
+List<Meal> _chart = defaultMeals;
+void useChart(List<Meal>? chart) => _chart = chart == null || chart.length != 4 ? defaultMeals : chart;
+
+const defaultMeals = [
   Meal('m1', 'Breakfast', '08:00–09:00', [
     MealOption(
       'Eggs + roti',

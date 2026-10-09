@@ -154,6 +154,8 @@ class Store extends ChangeNotifier {
   bool helperOnly = false; // this phone only helps someone; it has no plan of its own
   String? role; // how this person uses Daur: 'me' | 'trainer' | 'family'; null = not asked yet
   String notesSeen = ''; // ISO time of the newest note already shown on Today
+  List<Meal>? chart; // the trainer's diet chart (null = the plan in plan.dart)
+  String chartBy = ''; // who wrote it (shown with the chart)
   String? aiDay; // the Pacific-time day aiUsed counts (Google's free quota resets then)
   Map<String, int> aiUsed = {}; // 'flash' / 'lite' → AI estimates made on this phone that day
   Map<String, List<Eaten>> aiMeals = {}; // normalised description → the estimate (reused, no AI)
@@ -257,6 +259,9 @@ class Store extends ChangeNotifier {
     helperOnly = j['helperOnly'] as bool? ?? false;
     role = j['role'] as String?;
     notesSeen = j['notesSeen'] as String? ?? '';
+    chart = j['chart'] == null ? null : [for (final m in j['chart'] as List) Meal.from(m as Map)];
+    chartBy = j['chartBy'] as String? ?? '';
+    useChart(chart);
     aiDay = j['aiDay'] as String?;
     aiUsed = Map<String, int>.from(j['aiUsed'] ?? {});
     // re-filed under today's key rules, so estimates saved by an older version still match
@@ -348,6 +353,8 @@ class Store extends ChangeNotifier {
     'helperOnly': helperOnly,
     'role': role,
     'notesSeen': notesSeen,
+    if (chart != null) 'chart': [for (final m in chart!) m.toJson()],
+    'chartBy': chartBy,
     'aiDay': aiDay,
     'aiUsed': aiUsed,
     'aiMeals': {
@@ -1370,6 +1377,16 @@ class Store extends ChangeNotifier {
   /// A Students / Family tab next to Today, Gym and Progress: trainers and family helpers, and
   /// anyone who has started helping someone.
   bool get helps => role == 'trainer' || role == 'family' || helping.isNotEmpty;
+
+  /// A new diet chart (from the trainer, or back to the plan with null). Meals already logged keep
+  /// what was eaten; the choice of option carries over where the chart still has it.
+  void setChart(List<Meal>? c, {String by = ''}) {
+    if (c != null && c.length != 4) return; // four meals, or nothing
+    chart = c;
+    chartBy = c == null ? '' : by;
+    useChart(c);
+    _save();
+  }
 
   void seeNotes(String newest) {
     if (newest.compareTo(notesSeen) <= 0) return;

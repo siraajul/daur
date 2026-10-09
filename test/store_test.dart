@@ -818,4 +818,27 @@ void main() {
     expect(ids, isNot(contains('kg-1')));
     expect(s.coachSummary()['goal'], 2);
   });
+
+  test('diet chart: a trainer\'s chart replaces the plan, survives a restart, resets to the plan', () async {
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    final lunch = defaultMeals[1].withOptions([
+      const MealOption('Beef + rice', ['150 g beef', '1 cup cooked rice', 'Salad'], 620, 45),
+    ], 'From Coach Rafi');
+    s.setChart([defaultMeals[0], lunch, defaultMeals[2], defaultMeals[3]], by: 'Coach Rafi');
+    expect(meals[1].options.single.name, 'Beef + rice');
+    s.choose(meals[1], 0);
+    expect(s.chosen(meals[1]).items, contains('150 g beef'));
+
+    final again = await Store.load();
+    expect(meals[1].options.single.name, 'Beef + rice');
+    expect(again.chartBy, 'Coach Rafi');
+    expect(again.mealKcal(meals[1]), greaterThan(0));
+    // a chart that isn't four meals is ignored, never half-applied
+    again.setChart([defaultMeals[0]]);
+    expect(meals.length, 4);
+    expect(meals[1].name, 'Lunch');
+    again.setChart(null);
+    expect(meals[1].options.length, defaultMeals[1].options.length);
+  });
 }
