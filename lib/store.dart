@@ -140,6 +140,8 @@ class Store extends ChangeNotifier {
   bool signedIn = false; // not saved: cloud.dart keeps it current
   String? fastPlan; // '14:10' | '16:8' | '18:6' (hours fasting : eating); null = not fasting
   int eatStart = 13; // the eating window opens at this hour
+  DateTime? fastFrom; // the fast running now, started by hand; null = none
+  List<(DateTime, DateTime)> fasts = []; // finished fasts (start, end), oldest first, last 60
   List<Expense> expenses = [];
   int? monthBudget; // taka
   int freezes = 0; // streak freezes in hand (max 2), one earned per 7 full days in a row
@@ -233,6 +235,11 @@ class Store extends ChangeNotifier {
     ownerUid = j['ownerUid'] as String?;
     fastPlan = j['fastPlan'] as String?;
     eatStart = j['eatStart'] as int? ?? 13;
+    fastFrom = DateTime.tryParse(j['fastFrom'] as String? ?? '');
+    fasts = [
+      for (final f in (j['fasts'] as List? ?? const []))
+        (DateTime.parse((f as List)[0] as String), DateTime.parse(f[1] as String)),
+    ];
     expenses = [for (final x in (j['expenses'] as List? ?? [])) Expense.from(x as Map)];
     monthBudget = j['monthBudget'] as int?;
     freezes = j['freezes'] as int? ?? 0;
@@ -315,6 +322,10 @@ class Store extends ChangeNotifier {
     'ownerUid': ownerUid,
     'fastPlan': fastPlan,
     'eatStart': eatStart,
+    'fastFrom': fastFrom?.toIso8601String(),
+    'fasts': [
+      for (final (a, b) in fasts) [a.toIso8601String(), b.toIso8601String()],
+    ],
     'expenses': [for (final x in expenses) x.toJson()],
     'monthBudget': monthBudget,
     'freezes': freezes,
@@ -478,6 +489,45 @@ class Store extends ChangeNotifier {
     fastPlan = plan;
     if (plan != null) eatStart = (start ?? defaultStart(plan)).clamp(5, 24 - (24 - int.parse(plan.split(':').first)));
     _save();
+  }
+
+  /// The fast's goal in hours: the plan's, or 16 if the plan was turned off mid-fast.
+  int get fastGoal => fastPlan == null ? 16 : fastHours;
+
+  void startFast([DateTime? at]) {
+    fastFrom = at ?? DateTime.now();
+    _save();
+  }
+
+  /// Ends the running fast and keeps it (if it lasted at least 30 minutes). Returns its length.
+  Duration? endFast([DateTime? at]) {
+    final from = fastFrom;
+    if (from == null) return null;
+    final to = at ?? DateTime.now();
+    if (to.difference(from).inMinutes >= 30) {
+      fasts = [...fasts, (from, to)];
+      if (fasts.length > 60) fasts = fasts.sublist(fasts.length - 60);
+    }
+    fastFrom = null;
+    _save();
+    return to.difference(from);
+  }
+
+  /// The longest fast that ended on [day], in minutes (0 = none).
+  int fastMinOn(String day) => fasts
+      .where((f) => dayKey(f.$2) == day)
+      .fold(0, (a, f) => f.$2.difference(f.$1).inMinutes > a ? f.$2.difference(f.$1).inMinutes : a);
+
+  /// Days in a row with a fast that reached the goal; today counts once it's done, else from yesterday.
+  int get fastStreak {
+    var d = DateTime.now();
+    if (fastMinOn(dayKey(d)) < fastGoal * 60) d = d.subtract(const Duration(days: 1));
+    var n = 0;
+    while (fastMinOn(dayKey(d)) >= fastGoal * 60) {
+      n++;
+      d = d.subtract(const Duration(days: 1));
+    }
+    return n;
   }
 
   // ---- spending ----

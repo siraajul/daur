@@ -35,6 +35,7 @@ class Reminders {
     'weigh': ('Weigh-in', 'Morning weigh-in'),
     'walk': ('Evening walk', 'Only when you are short of steps'),
     'streak': ('Streak', 'At 21:30 when today isn\'t complete'),
+    'fasting': ('Fasting', 'When the eating window opens and is about to close'),
     'checkins': ('Check-ins', 'Pace check, junk rule, end of the plan, a nudge after 2 days away'),
   };
 
@@ -192,6 +193,32 @@ class Reminders {
             'Walk · ${thousands(steps)} of ${thousands(target)}',
             '20 minutes after dinner covers the rest.',
             'walk',
+          );
+        }
+      }
+      // fasting: the window opens, and 30 minutes before it closes (inside 07:00–22:00 only)
+      if (s.fastPlan != null && s.reminderOn('fasting')) {
+        final open = s.eatStart, close = s.eatEnd;
+        if (open >= 7 && open < 22) {
+          add(
+            32,
+            at(open, 0),
+            'fasting',
+            'Eating window open',
+            d == 0 && s.fastFrom != null
+                ? 'Until ${close.toString().padLeft(2, '0')}:00. End your fast in Daur.'
+                : 'Until ${close.toString().padLeft(2, '0')}:00.',
+            'fasting',
+          );
+        }
+        if (close > 7 && close <= 22) {
+          add(
+            33,
+            at(close - 1, 30),
+            'fasting',
+            'Window closes in 30 min',
+            'Last bite by ${close.toString().padLeft(2, '0')}:00, then the fast starts.',
+            'fasting',
           );
         }
       }

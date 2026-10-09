@@ -1,4 +1,5 @@
 import 'package:daur/badges.dart';
+import 'package:daur/fasting.dart' show stageAt;
 import 'package:daur/meal_ai.dart';
 import 'package:daur/plan.dart';
 import 'package:daur/reminders.dart';
@@ -689,5 +690,30 @@ void main() {
     expect(s.exercisesOn('Push'), contains('Core / plank'));
     final again = await Store.load();
     expect(again.exercisesOn('Push'), contains('Push-ups')); // saved
+  });
+
+  test('fasting: start/end logs real fasts, short ones dropped, streak, window reminders', () async {
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    s.setFast('16:8'); // eats 13:00–21:00
+    final now = DateTime.now();
+    s.startFast(now.subtract(const Duration(minutes: 10)));
+    expect(s.endFast(now)!.inMinutes, 10);
+    expect(s.fasts, isEmpty); // under 30 min: not kept
+    for (var d = 2; d >= 0; d--) {
+      final end = DateTime(now.year, now.month, now.day - d, 12, 30);
+      s.startFast(end.subtract(Duration(hours: d == 1 ? 12 : 17)));
+      s.endFast(end);
+    }
+    expect(s.fastMinOn(dayKey(now)), 17 * 60);
+    expect(s.fastStreak, 1); // yesterday's 12 h missed the 16 h goal
+    expect(stageAt(const Duration(hours: 13)), 3); // burning fat
+
+    final again = await Store.load();
+    expect(again.fasts.length, 3); // saved
+    again.setReminders(true);
+    final morning = DateTime(now.year, now.month, now.day + 1, 6);
+    final p = Reminders.plan(again, morning).where((x) => x.channel == 'fasting' && x.when.day == morning.day);
+    expect(p.map((x) => '${x.when.hour}:${x.when.minute}'), ['13:0', '20:30']);
   });
 }

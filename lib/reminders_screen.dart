@@ -18,6 +18,7 @@ class RemindersScreen extends StatelessWidget {
     ('weigh', 'Weigh-in', '07:30, quiet once you have weighed'),
     ('walk', 'Evening walk', '21:15, only if you are short of steps'),
     ('streak', 'Streak', '21:30, only if today isn\'t complete'),
+    ('fasting', 'Fasting', 'Window opens, and 30 min before it closes'),
     ('checkins', 'Check-ins', 'Day 28 pace, day 31 junk rule, day 84, a nudge after 2 days away'),
   ];
 

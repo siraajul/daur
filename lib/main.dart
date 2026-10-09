@@ -156,6 +156,8 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
       push(WaterScreen(store: s));
     } else if (r == 'walk') {
       push(WalkScreen(store: s, steps: _steps, onRefresh: _refreshSteps));
+    } else if (r == 'fasting') {
+      push(FastingScreen(store: s));
     } else if (r == 'recap') {
       push(RecapScreen(store: s));
     } else {
