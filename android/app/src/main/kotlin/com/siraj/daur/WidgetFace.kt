@@ -108,7 +108,7 @@ object WidgetFace {
         f.text(lapLine(d, of84 = false), left, PAD, f.paint(f.x, 10f, INK2, .06f))
         var y = h - PAD
         y -= 15f
-        f.text(d.str("kcal_text"), left, y, f.paint(f.medium, 12f, INK2))
+        f.text(d.str("kcal_text"), left, y, f.paint(f.medium, 12f, if (d.num("burn_over") == 1) RUNNER else INK2))
         y -= 13f
         f.bar(left, y, w - left - PAD, d.num("kcal_pct") / 100f)
         y -= 24f

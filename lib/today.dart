@@ -131,6 +131,7 @@ class TodayScreen extends StatelessWidget {
                         ? 'Done for today\n${thousands(s.kcal)} kcal · ${s.protein} g protein'
                         : '${thousands(s.kcal)} of ${thousands(s.kcalGoal)} kcal\n${s.protein} of ${s.proteinText} g protein',
                   ),
+                  if (s.kcal > 0) Center(child: _BurnPill(store: s)),
                   const SizedBox(height: 8),
                   for (final (i, m) in meals.indexed) _Leg(store: s, meal: m, n: (i + 1) * 100, isNext: m == next),
                   for (final (i, e) in s.extras.indexed)
@@ -298,6 +299,55 @@ class TodayScreen extends StatelessWidget {
           : null,
     );
     if (v != null) store.setManualSteps(v.round());
+  }
+}
+
+/// Under the track: yellow "72 to burn · 13 min walk" once over today's target, a quiet
+/// "1,398 kcal left today" before. Either way it opens Burn.
+class _BurnPill extends StatelessWidget {
+  const _BurnPill({required this.store});
+  final Store store;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Daur.of(context), s = store, left = s.burnLeft;
+    final over = left > 0;
+    final text = over
+        ? '${thousands(left)} to burn · ${hoursMinutes(s.minutesFor(left, burnWays.first.$4))} walk'
+        : '${thousands((s.kcalGoal - s.kcal).clamp(0, 1 << 30))} kcal left today';
+    return Semantics(
+      button: true,
+      label: over ? '$left kilocalories to burn. Opens Burn' : text,
+      excludeSemantics: true,
+      child: Material(
+        color: over ? t.accent : t.infield,
+        shape: const StadiumBorder(),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BurnScreen(store: s))),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 14, 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  over ? Icons.local_fire_department_rounded : Icons.local_fire_department_outlined,
+                  size: 18,
+                  color: over ? t.onAccent : t.ink,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  text,
+                  style: t.body(color: over ? t.onAccent : t.ink, weight: FontWeight.w700),
+                ),
+                const SizedBox(width: 2),
+                Icon(Icons.chevron_right_rounded, size: 18, color: over ? t.onAccent : t.ink2),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

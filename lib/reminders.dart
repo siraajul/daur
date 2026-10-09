@@ -8,6 +8,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'burn.dart' show burnWays, hoursMinutes;
 import 'plan.dart';
 import 'store.dart';
 import 'today.dart' show thousands;
@@ -237,7 +238,18 @@ class Reminders {
       }
       if (s.reminderOn('walk')) {
         final target = stepTargetForDay(lap);
-        if (d > 0 || steps == null) {
+        if (d == 0 && s.burnLeft > 0) {
+          // over today's target: the evening walk becomes the way to burn it off
+          final min = s.minutesFor(s.burnLeft, burnWays.first.$4);
+          add(
+            30,
+            at(21, 15),
+            'walk',
+            'Walk off ${thousands(s.burnLeft)} kcal',
+            '${hoursMinutes(min)} brisk walk covers it, about ${thousands((min / 60 * 5.6 * 1350).round())} steps.',
+            'burn',
+          );
+        } else if (d > 0 || steps == null) {
           add(
             30,
             at(21, 15),
@@ -305,6 +317,7 @@ class Reminders {
                   for (final m in meals)
                     if (!s.fasted(m) && !s.done.containsKey(m.id) && !s.skipped.contains(m.id))
                       '${m.name} · not logged yet',
+                  if (s.burnLeft > 0) 'Burn · ${thousands(s.burnLeft)} kcal over',
                   if (s.water < s.waterGoal) 'Water · ${litres(s.waterGoal - s.water)} L to go',
                   if (steps != null && steps < stepTargetForDay(lap))
                     'Steps · ${thousands(stepTargetForDay(lap) - steps)} short',

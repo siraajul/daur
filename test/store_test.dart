@@ -6,6 +6,7 @@ import 'package:daur/reminders.dart';
 import 'package:daur/foods.dart';
 import 'package:daur/store.dart';
 import 'package:daur/targets.dart';
+import 'package:daur/today.dart' show thousands;
 import 'package:daur/water_walk.dart' show litres;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -751,6 +752,12 @@ void main() {
     s.noteSteps(8400); // 5,400 over the 3,000 the day job already counts
     expect(s.moved.walk, (5400 / 1350 * .5 * s.bodyKg).round());
     expect(s.burnLeft, over - s.moved.walk);
+    s.setReminders(true);
+    final t = DateTime.now();
+    final evening = Reminders.plan(s, DateTime(t.year, t.month, t.day, 12), steps: 8400)
+        .firstWhere((x) => x.channel == 'walk' && x.when.day == t.day);
+    expect(evening.title, 'Walk off ${thousands(s.burnLeft)} kcal');
+    expect(evening.payload, 'burn');
     // 109 kg, brisk walk 4.3 MET: about 6 kcal a minute above resting
     expect(s.minutesFor(360, 4.3), inInclusiveRange(59, 61));
   });

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:workmanager/workmanager.dart';
 
+import 'burn.dart' show burnWays, hoursMinutes;
 import 'plan.dart';
 import 'reminders.dart';
 import 'steps.dart';
@@ -130,7 +131,11 @@ class WidgetSync {
         'date': niceDate(DateTime.now()),
         'next_name': allDone ? 'All meals logged' : next.name,
         'next_when': allDone ? 'Tomorrow · 08:00' : next.window,
-        'kcal_text': '${thousands(s.kcal)} / ${thousands(s.kcalGoal)} kcal',
+        // over today's target, the kcal line says what's left to burn (yellow on the widget)
+        'kcal_text': s.burnLeft > 0
+            ? '${thousands(s.burnLeft)} kcal to burn · ${hoursMinutes(s.minutesFor(s.burnLeft, burnWays.first.$4))} walk'
+            : '${thousands(s.kcal)} / ${thousands(s.kcalGoal)} kcal',
+        'burn_over': s.burnLeft > 0 ? 1 : 0,
         'kcal_pct': math.min(100, s.kcal * 100 ~/ s.kcalGoal),
         'finish': s.lap >= laps && allDone ? 1 : 0,
         for (final (i, m) in meals.indexed) ...{

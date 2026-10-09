@@ -20,7 +20,7 @@ private func x(_ size: CGFloat) -> Font { .system(size: size, weight: .black).wi
 struct Day {
   let lap, meters, kcalPct, water, steps, target, mealNum, waterGoal, waterSlots, streak: Int
   let date, waterGoalText, nextName, nextWhen, kcalText, walkSub, mealTitle, mealSub, mealWhen, mealBtn, mealCap: String
-  let finish, mealDone, hasSteps: Bool
+  let finish, mealDone, hasSteps, burnOver: Bool
   let legs: [(name: String, sub: String, state: String)]
 
   static func read() -> Day {
@@ -35,6 +35,7 @@ struct Day {
       walkSub: s("walk_sub", "steps"), mealTitle: s("meal_title", "Open Daur"), mealSub: s("meal_sub"),
       mealWhen: s("meal_when"), mealBtn: s("meal_btn", "Log"), mealCap: s("meal_cap"),
       finish: i("finish") == 1, mealDone: i("meal_done") == 1, hasSteps: d?.object(forKey: "walk_steps") != nil,
+      burnOver: i("burn_over") == 1,
       legs: (1...4).map { (s("leg\($0)_name"), s("leg\($0)_sub"), s("leg\($0)_state", "todo")) })
   }
 
@@ -44,6 +45,7 @@ struct Day {
     date: "Thu 9 Oct", waterGoalText: "of 3.5 L", nextName: "Snack", nextWhen: "16:30–18:00", kcalText: "1,002 / 1,800 kcal",
     walkSub: "2,590 to go", mealTitle: "Snack", mealSub: "Gym day: banana + whey · 212 kcal",
     mealWhen: "16:30–18:00", mealBtn: "Log", mealCap: "Tomorrow · 08:00", finish: false, mealDone: false, hasSteps: true,
+    burnOver: false,
     legs: [("Breakfast", "8:41 · 384 kcal", "done"), ("Lunch", "13:52 · 618 kcal", "done"),
            ("Snack", "16:30–18:00", "next"), ("Dinner", "20:00–21:00", "todo")])
 }
@@ -221,7 +223,7 @@ struct TodayView: View {
           Text(day.nextName).font(x(19)).foregroundStyle(ink).lineLimit(1).minimumScaleFactor(0.7)
           Text(day.nextWhen).font(.system(size: 13, weight: .semibold)).foregroundStyle(ink)
           ProgressView(value: Double(day.kcalPct), total: 100).tint(ink).padding(.top, 8)
-          Text(day.kcalText).font(.system(size: 12)).foregroundStyle(ink2)
+          Text(day.kcalText).font(.system(size: 12, weight: day.burnOver ? .bold : .regular)).foregroundStyle(day.burnOver ? runner : ink2)
         }
       }
     }
