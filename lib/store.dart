@@ -148,6 +148,11 @@ class Store extends ChangeNotifier {
   String? freezeEarnedOn; // the day the last one was earned (once per day)
   Set<String> frozenDays = {}; // missed days a freeze covered: the streak passes over them
   String? familyId; // the family board this person is on (cloud.dart)
+  // coaching (cloud.dart): helpers (a mother for the diet, a trainer) follow this plan
+  Map<String, String> inviteCodes = {}; // role ('diet' | 'trainer') -> the code this person made
+  List<Map<String, String>> helping = []; // people this person helps: {owner, name, role}
+  bool helperOnly = false; // this phone only helps someone; it has no plan of its own
+  String notesSeen = ''; // ISO time of the newest note already shown on Today
   String? aiDay; // the Pacific-time day aiUsed counts (Google's free quota resets then)
   Map<String, int> aiUsed = {}; // 'flash' / 'lite' → AI estimates made on this phone that day
   Map<String, List<Eaten>> aiMeals = {}; // normalised description → the estimate (reused, no AI)
@@ -246,6 +251,10 @@ class Store extends ChangeNotifier {
     freezeEarnedOn = j['freezeEarnedOn'] as String?;
     frozenDays = Set<String>.from(j['frozenDays'] ?? []);
     familyId = j['familyId'] as String?;
+    inviteCodes = Map<String, String>.from(j['inviteCodes'] ?? {});
+    helping = [for (final h in (j['helping'] as List? ?? const [])) Map<String, String>.from(h as Map)];
+    helperOnly = j['helperOnly'] as bool? ?? false;
+    notesSeen = j['notesSeen'] as String? ?? '';
     aiDay = j['aiDay'] as String?;
     aiUsed = Map<String, int>.from(j['aiUsed'] ?? {});
     // re-filed under today's key rules, so estimates saved by an older version still match
@@ -332,6 +341,10 @@ class Store extends ChangeNotifier {
     'freezeEarnedOn': freezeEarnedOn,
     'frozenDays': frozenDays.toList(),
     'familyId': familyId,
+    'inviteCodes': inviteCodes,
+    'helping': helping,
+    'helperOnly': helperOnly,
+    'notesSeen': notesSeen,
     'aiDay': aiDay,
     'aiUsed': aiUsed,
     'aiMeals': {
@@ -1308,6 +1321,93 @@ class Store extends ChangeNotifier {
     familyId = id;
     _save();
   }
+
+  // ---- coaching ----
+
+  void setInvite(String role, String? code) {
+    code == null ? inviteCodes.remove(role) : inviteCodes[role] = code;
+    _save();
+  }
+
+  void addHelping(String owner, String name, String role) {
+    helping = [
+      ...helping.where((h) => h['owner'] != owner),
+      {'owner': owner, 'name': name, 'role': role},
+    ];
+    _save();
+  }
+
+  void removeHelping(String owner) {
+    helping = helping.where((h) => h['owner'] != owner).toList();
+    _save();
+  }
+
+  /// A phone that only helps someone skips onboarding and opens on the people it helps.
+  void setHelperOnly(bool v) {
+    helperOnly = v;
+    if (v) onboarded = true;
+    _save();
+  }
+
+  void seeNotes(String newest) {
+    if (newest.compareTo(notesSeen) <= 0) return;
+    notesSeen = newest;
+    _save();
+  }
+
+  /// What a helper sees (cloud.dart publishes it): today's meals, kcal and protein, water, steps,
+  /// sleep, weight, streak, gym and strength. No spending, no account details.
+  Map<String, Object?> coachSummary() => {
+    'v': 1,
+    'day': today,
+    'lap': lap,
+    'streak': streak,
+    'best': bestStreak,
+    'meals': [
+      for (final m in meals)
+        {
+          'name': m.name,
+          'window': m.window,
+          'status': done.containsKey(m.id)
+              ? 'done'
+              : skipped.contains(m.id)
+              ? 'skipped'
+              : fasted(m)
+              ? 'fasting'
+              : m == nextMeal
+              ? 'next'
+              : 'todo',
+          'food': done.containsKey(m.id) ? mealLabel(m) : chosen(m).name,
+          'kcal': mealKcal(m),
+          'time': done[m.id],
+        },
+    ],
+    'extras': [
+      for (final e in extras) {'name': e.name, 'kcal': e.totalKcal},
+    ],
+    'kcal': kcal,
+    'kcalGoal': kcalGoal,
+    'protein': protein,
+    'proteinRange': [proteinRange.$1, proteinRange.$2],
+    'burnLeft': burnLeft,
+    'water': water,
+    'waterGoal': waterGoal,
+    'steps': stepsToday,
+    'stepTarget': stepTargetOn(today),
+    'sleepMin': sleepMin,
+    'startKg': startKg,
+    'nowKg': trendKg ?? latestKg,
+    'weights': [
+      for (final w in weights.length > 60 ? weights.sublist(weights.length - 60) : weights) [w.day, w.kg],
+    ],
+    'gymThisWeek': gymThisWeek,
+    'sessions': [
+      for (final d in (routineLog.keys.toList()..sort()).reversed.take(8)) [d, routineLog[d], gymHistory[d] ?? 0],
+    ],
+    'strength': [
+      for (final x in strength) {'ex': x.ex, 'unit': x.unit, 'start': x.start, 'now': x.now},
+    ],
+  };
 
   int? get sleepMin => sleepHistory[today];
   void setSleep(int? minutes) {

@@ -114,6 +114,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                     ),
                   const Spacer(),
+                  // a mother or a trainer installs Daur only to follow someone's plan
+                  if (_page == 0)
+                    TextButton(
+                      onPressed: () => widget.store.setHelperOnly(true),
+                      child: Text('Helping someone?', style: t.sec(t.ink)),
+                    ),
                   if (_page < 3)
                     TextButton(
                       onPressed: _skip,

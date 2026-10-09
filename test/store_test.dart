@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:daur/badges.dart';
 import 'package:daur/fasting.dart' show stageAt;
 import 'package:daur/meal_ai.dart';
@@ -760,5 +762,30 @@ void main() {
     expect(evening.payload, 'burn');
     // 109 kg, brisk walk 4.3 MET: about 6 kcal a minute above resting
     expect(s.minutesFor(360, 4.3), inInclusiveRange(59, 61));
+  });
+
+  test('coaching: helpers get today, weight and gym, never spending; helping is remembered', () async {
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    s.logMeal(meals[0]);
+    s.logWeight(108.6);
+    s.addExpense(const Expense('2026-10-10', 450, 'food', 'groceries'));
+    final sum = s.coachSummary();
+    final json = jsonEncode(sum); // must travel as JSON
+    expect(json.contains('groceries'), isFalse);
+    expect(sum.keys, isNot(contains('expenses')));
+    final m = (sum['meals'] as List).first as Map;
+    expect(m['status'], 'done');
+    expect(sum['kcal'], s.kcal);
+    expect((sum['weights'] as List).last, [s.today, 108.6]);
+
+    s.addHelping('owner1', 'Siraj', 'diet');
+    s.addHelping('owner1', 'Siraj', 'trainer'); // re-joining replaces
+    s.setHelperOnly(true);
+    final again = await Store.load();
+    expect(again.helping, [
+      {'owner': 'owner1', 'name': 'Siraj', 'role': 'trainer'},
+    ]);
+    expect(again.helperOnly && again.onboarded, isTrue);
   });
 }

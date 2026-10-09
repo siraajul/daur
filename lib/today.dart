@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'adaptive.dart';
 import 'burn.dart';
 import 'coach.dart';
+import 'coaching.dart' show NoteCard;
 import 'fasting.dart';
 import 'meal_sheet.dart';
 import 'plan.dart';
@@ -119,6 +120,7 @@ class TodayScreen extends StatelessWidget {
                     ],
                   ),
                   CoachCard(store: s),
+                  NoteCard(store: s),
                   if (s.fastPlan != null) FastBar(store: s),
                   const SizedBox(height: 8),
                   Track(

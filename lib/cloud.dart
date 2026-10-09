@@ -226,6 +226,7 @@ class Cloud extends ChangeNotifier {
       _fail('Backup failed: $e');
     }
     await pushBoard();
+    await pushCoaching();
   }
 
   // ---- family board ----
@@ -311,6 +312,182 @@ class Cloud extends ChangeNotifier {
       debugPrint('Cloud.leaveFamily: $e');
     }
     s.setFamily(null);
+  }
+
+  // ---- coaching: a mother for the diet, a trainer; they follow this person's plan ----
+  //
+  // invites/{code}              who made the code and for which role (diet | trainer)
+  // coaching/{owner}            the owner's progress summary, readable by their helpers
+  // coaching/{owner}/helpers/{uid}  one per helper, written by the helper with a valid code
+  // coaching/{owner}/notes/{id}     notes both ways ("less rice tonight")
+
+  DocumentReference<Map<String, dynamic>> _coach(String owner) => _db.collection('coaching').doc(owner);
+
+  String _name(User u, String fallback) =>
+      (u.displayName ?? '').isEmpty ? fallback : u.displayName!.substring(0, u.displayName!.length.clamp(0, 60));
+
+  /// Publishes today's summary for helpers, once this person has invited someone.
+  Future<void> pushCoaching() async {
+    final u = user, s = _store;
+    if (u == null || s == null || s.inviteCodes.isEmpty || s.helperOnly) return;
+    try {
+      await _coach(u.uid).set({
+        'ownerUid': u.uid,
+        'name': _name(u, 'Daur'),
+        if ((u.photoURL ?? '').startsWith('https://')) 'photoUrl': u.photoURL!,
+        'data': jsonEncode(s.coachSummary()),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Cloud.pushCoaching: $e');
+    }
+  }
+
+  /// A code for a helper with [role] ('diet' or 'trainer'), reusable until revoked.
+  Future<String?> createInvite(String role) async {
+    final u = user, s = _store;
+    if (u == null || s == null) return 'Sign in first.';
+    const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final r = Random.secure();
+    final code = List.generate(8, (_) => abc[r.nextInt(abc.length)]).join();
+    try {
+      await _db.collection('invites').doc(code).set({
+        'ownerUid': u.uid,
+        'role': role,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      s.setInvite(role, code);
+      await pushCoaching();
+      return null;
+    } catch (e) {
+      return 'Couldn\'t make a code: $e';
+    }
+  }
+
+  Future<void> revokeInvite(String role) async {
+    final s = _store, code = s?.inviteCodes[role];
+    if (s == null || code == null) return;
+    try {
+      await _db.collection('invites').doc(code).delete();
+    } catch (e) {
+      debugPrint('Cloud.revokeInvite: $e');
+    }
+    s.setInvite(role, null);
+  }
+
+  /// Join someone as their helper with the code they shared. Returns an error message or null.
+  Future<String?> joinAsHelper(String input) async {
+    final u = user, s = _store;
+    if (u == null || s == null) return 'Sign in first.';
+    final code = input.trim().toUpperCase();
+    if (!RegExp(r'^[A-HJ-NP-Z2-9]{8}$').hasMatch(code)) return 'A code is 8 letters and numbers.';
+    try {
+      final inv = (await _db.collection('invites').doc(code).get()).data();
+      if (inv == null) return 'No invite with that code.';
+      final owner = inv['ownerUid'] as String, role = inv['role'] as String;
+      if (owner == u.uid) return 'That\'s your own code: share it with your helper.';
+      await _coach(owner).collection('helpers').doc(u.uid).set({
+        'name': _name(u, 'Helper'),
+        if ((u.photoURL ?? '').startsWith('https://')) 'photoUrl': u.photoURL!,
+        'role': role,
+        'code': code,
+        'joinedAt': FieldValue.serverTimestamp(),
+      });
+      final name = (await _coach(owner).get()).data()?['name'] as String? ?? 'Your person';
+      s.addHelping(owner, name, role);
+      return null;
+    } on FirebaseException catch (e) {
+      return 'Couldn\'t join (${e.code}).';
+    }
+  }
+
+  /// Stop helping [owner] (the helper), or remove helper [helperUid] (the owner).
+  Future<void> leaveHelping(String owner) async {
+    final u = user;
+    if (u == null) return;
+    try {
+      await _coach(owner).collection('helpers').doc(u.uid).delete();
+    } catch (e) {
+      debugPrint('Cloud.leaveHelping: $e');
+    }
+    _store?.removeHelping(owner);
+  }
+
+  Future<void> removeHelper(String helperUid) async {
+    final u = user;
+    if (u == null) return;
+    try {
+      await _coach(u.uid).collection('helpers').doc(helperUid).delete();
+    } catch (e) {
+      debugPrint('Cloud.removeHelper: $e');
+    }
+  }
+
+  /// This person's helpers, live: name, photo, role.
+  Stream<List<Map<String, dynamic>>> helpers() {
+    final u = user;
+    if (u == null) return const Stream.empty();
+    return _coach(u.uid)
+        .collection('helpers')
+        .snapshots()
+        .map(
+          (q) => [
+            for (final d in q.docs) {...d.data(), 'uid': d.id},
+          ],
+        );
+  }
+
+  /// [owner]'s summary as a helper sees it, live (null until they have published one).
+  Stream<({String name, String? photo, Map<String, dynamic> data, DateTime? at})?> progress(String owner) =>
+      _coach(owner).snapshots().map((d) {
+        final x = d.data();
+        if (x == null) return null;
+        return (
+          name: x['name'] as String? ?? '',
+          photo: x['photoUrl'] as String?,
+          data: jsonDecode(x['data'] as String? ?? '{}') as Map<String, dynamic>,
+          at: (x['updatedAt'] as Timestamp?)?.toDate(),
+        );
+      });
+
+  /// Notes on [owner]'s plan, newest first.
+  Stream<List<Map<String, dynamic>>> notes(String owner) => _coach(owner)
+      .collection('notes')
+      .orderBy('at', descending: true)
+      .limit(30)
+      .snapshots()
+      .map(
+        (q) => [
+          for (final d in q.docs) {...d.data(), 'id': d.id},
+        ],
+      );
+
+  /// [role] is 'owner' when the person writes on their own plan, else their helper role.
+  Future<String?> addNote(String owner, String text, String role) async {
+    final u = user;
+    final t = text.trim();
+    if (u == null) return 'Sign in first.';
+    if (t.isEmpty) return null;
+    try {
+      await _coach(owner).collection('notes').add({
+        'fromUid': u.uid,
+        'name': _name(u, role == 'owner' ? 'Me' : 'Helper'),
+        'role': role,
+        'text': t.substring(0, t.length.clamp(0, 500)),
+        'at': FieldValue.serverTimestamp(),
+      });
+      return null;
+    } catch (e) {
+      return 'Couldn\'t send: $e';
+    }
+  }
+
+  Future<void> deleteNote(String owner, String id) async {
+    try {
+      await _coach(owner).collection('notes').doc(id).delete();
+    } catch (e) {
+      debugPrint('Cloud.deleteNote: $e');
+    }
   }
 
   // ---- AI quota: one shared count per Pacific day, because Google's free limit is per project ----
