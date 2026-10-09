@@ -158,6 +158,8 @@ class Store extends ChangeNotifier {
   String chartBy = ''; // who wrote it (shown with the chart)
   List<String> chartChanges = []; // what the last chart changed, in words ("Lunch: Beef + rice added")
   String chartAt = '', cookAt = ''; // ISO times of the last chart / cooking picks applied from the cloud
+  String helperLang = 'bn'; // a diet helper's page: 'bn' Bangla or 'en' English
+  Map<String, String> chartSeen = {}; // owner -> the chart time this helper has already looked at
   String? aiDay; // the Pacific-time day aiUsed counts (Google's free quota resets then)
   Map<String, int> aiUsed = {}; // 'flash' / 'lite' → AI estimates made on this phone that day
   Map<String, List<Eaten>> aiMeals = {}; // normalised description → the estimate (reused, no AI)
@@ -266,6 +268,8 @@ class Store extends ChangeNotifier {
     chartChanges = [for (final x in (j['chartChanges'] as List? ?? const [])) x as String];
     chartAt = j['chartAt'] as String? ?? '';
     cookAt = j['cookAt'] as String? ?? '';
+    helperLang = j['helperLang'] as String? ?? 'bn';
+    chartSeen = Map<String, String>.from(j['chartSeen'] ?? {});
     useChart(chart);
     aiDay = j['aiDay'] as String?;
     aiUsed = Map<String, int>.from(j['aiUsed'] ?? {});
@@ -363,6 +367,8 @@ class Store extends ChangeNotifier {
     'chartChanges': chartChanges,
     'chartAt': chartAt,
     'cookAt': cookAt,
+    'helperLang': helperLang,
+    'chartSeen': chartSeen,
     'aiDay': aiDay,
     'aiUsed': aiUsed,
     'aiMeals': {
@@ -1416,6 +1422,16 @@ class Store extends ChangeNotifier {
   /// After an Undo restored an older state: the chart or picks at [at] stay seen, not re-applied.
   void markPlanSeen(String kind, String at) {
     kind == 'diet' ? chartAt = at : cookAt = at;
+    _save();
+  }
+
+  void setHelperLang(String lang) {
+    helperLang = lang;
+    _save();
+  }
+
+  void seeChart(String owner, String at) {
+    chartSeen[owner] = at;
     _save();
   }
 

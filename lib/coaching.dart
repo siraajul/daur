@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'adaptive.dart';
 import 'cloud.dart';
 import 'diet_chart.dart';
+import 'ma_page.dart';
 import 'plan.dart' show Meal;
 import 'store.dart';
 import 'theme.dart';
@@ -422,6 +423,12 @@ class _NotesThreadState extends State<NotesThread> {
   }
 }
 
+/// The page for someone this person helps: a diet helper (a mother) gets Ma's page, simple and in
+/// Bangla, with what to cook; a trainer gets the full view with the week, gym and the chart editor.
+Widget helperPage(Map<String, String> h, Store store) => h['role'] == 'diet'
+    ? MaPage(owner: h['owner']!, name: h['name']!, store: store)
+    : HelperView(owner: h['owner']!, name: h['name']!, role: h['role']!, store: store);
+
 /// What a helper sees: [owner]'s day, weight, (trainer) gym and strength, and the notes.
 class HelperView extends StatelessWidget {
   const HelperView({super.key, required this.owner, required this.name, required this.role, required this.store});
@@ -789,10 +796,7 @@ class HelperHome extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([store, Cloud.instance]),
     builder: (context, _) {
-      if (Cloud.instance.signedIn && store.helping.length == 1) {
-        final h = store.helping.first;
-        return HelperView(owner: h['owner']!, name: h['name']!, role: h['role']!, store: store);
-      }
+      if (Cloud.instance.signedIn && store.helping.length == 1) return helperPage(store.helping.first, store);
       return PeopleScreen(store: store, standalone: true);
     },
   );
@@ -926,12 +930,7 @@ class _Helped extends StatelessWidget {
             snap.data != null &&
             (!today || n('burnLeft') > 0 || (n('goal') == 2 && n('eatLeft') > 0 && DateTime.now().hour >= 18));
         return InkWell(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => HelperView(owner: h['owner']!, name: h['name']!, role: h['role']!, store: store),
-            ),
-          ),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => helperPage(h, store))),
           child: Container(
             constraints: const BoxConstraints(minHeight: 64),
             decoration: BoxDecoration(
