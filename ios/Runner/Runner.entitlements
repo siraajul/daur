@@ -6,7 +6,5 @@
 	<key>com.apple.developer.healthkit.access</key><array/>
 	<key>com.apple.security.application-groups</key>
 	<array><string>group.com.siraj.daur</string></array>
-	<!-- the 21:30 streak reminder gets through Focus (lib/reminders.dart) -->
-	<key>com.apple.developer.usernotifications.time-sensitive</key><true/>
 </dict>
 </plist>

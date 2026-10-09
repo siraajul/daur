@@ -153,7 +153,8 @@ class Reminders {
         threadIdentifier: channel,
         categoryIdentifier: cat,
         subtitle: sub,
-        // quiet for nudges, through Focus for the streak (needs the time-sensitive entitlement)
+        // quiet for nudges, through Focus for the streak. Time-sensitive needs a paid developer account's
+        // capability (com.apple.developer.usernotifications.time-sensitive); without it iOS treats it as active
         interruptionLevel: switch (channel) {
           'water' || 'walk' || 'checkins' => InterruptionLevel.passive,
           'streak' => InterruptionLevel.timeSensitive,
