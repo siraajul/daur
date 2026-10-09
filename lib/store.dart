@@ -160,6 +160,7 @@ class Store extends ChangeNotifier {
   String chartAt = '', cookAt = ''; // ISO times of the last chart / cooking picks applied from the cloud
   String helperLang = 'bn'; // a diet helper's page: 'bn' Bangla or 'en' English
   Map<String, String> chartSeen = {}; // owner -> the chart time this helper has already looked at
+  int studentsNeed = 0, studentsTotal = 0; // a trainer's dashboard, for the Sunday digest
   String? aiDay; // the Pacific-time day aiUsed counts (Google's free quota resets then)
   Map<String, int> aiUsed = {}; // 'flash' / 'lite' → AI estimates made on this phone that day
   Map<String, List<Eaten>> aiMeals = {}; // normalised description → the estimate (reused, no AI)
@@ -270,6 +271,8 @@ class Store extends ChangeNotifier {
     cookAt = j['cookAt'] as String? ?? '';
     helperLang = j['helperLang'] as String? ?? 'bn';
     chartSeen = Map<String, String>.from(j['chartSeen'] ?? {});
+    studentsNeed = j['studentsNeed'] as int? ?? 0;
+    studentsTotal = j['studentsTotal'] as int? ?? 0;
     useChart(chart);
     aiDay = j['aiDay'] as String?;
     aiUsed = Map<String, int>.from(j['aiUsed'] ?? {});
@@ -369,6 +372,8 @@ class Store extends ChangeNotifier {
     'cookAt': cookAt,
     'helperLang': helperLang,
     'chartSeen': chartSeen,
+    'studentsNeed': studentsNeed,
+    'studentsTotal': studentsTotal,
     'aiDay': aiDay,
     'aiUsed': aiUsed,
     'aiMeals': {
@@ -1430,6 +1435,14 @@ class Store extends ChangeNotifier {
     _save();
   }
 
+  /// How many students need the trainer (from the dashboard), for the Sunday digest.
+  void noteStudents(int need, int total) {
+    if (need == studentsNeed && total == studentsTotal) return;
+    studentsNeed = need;
+    studentsTotal = total;
+    _save();
+  }
+
   void seeChart(String owner, String at) {
     chartSeen[owner] = at;
     _save();
@@ -1495,6 +1508,9 @@ class Store extends ChangeNotifier {
       for (final w in weights.length > 60 ? weights.sublist(weights.length - 60) : weights) [w.day, w.kg],
     ],
     'gymThisWeek': gymThisWeek,
+    // the last 7 days, for a trainer's dashboard: weight change (7-day averages) and full days logged
+    'kgWeek': week.kgChange,
+    'fullDays': week.full,
     'sessions': [
       for (final d in (routineLog.keys.toList()..sort()).reversed.take(8)) [d, routineLog[d], gymHistory[d] ?? 0],
     ],

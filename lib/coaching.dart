@@ -8,6 +8,7 @@ import 'adaptive.dart';
 import 'cloud.dart';
 import 'diet_chart.dart';
 import 'ma_page.dart';
+import 'students.dart';
 import 'plan.dart' show Meal;
 import 'store.dart';
 import 'theme.dart';
@@ -503,6 +504,37 @@ class HelperView extends StatelessWidget {
                     _ChartSection(d: d, owner: owner, ownerName: p.name, store: store),
                   ],
                 ],
+                if (role == 'trainer') ...[
+                  const SizedBox(height: 24),
+                  Text('Quick feedback', style: t.meta()),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final text in const [
+                        'Great week, keep going',
+                        'Missed sessions · back on it Monday',
+                        'Add 2.5 kg next time',
+                        'More protein, please',
+                        'Log every meal this week',
+                      ])
+                        ActionChip(
+                          label: Text(text, style: t.sec(t.onAccent)),
+                          backgroundColor: t.accent,
+                          side: BorderSide.none,
+                          shape: const StadiumBorder(),
+                          onPressed: () async {
+                            HapticFeedback.lightImpact();
+                            final msg = await Cloud.instance.addNote(owner, text, role);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg ?? 'Sent')));
+                            }
+                          },
+                        ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 24),
                 Text('Notes', style: t.meta()),
                 const SizedBox(height: 8),
@@ -796,7 +828,9 @@ class HelperHome extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([store, Cloud.instance]),
     builder: (context, _) {
-      if (Cloud.instance.signedIn && store.helping.length == 1) return helperPage(store.helping.first, store);
+      if (Cloud.instance.signedIn && store.helping.length == 1 && store.role != 'trainer') {
+        return helperPage(store.helping.first, store);
+      }
       return PeopleScreen(store: store, standalone: true);
     },
   );
@@ -817,6 +851,7 @@ class PeopleScreen extends StatelessWidget {
       listenable: Listenable.merge([store, c]),
       builder: (context, _) {
         final s = store;
+        if (s.role == 'trainer') return StudentsScreen(store: s, standalone: standalone);
         final title = s.role == 'trainer'
             ? 'Students'
             : s.role == 'family'
@@ -848,7 +883,7 @@ class PeopleScreen extends StatelessWidget {
                   for (final h in s.helping) _Helped(h: h, store: s),
                   const SizedBox(height: 16),
                   Text('Add someone', style: t.meta()),
-                  _JoinHome(store: s),
+                  JoinByCode(store: s),
                 ],
                 if (standalone) ...[
                   const SizedBox(height: 32),
@@ -863,14 +898,14 @@ class PeopleScreen extends StatelessWidget {
   }
 }
 
-class _JoinHome extends StatefulWidget {
-  const _JoinHome({required this.store});
+class JoinByCode extends StatefulWidget {
+  const JoinByCode({super.key, required this.store});
   final Store store;
   @override
-  State<_JoinHome> createState() => _JoinHomeState();
+  State<JoinByCode> createState() => JoinByCodeState();
 }
 
-class _JoinHomeState extends State<_JoinHome> {
+class JoinByCodeState extends State<JoinByCode> {
   String? _error;
   bool _busy = false;
 

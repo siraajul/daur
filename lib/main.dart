@@ -174,6 +174,8 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
       push(WaterScreen(store: s));
     } else if (r == 'walk') {
       push(WalkScreen(store: s, steps: _steps, onRefresh: _refreshSteps));
+    } else if (r == 'students') {
+      if (s.helps) setState(() => _tab = 3);
     } else if (r == 'burn') {
       push(BurnScreen(store: s));
     } else if (r == 'fasting') {

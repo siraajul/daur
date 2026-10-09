@@ -8,6 +8,7 @@ import 'package:daur/plan.dart';
 import 'package:daur/reminders.dart';
 import 'package:daur/foods.dart';
 import 'package:daur/store.dart';
+import 'package:daur/students.dart' show studentFlags;
 import 'package:daur/targets.dart';
 import 'package:daur/today.dart' show thousands;
 import 'package:daur/water_walk.dart' show litres;
@@ -757,8 +758,11 @@ void main() {
     expect(s.burnLeft, over - s.moved.walk);
     s.setReminders(true);
     final t = DateTime.now();
-    final evening = Reminders.plan(s, DateTime(t.year, t.month, t.day, 12), steps: 8400)
-        .firstWhere((x) => x.channel == 'walk' && x.when.day == t.day);
+    final evening = Reminders.plan(
+      s,
+      DateTime(t.year, t.month, t.day, 12),
+      steps: 8400,
+    ).firstWhere((x) => x.channel == 'walk' && x.when.day == t.day);
     expect(evening.title, 'Walk off ${thousands(s.burnLeft)} kcal');
     expect(evening.payload, 'burn');
     // 109 kg, brisk walk 4.3 MET: about 6 kcal a minute above resting
@@ -879,5 +883,43 @@ void main() {
       'Dinner: note changed',
     ]);
     expect(chartChanges(defaultMeals, defaultMeals), isEmpty);
+  });
+
+  test('students: who needs the trainer, and why, most urgent first', () {
+    final now = DateTime(2026, 10, 10, 21);
+    String ago(int days) => dayKey(now.subtract(Duration(days: days)));
+    final onTrack = {
+      'lap': 20,
+      'goal': 0,
+      'day': dayKey(now),
+      'kgWeek': -0.6,
+      'fullDays': 6,
+      'sessions': [
+        [ago(1), 'Push', 12],
+      ],
+      'burnLeft': 0,
+      'eatLeft': 0,
+    };
+    expect(studentFlags(onTrack, now.subtract(const Duration(hours: 2)), now), isEmpty);
+    final slipping = {
+      ...onTrack,
+      'day': ago(3),
+      'kgWeek': 0.1,
+      'fullDays': 2,
+      'sessions': [
+        [ago(6), 'Legs', 10],
+      ],
+      'burnLeft': 400,
+    };
+    expect(studentFlags(slipping, now.subtract(const Duration(days: 3)), now), [
+      'Not opened in 3 days',
+      'No gym in 6 days',
+      'Weight not moving this week',
+      'Logged 2 of 7 days',
+      // "over today" only counts when the summary is today's
+    ]);
+    final gainer = {...onTrack, 'goal': 2, 'kgWeek': -0.1, 'eatLeft': 350};
+    expect(studentFlags(gainer, now, now), ['Not gaining this week', '350 kcal short today']);
+    expect(studentFlags({'lap': 1}, null, now), ['Never opened Daur']);
   });
 }

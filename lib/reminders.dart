@@ -338,6 +338,19 @@ class Reminders {
           'recap',
         );
       }
+      // a trainer's Sunday: who needs them this week (counted when the dashboard was last open)
+      if (s.reminderOn('checkins') && s.role == 'trainer' && s.studentsTotal > 0 && day.weekday == DateTime.sunday) {
+        add(
+          44,
+          at(19, 30),
+          'checkins',
+          s.studentsNeed == 0
+              ? 'All ${s.studentsTotal} students on track'
+              : '${s.studentsNeed} of ${s.studentsTotal} students need you',
+          'Open Students to see who, and why.',
+          'students',
+        );
+      }
       if (s.reminderOn('checkins')) {
         const checkins = {
           28: (40, 9, 0, 'Day 28 · pace check', 'Four weeks in. See how your weight trend compares with the plan.'),
