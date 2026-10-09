@@ -18,6 +18,7 @@ class RemindersScreen extends StatelessWidget {
     ('weigh', 'Weigh-in', '07:30, quiet once you have weighed'),
     ('walk', 'Evening walk', '21:15, only if you are short of steps'),
     ('streak', 'Streak', '21:30, only if today isn\'t complete'),
+    ('fasting', 'Fasting', 'Window opens, and 30 min before it closes'),
     ('checkins', 'Check-ins', 'Day 28 pace, day 31 junk rule, day 84, a nudge after 2 days away'),
   ];
 
@@ -55,13 +56,15 @@ class RemindersScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: t.rule, width: .5)),
               ),
-              child: SwitchListTile(
+              child: SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
                 value: value,
                 onChanged: enabled ? onChanged : null,
                 activeThumbColor: t.ground,
                 activeTrackColor: t.ink,
                 inactiveTrackColor: t.ink.withValues(alpha: .22),
+                inactiveThumbColor: t.ink,
+                trackOutlineColor: WidgetStatePropertyAll(t.lane),
                 title: Text(title, style: t.body(color: enabled ? t.ink : t.ink2)),
                 subtitle: Text(sub, style: t.meta()),
               ),

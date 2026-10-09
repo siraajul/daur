@@ -621,7 +621,7 @@ class _FoodFormState extends State<_FoodForm> {
                   ),
               ],
             ),
-            SwitchListTile(
+            SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               value: _rare,
               onChanged: (v) => setState(() => _rare = v),

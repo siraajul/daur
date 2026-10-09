@@ -3,6 +3,8 @@
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
     <!-- local reminders survive a reboot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Android 16+: lets the running fast show as a Live Update (status-bar chip) -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.health.READ_STEPS"/>
     <uses-permission android:name="android.permission.health.READ_DISTANCE"/>
     <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED"/>
@@ -88,6 +90,7 @@
         </receiver>
         <!-- Notification buttons (Log, Skip, + Glass) while the app is closed -->
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver" />
+        <receiver android:exported="false" android:name=".FastLiveReceiver" />
         <!-- Android 14+: Health Connect permission-usage link -->
         <activity-alias
             android:name="ViewPermissionUsageActivity"

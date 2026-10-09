@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'dau.dart';
 import 'badges.dart';
 import 'motion.dart';
 import 'plan.dart';
@@ -47,7 +48,7 @@ class ProgressScreen extends StatelessWidget {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Odometer(
-                text: now == null ? '0.0' : _signed(now - s.startKg),
+                text: now == null ? s.startKg.toStringAsFixed(1) : _signed(now - s.startKg),
                 style: t.x(64, weight: FontWeight.w900),
               ),
               const SizedBox(width: 8),
@@ -56,7 +57,7 @@ class ProgressScreen extends StatelessWidget {
           ),
           Text(
             now == null
-                ? 'Weigh in to start the chart'
+                ? 'Starting weight · weigh in to start the chart'
                 : '${now.toStringAsFixed(1)} kg now${s.trendKg != null ? ' · 7-day average' : ''} · started ${s.startKg.toStringAsFixed(1)}',
             style: t.sec(),
           ),
@@ -68,7 +69,13 @@ class ProgressScreen extends StatelessWidget {
             excludeSemantics: true,
             child: SizedBox(
               height: 200,
-              child: CustomPaint(painter: _WeightChart(t, s), size: Size.infinite),
+              child: Stack(
+                children: [
+                  Positioned.fill(child: CustomPaint(painter: _WeightChart(t, s))),
+                  // no weigh-ins yet: Dau waits on the empty chart
+                  if (s.weights.isEmpty) const Center(child: Dau(mood: DauMood.waiting, size: 110)),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 6),
@@ -81,8 +88,8 @@ class ProgressScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          // the rule (0.6–0.9 kg a week, hold; slow 2–3 weeks, trim; fast, don't cut) as a gauge
-          PaceGauge(perWeek: change == null ? null : -change, kcal: s.kcalGoal, stalled: s.stalled),
+          // this week's change against the goal's pace (Lose 0.6–0.9 down, Gain 0.2–0.4 up, Keep steady)
+          PaceGauge(change: change, goal: s.goal, kcal: s.kcalGoal, stalled: s.stalled),
           const SizedBox(height: 28),
           Row(
             children: [
@@ -467,20 +474,7 @@ class ProgressScreen extends StatelessWidget {
 
   /// Also opened from the weigh-in reminder and the welcome-back sheet.
   static Future<void> logWeight(BuildContext context, Store store) async {
-    final c = TextEditingController();
-    final v = await showDialog<double>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Weight this morning'),
-        content: TextField(
-          controller: c,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(suffixText: 'kg'),
-        ),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx, double.tryParse(c.text)), child: const Text('Save'))],
-      ),
-    );
+    final v = await askNumber(context, 'Weight this morning', suffix: 'kg', decimal: true);
     if (v != null && v > 20 && v < 300) {
       store.logWeight(v);
       if (context.mounted) await checkBadges(context, store); // first weigh-in, kg milestones, month targets

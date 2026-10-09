@@ -39,11 +39,12 @@ class ProfileFields extends StatelessWidget {
   final Profile value;
   final ValueChanged<Profile> onChanged;
 
-  Profile _with({bool? male, int? age, int? heightCm, int? activity}) => Profile(
-    male: male ?? value.male,
+  Profile _with({bool? male, int? age, int? heightCm, int? activity, int? goal}) => value.copyWith(
+    male: male,
     age: (age ?? value.age).clamp(14, 90),
     heightCm: (heightCm ?? value.heightCm).clamp(120, 220),
-    activity: activity ?? value.activity,
+    activity: activity,
+    goal: goal,
   );
 
   @override
@@ -57,6 +58,17 @@ class ProfileFields extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // the goal first: everything else (kcal, protein, month targets, medals) follows it
+        Text('Goal', style: t.meta()),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          children: [
+            for (final (i, name) in Profile.goalNames.indexed)
+              groundChip(context, '$name weight', value.goal == i, () => set(_with(goal: i))),
+          ],
+        ),
+        const SizedBox(height: 14),
         Wrap(
           spacing: 8,
           children: [
@@ -203,7 +215,10 @@ class _TargetsScreenState extends State<TargetsScreen> {
               ] else ...[
                 Text('About you', style: t.title()),
                 const SizedBox(height: 4),
-                Text('~0.5 kg a week · follows your trend, now ${s.planKg.toStringAsFixed(1)} kg', style: t.sec()),
+                Text(
+                  '${s.profile?.paceText ?? 'about 0.5 kg a week down'} · follows your trend, now ${s.planKg.toStringAsFixed(1)} kg',
+                  style: t.sec(),
+                ),
                 const SizedBox(height: 12),
                 ProfileFields(
                   value: _p!,

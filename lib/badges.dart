@@ -13,13 +13,23 @@ class Milestone {
   const Milestone(this.id, this.icon, this.title, this.sub, this.earned);
 }
 
-/// Loss on the 7-day trend (3+ weigh-ins), so one light morning can't mint a medal.
-double _lost(Store s) => s.trendKg == null ? 0 : s.startKg - s.trendKg!;
+/// Loss on the 7-day trend (3+ weigh-ins), so one light morning can't mint a medal. Only a Lose
+/// goal earns kg-down medals; a Gain goal earns kg-up ones.
+double _lost(Store s) => s.goal != 0 || s.trendKg == null ? 0 : s.startKg - s.trendKg!;
+double _gained(Store s) => s.goal != 2 || s.trendKg == null ? 0 : s.trendKg! - s.startKg;
 
 /// Month targets are the person's own (plan.dart's for the original plan); medals are by name.
+/// Reached = the trend is past the range's near edge in the goal's direction (Keep: inside it).
 bool _hit(Store s, String month) {
   final t = s.targets.where((x) => x.$1 == month).firstOrNull;
-  return t != null && s.trendKg != null && s.trendKg! <= double.parse(t.$2.split('–').last);
+  final kg = s.trendKg;
+  if (t == null || kg == null) return false;
+  final [lo, hi] = [for (final v in t.$2.split('–')) double.parse(v)];
+  return switch (s.goal) {
+    1 => kg >= lo && kg <= hi,
+    2 => kg >= lo,
+    _ => kg <= hi,
+  };
 }
 
 final medals = <Milestone>[
@@ -47,6 +57,9 @@ final medals = <Milestone>[
     (s) => _lost(s) >= 7.5,
   ),
   Milestone('kg-10', Icons.workspace_premium_outlined, '10 kg down', 'Double digits.', (s) => _lost(s) >= 10),
+  Milestone('up-1', Icons.trending_up_rounded, '1 kg up', 'Eating enough, and it shows.', (s) => _gained(s) >= 1),
+  Milestone('up-2.5', Icons.trending_up_rounded, '2.5 kg up', 'Right on the plan\'s pace.', (s) => _gained(s) >= 2.5),
+  Milestone('up-5', Icons.emoji_events_outlined, '5 kg up', 'Five kilos on since day 1.', (s) => _gained(s) >= 5),
   for (final (name, _, day) in plan.milestones)
     Milestone(
       'target-$name',
@@ -90,6 +103,12 @@ final medals = <Milestone>[
     'The 12-week plan, start to finish.',
     (s) => s.lap >= laps && s.legsDone == 4,
   ),
+];
+
+/// The medals that fit this person's goal: kg-down for Lose, kg-up for Gain, neither for Keep.
+List<Milestone> medalsFor(Store s) => [
+  for (final m in medals)
+    if (!(m.id.startsWith('kg-') && s.goal != 0) && !(m.id.startsWith('up-') && s.goal != 2)) m,
 ];
 
 /// Show medals for anything newly earned, one after another. Call after a weigh-in or a lap.

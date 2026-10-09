@@ -8,6 +8,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import 'plan.dart';
 import 'store.dart';
 
 /// Google Sign-In + Firestore backup/sync for Daur.
@@ -61,6 +62,7 @@ class Cloud extends ChangeNotifier {
       s.signedIn = u != null;
       notifyListeners();
       if (u != null) _syncOnSignIn(u);
+      _watchPlan();
     });
   }
 
@@ -226,6 +228,7 @@ class Cloud extends ChangeNotifier {
       _fail('Backup failed: $e');
     }
     await pushBoard();
+    await pushCoaching();
   }
 
   // ---- family board ----
@@ -311,6 +314,274 @@ class Cloud extends ChangeNotifier {
       debugPrint('Cloud.leaveFamily: $e');
     }
     s.setFamily(null);
+  }
+
+  // ---- coaching: a mother for the diet, a trainer; they follow this person's plan ----
+  //
+  // invites/{code}              who made the code and for which role (diet | trainer)
+  // coaching/{owner}            the owner's progress summary, readable by their helpers
+  // coaching/{owner}/helpers/{uid}  one per helper, written by the helper with a valid code
+  // coaching/{owner}/notes/{id}     notes both ways ("less rice tonight")
+
+  DocumentReference<Map<String, dynamic>> _coach(String owner) => _db.collection('coaching').doc(owner);
+
+  String _name(User u, String fallback) =>
+      (u.displayName ?? '').isEmpty ? fallback : u.displayName!.substring(0, u.displayName!.length.clamp(0, 60));
+
+  /// Publishes today's summary for helpers, once this person has invited someone.
+  Future<void> pushCoaching() async {
+    final u = user, s = _store;
+    if (u == null || s == null || s.inviteCodes.isEmpty || s.helperOnly) return;
+    try {
+      await _coach(u.uid).set({
+        'ownerUid': u.uid,
+        'name': _name(u, 'Daur'),
+        if ((u.photoURL ?? '').startsWith('https://')) 'photoUrl': u.photoURL!,
+        'data': jsonEncode(s.coachSummary()),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Cloud.pushCoaching: $e');
+    }
+  }
+
+  /// A code for a helper with [role] ('diet' or 'trainer'), reusable until revoked.
+  Future<String?> createInvite(String role) async {
+    final u = user, s = _store;
+    if (u == null || s == null) return 'Sign in first.';
+    const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final r = Random.secure();
+    final code = List.generate(8, (_) => abc[r.nextInt(abc.length)]).join();
+    try {
+      await _db.collection('invites').doc(code).set({
+        'ownerUid': u.uid,
+        'role': role,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      s.setInvite(role, code);
+      _watchPlan();
+      await pushCoaching();
+      return null;
+    } catch (e) {
+      return 'Couldn\'t make a code: $e';
+    }
+  }
+
+  Future<void> revokeInvite(String role) async {
+    final s = _store, code = s?.inviteCodes[role];
+    if (s == null || code == null) return;
+    try {
+      await _db.collection('invites').doc(code).delete();
+    } catch (e) {
+      debugPrint('Cloud.revokeInvite: $e');
+    }
+    s.setInvite(role, null);
+  }
+
+  /// Join someone as their helper with the code they shared. Returns an error message or null.
+  Future<String?> joinAsHelper(String input) async {
+    final u = user, s = _store;
+    if (u == null || s == null) return 'Sign in first.';
+    final code = input.trim().toUpperCase();
+    if (!RegExp(r'^[A-HJ-NP-Z2-9]{8}$').hasMatch(code)) return 'A code is 8 letters and numbers.';
+    try {
+      final inv = (await _db.collection('invites').doc(code).get()).data();
+      if (inv == null) return 'No invite with that code.';
+      final owner = inv['ownerUid'] as String, role = inv['role'] as String;
+      if (owner == u.uid) return 'That\'s your own code: share it with your helper.';
+      await _coach(owner).collection('helpers').doc(u.uid).set({
+        'name': _name(u, 'Helper'),
+        if ((u.photoURL ?? '').startsWith('https://')) 'photoUrl': u.photoURL!,
+        'role': role,
+        'code': code,
+        'joinedAt': FieldValue.serverTimestamp(),
+      });
+      final name = (await _coach(owner).get()).data()?['name'] as String? ?? 'Your person';
+      s.addHelping(owner, name, role);
+      return null;
+    } on FirebaseException catch (e) {
+      return 'Couldn\'t join (${e.code}).';
+    }
+  }
+
+  /// Stop helping [owner] (the helper), or remove helper [helperUid] (the owner).
+  Future<void> leaveHelping(String owner) async {
+    final u = user;
+    if (u == null) return;
+    try {
+      await _coach(owner).collection('helpers').doc(u.uid).delete();
+    } catch (e) {
+      debugPrint('Cloud.leaveHelping: $e');
+    }
+    _store?.removeHelping(owner);
+  }
+
+  Future<void> removeHelper(String helperUid) async {
+    final u = user;
+    if (u == null) return;
+    try {
+      await _coach(u.uid).collection('helpers').doc(helperUid).delete();
+    } catch (e) {
+      debugPrint('Cloud.removeHelper: $e');
+    }
+  }
+
+  /// This person's helpers, live: name, photo, role.
+  Stream<List<Map<String, dynamic>>> helpers() {
+    final u = user;
+    if (u == null) return const Stream.empty();
+    return _coach(u.uid)
+        .collection('helpers')
+        .snapshots()
+        .map(
+          (q) => [
+            for (final d in q.docs) {...d.data(), 'uid': d.id},
+          ],
+        );
+  }
+
+  /// [owner]'s summary as a helper sees it, live (null until they have published one).
+  Stream<({String name, String? photo, Map<String, dynamic> data, DateTime? at})?> progress(String owner) =>
+      _coach(owner).snapshots().map((d) {
+        final x = d.data();
+        if (x == null) return null;
+        return (
+          name: x['name'] as String? ?? '',
+          photo: x['photoUrl'] as String?,
+          data: jsonDecode(x['data'] as String? ?? '{}') as Map<String, dynamic>,
+          at: (x['updatedAt'] as Timestamp?)?.toDate(),
+        );
+      });
+
+  /// Notes on [owner]'s plan, newest first.
+  Stream<List<Map<String, dynamic>>> notes(String owner) => _coach(owner)
+      .collection('notes')
+      .orderBy('at', descending: true)
+      .limit(30)
+      .snapshots()
+      .map(
+        (q) => [
+          for (final d in q.docs) {...d.data(), 'id': d.id},
+        ],
+      );
+
+  /// [role] is 'owner' when the person writes on their own plan, else their helper role.
+  Future<String?> addNote(String owner, String text, String role) async {
+    final u = user;
+    final t = text.trim();
+    if (u == null) return 'Sign in first.';
+    if (t.isEmpty) return null;
+    try {
+      await _coach(owner).collection('notes').add({
+        'fromUid': u.uid,
+        'name': _name(u, role == 'owner' ? 'Me' : 'Helper'),
+        'role': role,
+        'text': t.substring(0, t.length.clamp(0, 500)),
+        'at': FieldValue.serverTimestamp(),
+      });
+      return null;
+    } catch (e) {
+      return 'Couldn\'t send: $e';
+    }
+  }
+
+  Future<void> deleteNote(String owner, String id) async {
+    try {
+      await _coach(owner).collection('notes').doc(id).delete();
+    } catch (e) {
+      debugPrint('Cloud.deleteNote: $e');
+    }
+  }
+
+  // ---- the diet chart (the trainer writes it) and today's cooking (a helper picks options) ----
+  //
+  // coaching/{owner}/plan/diet  data: the chart as JSON, changes: what changed in words
+  // coaching/{owner}/plan/cook  picks: {meal id: option} for one day
+  // The owner's phone applies both as they arrive (with Undo); everyone reads the chart back from
+  // the owner's summary, so it always shows what the owner actually has.
+
+  DocumentReference<Map<String, dynamic>> _plan(String owner, String doc) => _coach(owner).collection('plan').doc(doc);
+
+  /// Plan changes applied on this phone: a message to show and the state to restore on Undo.
+  final planEvents = ValueNotifier<({String text, String undo, String kind, String at})?>(null);
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _dietSub, _cookSub;
+
+  static String? _at(Map<String, dynamic> d) => (d['at'] as Timestamp?)?.toDate().toIso8601String();
+
+  /// Listen for a new chart or cooking picks while this person has helpers.
+  void _watchPlan() {
+    _dietSub?.cancel();
+    _cookSub?.cancel();
+    final u = user, s = _store;
+    if (u == null || s == null || s.inviteCodes.isEmpty || s.helperOnly) return;
+    _dietSub = _plan(u.uid, 'diet').snapshots().listen((snap) {
+      final d = snap.data(), at = d == null ? null : _at(d);
+      if (d == null || at == null || at.compareTo(s.chartAt) <= 0 || d['byUid'] == u.uid) return;
+      try {
+        final chart = [for (final m in jsonDecode(d['data'] as String) as List) Meal.from(m as Map)];
+        final undo = s.snapshot();
+        final by = d['byName'] as String? ?? 'Your trainer';
+        s.setChart(chart, by: by, changes: [for (final c in d['changes'] as List? ?? const []) c as String], at: at);
+        planEvents.value = (text: 'New diet chart from $by', undo: undo, kind: 'diet', at: at);
+      } catch (e) {
+        debugPrint('Cloud.diet: $e');
+      }
+    });
+    _cookSub = _plan(u.uid, 'cook').snapshots().listen((snap) {
+      final d = snap.data(), at = d == null ? null : _at(d);
+      if (d == null || at == null || at.compareTo(s.cookAt) <= 0 || d['byUid'] == u.uid) return;
+      if (d['day'] != s.today) return; // yesterday's cooking is over
+      final undo = s.snapshot();
+      final said = s.applyCook(Map<String, int>.from(d['picks'] as Map), at: at);
+      if (said.isNotEmpty) {
+        planEvents.value = (
+          text: '${d['byName'] ?? 'Your helper'} is cooking · ${said.join(', ')}',
+          undo: undo,
+          kind: 'cook',
+          at: at,
+        );
+      }
+    });
+  }
+
+  /// The trainer (or the owner) saves [owner]'s diet chart; [changes] says what changed, briefly.
+  Future<String?> saveChart(String owner, List<Meal> chart, List<String> changes) async {
+    final u = user;
+    if (u == null) return 'Sign in first.';
+    try {
+      await _plan(owner, 'diet').set({
+        'data': jsonEncode([for (final m in chart) m.toJson()]),
+        'changes': [for (final c in changes.take(10)) c.substring(0, c.length.clamp(0, 120))],
+        'byUid': u.uid,
+        'byName': _name(u, 'Your trainer'),
+        'at': FieldValue.serverTimestamp(),
+      });
+      return null;
+    } on FirebaseException catch (e) {
+      return 'Couldn\'t save (${e.code}).';
+    }
+  }
+
+  /// A helper picks what to cook for [mealId] today; picks for other meals today stay.
+  Future<String?> pickToCook(String owner, String mealId, int option) async {
+    final u = user;
+    if (u == null) return 'Sign in first.';
+    final today = dayKey(DateTime.now());
+    try {
+      final cur = (await _plan(owner, 'cook').get()).data();
+      final picks = cur != null && cur['day'] == today ? Map<String, int>.from(cur['picks'] as Map) : <String, int>{};
+      picks[mealId] = option;
+      await _plan(owner, 'cook').set({
+        'picks': picks,
+        'day': today,
+        'byUid': u.uid,
+        'byName': _name(u, 'Your helper'),
+        'at': FieldValue.serverTimestamp(),
+      });
+      return null;
+    } on FirebaseException catch (e) {
+      return 'Couldn\'t save (${e.code}).';
+    }
   }
 
   // ---- AI quota: one shared count per Pacific day, because Google's free limit is per project ----

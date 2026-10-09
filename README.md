@@ -13,7 +13,7 @@ Four meals a day, push / pull / legs at the gym, and a running track that fills 
 ![Dart](https://img.shields.io/badge/Dart-3.13-0175C2?logo=dart&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Auth%20·%20Firestore%20·%20AI%20Logic-FFCA28?logo=firebase&logoColor=black)
 ![Platforms](https://img.shields.io/badge/Android%20·%20iOS%20·%20Web-supported-AD3B26)
-![Tests](https://img.shields.io/badge/tests-35%20passing-2E7D32)
+![Tests](https://img.shields.io/badge/tests-44%20passing-2E7D32)
 
 </div>
 
@@ -21,64 +21,154 @@ Four meals a day, push / pull / legs at the gym, and a running track that fills 
 
 ## What it does
 
-Daur turns a 12-week cut into **84 days of a simple daily loop**: log four meals, drink your water, walk your steps, train on your split. Every logged meal moves a runner one leg around a 400 m track. Four meals close the day. Closed days build a streak, and the weekly average weight is what counts, not the noise of one morning.
+Daur turns a 12-week plan (to lose, keep or gain weight) into **84 days of a simple daily loop**: log four meals, drink your water, walk your steps, train on your split. Every logged meal moves a runner one leg around a 400 m track. Four meals close the day. Closed days build a streak, and the weekly average weight is what counts, not the noise of one morning.
+
+It's also built for the people around you: **a trainer** who writes your diet chart and follows your progress, and **a family member** (often the one who cooks) who sees what to cook today, in Bangla.
 
 It's built around how people in Bangladesh actually eat and type: bhat, dal, murgi, ilish and dudh cha are first-class foods, and search understands *bhat*, *vat*, *rice* and *ভাত* as the same thing.
 
 ## The app, start to finish
 
-### First run
+In the order you meet it. Screenshots use sample data: day 38 of the plan.
+
+### 1 · First run
+
+Make an account, say how you'll use Daur, then set up your plan: day 1, starting weight, and your goal (lose, keep or gain), which sets every target.
 
 <table>
 <tr>
-<td align="center"><img src="design/screen-01-splash.png" width="200"><br><sub><b>Splash</b><br>the runner sprints, then the track opens onto Today</sub></td>
-<td align="center"><img src="design/screen-02-onboarding-lap.png" width="200"><br><sub><b>The idea</b><br>4 meals a day, 84 days</sub></td>
-<td align="center"><img src="design/screen-03-onboarding-start.png" width="200"><br><sub><b>Where you start</b><br>day 1 and starting weight</sub></td>
+<td align="center"><img src="design/screen-01-splash.png" width="200"><br><sub><b>Splash</b><br>the runner sprints, then the track opens</sub></td>
+<td align="center"><img src="design/screen-02-account.png" width="200"><br><sub><b>Make your account</b><br>Google, or this phone only</sub></td>
+<td align="center"><img src="design/screen-03-role.png" width="200"><br><sub><b>How will you use Daur?</b><br>just me · trainer · family</sub></td>
 </tr>
 <tr>
-<td align="center"><img src="design/screen-04-onboarding-about.png" width="200"><br><sub><b>About you</b><br>height in feet and inches, targets worked out live</sub></td>
-<td align="center"><img src="design/screen-05-onboarding-steps.png" width="200"><br><sub><b>Steps and backup</b><br>Health Connect / Apple Health, Google sign-in</sub></td>
+<td align="center"><img src="design/screen-04-onboarding-lap.png" width="200"><br><sub><b>The idea</b><br>4 meals a day, 84 days</sub></td>
+<td align="center"><img src="design/screen-05-onboarding-start.png" width="200"><br><sub><b>Where you start</b><br>day 1 and starting weight</sub></td>
+<td align="center"><img src="design/screen-06-onboarding-goal.png" width="200"><br><sub><b>About you</b><br>lose · keep · gain, targets worked out live</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="design/screen-07-onboarding-steps.png" width="200"><br><sub><b>Steps and backup</b><br>Health Connect / Apple Health</sub></td>
+<td></td>
 <td></td>
 </tr>
 </table>
 
-### Every day
+### 2 · Every day
+
+Log four meals, and Daur keeps the rest in view: what's left to eat or burn, water, steps, sleep.
 
 <table>
 <tr>
-<td align="center"><img src="design/screen-06-today.png" width="200"><br><sub><b>Today</b><br>meals, the track, water · walk · sleep</sub></td>
-<td align="center"><img src="design/screen-07-meal.png" width="200"><br><sub><b>Log a meal</b><br>planned option and portion</sub></td>
-<td align="center"><img src="design/screen-08-search.png" width="200"><br><sub><b>Something else</b><br>"vat" finds every bhaat plate</sub></td>
+<td align="center"><img src="design/screen-08-today.png" width="200"><br><sub><b>Today</b><br>the track, meals, water · walk · sleep</sub></td>
+<td align="center"><img src="design/screen-09-meal.png" width="200"><br><sub><b>Log a meal</b><br>planned option and portion</sub></td>
+<td align="center"><img src="design/screen-10-search.png" width="200"><br><sub><b>Something else</b><br>"vat" finds every bhaat plate</sub></td>
 </tr>
 <tr>
-<td align="center"><img src="design/screen-09-gym.png" width="200"><br><sub><b>Gym</b><br>push / pull / legs, one tap per set</sub></td>
-<td align="center"><img src="design/screen-10-progress.png" width="200"><br><sub><b>Progress</b><br>weight trend, pace, this week</sub></td>
-<td align="center"><img src="design/screen-11-strength.png" width="200"><br><sub><b>Strength</b><br>rings per body area, every lift since day 1</sub></td>
+<td align="center"><img src="design/screen-11-burn.png" width="200"><br><sub><b>Burn</b><br>over target: minutes to burn it off</sub></td>
+<td align="center"><img src="design/screen-12-walk.png" width="200"><br><sub><b>Walk</b><br>ring, week, the build-up to 10k</sub></td>
+<td align="center"><img src="design/screen-13-water.png" width="200"><br><sub><b>Water</b><br>glasses, pace, days on goal</sub></td>
 </tr>
 <tr>
-<td align="center"><img src="design/screen-12-streak.png" width="200"><br><sub><b>Streak</b><br>calendar, freezes, medals</sub></td>
-<td align="center"><img src="design/screen-13-fasting.png" width="200"><br><sub><b>Fasting</b><br>14:10 · 16:8 · 18:6, meals resized to fit</sub></td>
-<td align="center"><img src="design/screen-14-spending.png" width="200"><br><sub><b>Spending</b><br>what the diet and gym cost, in ৳</sub></td>
+<td align="center"><img src="design/screen-14-sleep.png" width="200"><br><sub><b>Sleep</b><br>last night and the week</sub></td>
+<td align="center"><img src="design/screen-22-day-done.png" width="200"><br><sub><b>Day done</b><br>4 of 4: Dau cheers</sub></td>
+<td></td>
 </tr>
 </table>
 
-<sub>Screenshots use sample data.</sub>
+### 3 · Training and progress
+
+<table>
+<tr>
+<td align="center"><img src="design/screen-15-gym.png" width="200"><br><sub><b>Gym</b><br>push / pull / legs, one tap per set</sub></td>
+<td align="center"><img src="design/screen-16-progress.png" width="200"><br><sub><b>Progress</b><br>weight trend and pace for your goal</sub></td>
+<td align="center"><img src="design/screen-17-strength.png" width="200"><br><sub><b>Strength</b><br>rings per body area, every lift</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="design/screen-18-streak.png" width="200"><br><sub><b>Streak</b><br>calendar, freezes, medals</sub></td>
+<td align="center"><img src="design/screen-19-fasting.png" width="200"><br><sub><b>Fasting</b><br>pick a plan</sub></td>
+<td align="center"><img src="design/screen-20-fasting-live.png" width="200"><br><sub><b>A fast, live</b><br>a ring through the stages</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="design/screen-21-spending.png" width="200"><br><sub><b>Spending</b><br>what the diet and gym cost, in ৳</sub></td>
+<td></td>
+<td></td>
+</tr>
+</table>
+
+### 4 · Outside the app
+
+<table>
+<tr>
+<td align="center"><img src="design/screen-23-widgets.png" width="200"><br><sub><b>Widgets</b><br>the same design on Android and iPhone</sub></td>
+<td align="center"><img src="design/screen-24-notifications.png" width="200"><br><sub><b>Notifications</b><br>the fast live, the Sunday recap, what's still open</sub></td>
+<td></td>
+</tr>
+</table>
+
+### 5 · The people who help
+
+Invite a trainer and a family member with a code each. The trainer follows every student from one dashboard and writes the diet chart; the family member who cooks sees what to cook today, in Bangla.
+
+<table>
+<tr>
+<td align="center"><img src="design/screen-25-students.png" width="200"><br><sub><b>Students</b><br>a trainer's dashboard: who needs you, and why</sub></td>
+<td align="center"><img src="design/screen-26-student.png" width="200"><br><sub><b>A student</b><br>their day, week, gym, strength, feedback</sub></td>
+<td align="center"><img src="design/screen-27-diet-chart.png" width="200"><br><sub><b>Diet chart</b><br>the trainer writes it, with amounts</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="design/screen-28-ma-page.png" width="200"><br><sub><b>Ma's page</b><br>what to cook today, in Bangla</sub></td>
+<td></td>
+<td></td>
+</tr>
+</table>
 
 ## Features
 
 | Area | What you get |
 |---|---|
+| **Goal** | Lose, keep or gain weight: sets the daily target (−500 / maintenance / +300 kcal), protein, month targets, the pace gauge, medals and Burn |
 | **Meals** | 4 meals with planned options sized to your calorie target · portions ½× to 2× · "something else" from a 201-food Dhaka list or your own foods · extras between meals · skip honestly · undo everything |
 | **AI estimates** | Type *"2 parathas, dim bhaji and milk tea"* and get each item with kcal, protein and category, grounded in the Dhaka food list · saved estimates reused with no AI · free-tier counter shows uses left today |
 | **Search** | English, every Banglish spelling and Bangla script (448 researched word groups) · typos forgiven · "fish" finds rui and ilish, but "rui" doesn't find ilish |
 | **Gym** | Push / pull / legs rotation · tap a set circle to log it · rest timer on the lock screen · automatic step-ups when every rep is hit, a 10% deload after two short sessions · stop early when strength runs out |
-| **Progress** | Weight chart with the 7-day average and month targets · pace gauge (0.6–0.9 kg a week) · stall detection · this week's calories, protein, gym, sleep · overall strength rings · every lift start → now |
+| **Burn** | Eaten against what your body and exercise burned · what's left to burn to stay on plan, as minutes of walking, treadmill, cycling, stairs, badminton or swimming at your weight · gaining instead gets **Fuel**: kcal still to eat, with easy foods · shown on Today, the 21:15 reminder and the widget |
+| **Walk · Water · Sleep** | Each a page with a ring to the day's goal, tiles, the week, and (Walk) steps hour by hour from Health Connect |
+| **Progress** | Weight chart with the 7-day average and month targets · pace gauge for your goal · stall detection · this week's calories, protein, gym, sleep · overall strength rings · every lift start → now |
 | **Habits** | Streak with freezes · "streak ends at midnight" reminder · perfect days (meals + water + steps) · medals · Sunday recap · family board |
 | **Body** | Personal targets from sex, age, height (feet and inches) and activity · water goal · steps 7k → 10k · sleep from Health Connect |
-| **Fasting** | 14:10, 16:8, 18:6 with a movable window · meals outside it become "Fasting" and the rest grow so the day stays the same size |
+| **Fasting** | 14:10, 16:8, 18:6 with a movable window · meals outside it become "Fasting" and the rest grow so the day stays the same size · start / end real fasts with a live ring through the stages (digesting → burning fat → deep fast) · a Live Update on Android 16 and a Live Activity on iPhone · window reminders |
+| **Coaching** | Invite a **trainer** and a **family helper** with a code each · they see a live summary of your day, weight and (trainer) gym and strength, never your spending · notes both ways · the trainer writes your **diet chart** and it reaches your phone with Undo · a helper can swap today's meals within the trainer's options |
+| **Trainer** | A **Students** dashboard: who needs you first and why (not opened in days, no gym, weight not moving for their goal, over or short today), filters by goal, one-tap feedback, a Sunday "3 of 8 need you" |
+| **Ma's page** | For the family member who cooks: did he eat (one sentence, four big circles), **what to cook today** with amounts, the whole chart to share or print, water and weight in plain words, one-tap replies · Bangla first, English one tap away |
 | **Money** | Spending by category against a monthly budget |
-| **Glanceable** | Four Android widgets and iOS widgets, a Live Activity for rest and treadmill, local reminders with Log / Skip / + Glass buttons |
+| **Glanceable** | Five widgets drawn to the same design on Android and iPhone · Live Activities for rest, treadmill and the running fast · reminders with their own icons, the plan day, progress bars, an evening list of what's still open and a Sunday recap picture |
+| **Native feel** | One look, two sets of controls: iPhone gets a glass tab bar, a More page, action sheets, iOS alerts and pickers; Android keeps Material |
+| **Dau** | The runner dot as a mascot: cheers a closed day, waits on empty screens, looks tired on Ma's page when meals are missing · decoration only |
 | **Data** | Works offline · Google sign-in backs up to Firestore · export as JSON · delete cloud data and account · erase the phone |
+
+## Who uses Daur
+
+```mermaid
+flowchart TD
+    install([Install Daur]) --> account{Make an account}
+    account -->|Google| role{How will you use Daur?}
+    account -->|not now| role
+    role -->|just me| plan[Set up my plan<br/>day 1 · weight · goal]
+    role -->|trainer| tOwn{Also track my own fitness?}
+    role -->|I help family| fOwn{Also track my own fitness?}
+    tOwn -->|yes| planT[My plan + a Students tab]
+    tOwn -->|no| students[Students dashboard]
+    fOwn -->|yes| planF[My plan + a Family tab]
+    fOwn -->|no| ma[Ma's page<br/>what to cook today, in Bangla]
+    plan --> goal{Goal}
+    planT --> goal
+    planF --> goal
+    goal -->|lose| lose[maintenance − 500 · Burn]
+    goal -->|keep| keep[maintenance]
+    goal -->|gain| gain[maintenance + 300 · Fuel]
+    plan -. invite code .-> students
+    plan -. invite code .-> ma
+```
 
 ## How a day works
 
@@ -92,33 +182,45 @@ flowchart LR
     meal -->|skip| leg
     search --> leg
     ai --> leg
-    leg --> four{4 of 4?}
-    four -->|not yet| today
-    four -->|yes| close[Day closes: lane lights up]
+    leg --> balance{Eaten vs target}
+    balance -->|losing, over| burn[Burn: minutes of walking<br/>or cycling to burn it off]
+    balance -->|gaining, short| fuel[Fuel: kcal still to eat]
+    balance -->|on plan| four
+    burn --> four
+    fuel --> four
+    four{4 of 4?} -->|not yet| today
+    four -->|yes| close[Day closes · Dau cheers]
     close --> streak[Streak +1 · medals · widgets]
-    today --> tiles[Water · Walk · Sleep tiles]
+    today --> tiles[Water · Walk · Sleep]
     tiles --> perfect{Water and steps too?}
     perfect -->|yes| star[Perfect day ⭐]
-    reminders[[Local reminders]] -.-> today
-    risk[[21:30 streak at risk]] -.-> meal
+    fast[[Fasting: live ring<br/>through the stages]] -.-> today
+    chart[[New diet chart<br/>from the trainer]] -.->|with Undo| meal
+    notes[[Notes from trainer<br/>and family]] -.-> today
+    reminders[[Reminders: meals, water,<br/>21:15 walk it off, 21:30 what's open]] -.-> today
 ```
 
 ## Architecture
 
 ```mermaid
 flowchart TB
-    subgraph phone[Phone]
-        ui[Flutter UI<br/>Today · Gym · Progress · drawer]
+    subgraph phone[Your phone]
+        ui[Flutter UI<br/>Today · Gym · Progress · Students<br/>iOS or Material controls]
         store[(Store<br/>one JSON blob<br/>shared_preferences)]
         search[Food search<br/>synonyms · spellings · typos]
         notif[Local notifications<br/>7 days ahead]
-        widgets[Home-screen widgets<br/>Android RemoteViews · iOS WidgetKit]
+        widgets[Home-screen widgets<br/>drawn faces · WidgetKit]
+        live[Fasting Live Update<br/>Live Activities]
         work[WorkManager<br/>steps + widgets every 30 min]
         health[Health Connect / Apple Health<br/>steps · sleep]
     end
+    subgraph helpers[Helpers' phones]
+        trainer[Trainer<br/>Students dashboard · diet chart]
+        ma[Family helper<br/>Ma's page, in Bangla]
+    end
     subgraph firebase[Firebase · project daurfit]
         auth[Auth<br/>Google sign-in]
-        fs[(Firestore 'daur'<br/>backup · family board · AI count)]
+        fs[(Firestore 'daur'<br/>backup · family board · AI count<br/>coaching: summary · notes · chart)]
         ai[AI Logic<br/>Gemini 3.8 Flash → 3.5 Flash-Lite]
         check[App Check]
         dist[App Distribution<br/>Family testers]
@@ -127,10 +229,15 @@ flowchart TB
     ui --> search
     store --> notif
     store --> widgets
+    store --> live
     work --> health
     work --> widgets
     ui --> health
     store <-->|newer copy wins| fs
+    store -->|summary| fs
+    fs -->|chart · cooking · notes| store
+    trainer <--> fs
+    ma <--> fs
     ui --> auth
     ui -->|describe a meal| ai
     check -.guards.-> ai
@@ -188,6 +295,28 @@ flowchart LR
 
 The next day is the one after the last day you actually trained, so a missed gym day never shifts the rotation.
 
+### Coaching: a trainer and a family helper
+
+```mermaid
+sequenceDiagram
+    participant You
+    participant FS as Firestore
+    participant Trainer
+    participant Ma as Family helper
+    You->>FS: invite code per role (trainer, diet)
+    Trainer->>FS: join with the trainer code
+    Ma->>FS: join with the diet code
+    loop every change
+        You->>FS: summary: today, weight, gym, strength, chart
+    end
+    FS-->>Trainer: Students dashboard, who needs attention
+    Trainer->>FS: new diet chart
+    FS-->>You: chart applied, with Undo
+    FS-->>Ma: what to cook today (Bangla)
+    Ma->>FS: swap tonight's dinner, or a one-tap note
+    FS-->>You: dinner switched, with Undo · the note on Today
+```
+
 ### Cloud data
 
 ```mermaid
@@ -219,16 +348,40 @@ erDiagram
         int flash "per Pacific day"
         int lite
     }
+    INVITES ||--o{ HELPERS : "a code joins a helper"
+    INVITES {
+        string ownerUid
+        string role "trainer or diet"
+    }
+    COACHING ||--o{ HELPERS : "coaching/{owner}/helpers/{uid}"
+    COACHING ||--o{ NOTES : "coaching/{owner}/notes"
+    COACHING ||--o{ PLAN : "coaching/{owner}/plan/diet and cook"
+    COACHING {
+        string name
+        string data "the summary helpers see, no spending"
+    }
+    HELPERS {
+        string role
+        string code
+    }
+    NOTES {
+        string text
+        string role
+    }
+    PLAN {
+        string data "the diet chart"
+        map picks "today's cooking"
+    }
 ```
 
-Security rules (`firestore.rules`) keep each person's data private to them, the family board visible only to its members, and every write validated field by field.
+Security rules (`firestore.rules`) keep each person's data private to them, the family board visible only to its members, and every write validated field by field. For coaching, only helpers you invited can read your summary; only you and your trainer can write the diet chart; a family helper can only pick among the trainer's options for today. `test/firestore_rules.test.mjs` checks all of it (52 cases) against the Firestore emulator.
 
 ## Getting started
 
 ```bash
 flutter pub get
 flutter run -d <android-device>        # or: -d chrome, or an iPhone
-flutter test                           # 35 tests: store, search, progression, reminders, quotas
+flutter test                           # 44 tests: store, search, progression, reminders, goals, coaching
 ```
 
 The AI estimate needs an App Check token. Put it in `dart_defines.json` (git-ignored):
@@ -271,11 +424,18 @@ The workflow is `.github/workflows/release.yml`. Release notes come from the mer
 | `lib/meal_ai.dart` | AI estimates: grounding, model fallback, quota, saved estimates |
 | `lib/cloud.dart` | Google sign-in, Firestore sync, family board, AI count, account deletion |
 | `lib/fasting.dart` · `spending.dart` · `family.dart` · `targets.dart` · `your_data.dart` | Drawer screens |
+| `lib/water_walk.dart` · `burn.dart` | Water, Walk and Sleep pages; Burn and Fuel |
+| `lib/coaching.dart` · `students.dart` · `ma_page.dart` · `diet_chart.dart` | Coaches, the helper's view, the trainer's dashboard, Ma's page, the diet chart editor |
+| `lib/onboarding.dart` | Account, role (just me · trainer · family), then the plan |
+| `lib/adaptive.dart` | iPhone vs Android controls: menus, segments, date picker, tab bar |
+| `lib/dau.dart` | Dau the mascot, in four moods |
 | `lib/reminders.dart` · `widget_sync.dart` · `live.dart` | Notifications, widgets, Live Activities |
-| `android/…/DaurWidgets.kt` · `ios/DaurWidget/` | Native widgets |
+| `android/…/DaurWidgets.kt` · `WidgetFace.kt` · `FastLive.kt` · `ios/DaurWidget/` | Native widgets (drawn faces), the fasting Live Update, iOS widgets and Live Activities |
 | `firestore.rules` · `firebase.json` | Security rules and Firebase config |
 | `design/` | Design direction, research and these screenshots |
 
 ## Privacy
 
 Everything lives on the phone first and works offline. Signing in backs it up to your own Firestore document, readable only by you. The AI sees only the food you type plus matching food-list entries. You can export all of it, delete the cloud copy and account, or erase the phone from **Menu → Your data**.
+
+People you invite see a summary of your day (meals, water, steps, sleep, weight, and for a trainer the gym), never your spending, email or AI usage. Stop a code or remove a person any time from **Menu → Coaches**, and they lose access at once.

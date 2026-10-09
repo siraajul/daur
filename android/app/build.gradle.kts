@@ -38,6 +38,9 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // Keep all resources: notification icons are named only from Dart, which the shrinker
+            // can't see, so it stripped ic_stat_daur and every reminder failed in release builds.
+            isShrinkResources = false
         }
     }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'adaptive.dart';
 import 'food_db.dart' show editFood;
 import 'food_search.dart';
 import 'foods.dart';
@@ -145,7 +146,10 @@ class _MealSheetState extends State<MealSheet> {
               child: _aiBusy
                   ? Padding(
                       padding: const EdgeInsets.all(11),
-                      child: CircularProgressIndicator(strokeWidth: 2, color: t.onAccent),
+                      child: CircularProgressIndicator.adaptive(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation(t.onAccent),
+                      ),
                     )
                   : Icon(saved ? Icons.bookmark_rounded : Icons.auto_awesome_rounded, color: t.onAccent, size: 20),
             ),
@@ -272,24 +276,14 @@ class _MealSheetState extends State<MealSheet> {
                   ],
                   const SizedBox(height: 20),
                   if (!isExtra)
-                    SegmentedButton<_Mode>(
-                      segments: const [
-                        ButtonSegment(
-                          value: _Mode.plan,
-                          label: Text('Planned'),
-                          icon: Icon(Icons.check_circle_outline),
-                        ),
-                        ButtonSegment(value: _Mode.other, label: Text('Something else'), icon: Icon(Icons.swap_horiz)),
+                    Segments<_Mode>(
+                      onSheet: true,
+                      items: const [
+                        (_Mode.plan, 'Planned', Icons.check_circle_outline),
+                        (_Mode.other, 'Something else', Icons.swap_horiz),
                       ],
-                      selected: {mode},
-                      onSelectionChanged: (v) => setState(() => mode = v.first),
-                      style: SegmentedButton.styleFrom(
-                        foregroundColor: t.sheetInk,
-                        selectedForegroundColor: t.onAccent,
-                        selectedBackgroundColor: t.accent,
-                        side: BorderSide(color: t.sheetRule),
-                        minimumSize: const Size.fromHeight(48),
-                      ),
+                      value: mode,
+                      onChanged: (v) => setState(() => mode = v),
                     ),
                   const SizedBox(height: 12),
                   ...(mode == _Mode.plan ? _planned(t) : _other(t)),

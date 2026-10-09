@@ -111,7 +111,7 @@ class StreakScreen extends StatelessWidget {
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
               childAspectRatio: .82,
-              children: [for (final m in medals) _Medal(m: m, earned: s.seenHints.contains('badge:${m.id}'))],
+              children: [for (final m in medalsFor(s)) _Medal(m: m, earned: s.seenHints.contains('badge:${m.id}'))],
             ),
           ],
         ),
@@ -158,7 +158,8 @@ class _Day extends StatelessWidget {
     final t = Daur.of(context);
     final isToday = key == store.today;
     final n = isToday ? store.legsDone : store.lapHistory[key] ?? 0;
-    final future = day.isAfter(DateTime.now());
+    // days after today, and days before the plan started, are drawn faint
+    final future = day.isAfter(DateTime.now()) || key.compareTo(store.startDay) < 0;
     final perfect = !future && store.perfect(key);
     if (store.frozenDays.contains(key)) {
       return Container(

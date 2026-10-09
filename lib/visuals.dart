@@ -1,5 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import 'adaptive.dart';
 import 'theme.dart';
 
 /// One icon vocabulary for food across the app (outlined/rounded Material, ink colour).
@@ -297,7 +300,7 @@ class GoogleButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           busy
-              ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
+              ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator.adaptive(strokeWidth: 2))
               : const GoogleG(size: 20),
           const SizedBox(width: 12),
           Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
@@ -369,29 +372,52 @@ class TargetChips extends StatelessWidget {
   }
 }
 
-/// Weekly loss on a bar: slow, on pace (0.6–0.9 kg a week), fast. The dot is this week.
+/// This week's weight change on a bar, against the goal's pace: Lose 0.6–0.9 kg down a week,
+/// Gain 0.2–0.4 kg up, Keep within 0.2 kg either way. The dot is this week.
 class PaceGauge extends StatelessWidget {
-  const PaceGauge({super.key, required this.perWeek, this.kcal, this.stalled = false});
-  final double? perWeek; // kg lost per week; null = not enough weigh-ins
+  const PaceGauge({super.key, required this.change, this.goal = 0, this.kcal, this.stalled = false});
+  final double? change; // kg a week, negative = down; null = not enough weigh-ins
+  final int goal; // 0 lose, 1 keep, 2 gain
   final int? kcal; // the day's goal, for "stay at"
   final bool stalled;
+
+  /// Each goal's scale: shown range, on-pace band, labels, in kg toward the goal a week.
+  static const scales = {
+    0: (lo: -.25, hi: 1.5, band: (.6, .9), labels: [('slow', .15), ('0.6–0.9', .75), ('fast', 1.3)]),
+    1: (lo: -.6, hi: .6, band: (-.2, .2), labels: [('down', -.45), ('steady', 0.0), ('up', .45)]),
+    2: (lo: -.25, hi: .8, band: (.2, .4), labels: [('slow', 0.0), ('0.2–0.4', .3), ('fast', .65)]),
+  };
 
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
-    final v = perWeek;
+    final c = change;
+    final v = c == null ? null : (goal == 0 ? -c : c); // toward the goal: down for Lose, up otherwise
+    final sc = scales[goal]!;
     final kcalS = kcal == null ? '' : ' · stay at ${kcal! ~/ 1000},${(kcal! % 1000).toString().padLeft(3, '0')} kcal';
+    final onPace = v != null && v >= sc.band.$1 && v <= sc.band.$2 && !stalled;
     final (icon, verdict) = stalled
         ? (Icons.trending_flat_rounded, 'Stalled · −150 kcal or +2,000 steps')
         : v == null
         ? (Icons.monitor_weight_outlined, 'Weigh 3–7 mornings, before breakfast · tap +')
-        : v < .4
-        ? (Icons.trending_flat_rounded, 'Slow · give it one more week')
-        : v <= 1
-        ? (Icons.check_circle_outline_rounded, 'On pace$kcalS')
-        : (Icons.speed_rounded, 'Fast · eat a bit more if tired');
+        : onPace
+        ? (Icons.check_circle_outline_rounded, '${goal == 1 ? 'Steady' : 'On pace'}$kcalS')
+        : switch (goal) {
+            1 =>
+              v < 0
+                  ? (Icons.trending_down_rounded, 'Dropping · eat a bit more')
+                  : (Icons.trending_up_rounded, 'Rising · eat a bit less'),
+            2 =>
+              v < sc.band.$1
+                  ? (Icons.trending_flat_rounded, 'Slow · add a snack, about 200 kcal')
+                  : (Icons.speed_rounded, 'Fast · trim the extra a little'),
+            _ =>
+              v < .6
+                  ? (Icons.trending_flat_rounded, 'Slow · give it one more week')
+                  : (Icons.speed_rounded, 'Fast · eat a bit more if tired'),
+          };
     return Semantics(
-      label: v == null ? verdict : '${v.toStringAsFixed(1)} kilos a week. $verdict',
+      label: c == null ? verdict : '${c.toStringAsFixed(1)} kilos a week. $verdict',
       excludeSemantics: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,12 +425,12 @@ class PaceGauge extends StatelessWidget {
           SizedBox(
             height: 56,
             width: double.infinity,
-            child: CustomPaint(painter: _PacePainter(t, v)),
+            child: CustomPaint(painter: _PacePainter(t, v, c, goal)),
           ),
           const SizedBox(height: 4),
           Row(
             children: [
-              Icon(icon, size: 20, color: v != null && v >= .6 && v <= 1 && !stalled ? t.accent : t.ink),
+              Icon(icon, size: 20, color: onPace ? t.accent : t.ink),
               const SizedBox(width: 8),
               Expanded(child: Text(verdict, style: t.body())),
             ],
@@ -416,42 +442,39 @@ class PaceGauge extends StatelessWidget {
 }
 
 class _PacePainter extends CustomPainter {
-  _PacePainter(this.t, this.v);
+  _PacePainter(this.t, this.v, this.change, this.goal);
   final Daur t;
-  final double? v;
-  static const lo = -.25, hi = 1.5; // kg a week shown
+  final double? v, change; // v: toward the goal; change: signed, for the label
+  final int goal;
 
   @override
   void paint(Canvas canvas, Size size) {
-    double x(double kg) => (kg - lo) / (hi - lo) * size.width;
+    final sc = PaceGauge.scales[goal]!;
+    double x(double kg) => (kg - sc.lo) / (sc.hi - sc.lo) * size.width;
     const y = 30.0;
     final base = Paint()
       ..strokeWidth = 6
       ..strokeCap = StrokeCap.round
       ..color = t.lane;
-    canvas.drawLine(Offset(x(lo), y), Offset(x(hi), y), base);
+    canvas.drawLine(Offset(x(sc.lo), y), Offset(x(sc.hi), y), base);
     // the on-pace band
     canvas.drawLine(
-      Offset(x(.6), y),
-      Offset(x(.9), y),
+      Offset(x(sc.band.$1), y),
+      Offset(x(sc.band.$2), y),
       base
         ..color = t.ink
         ..strokeWidth = 10,
     );
-    void label(String s, double kg) {
+    for (final (s, kg) in sc.labels) {
       final tp = TextPainter(
         text: TextSpan(text: s, style: t.meta()),
         textDirection: TextDirection.ltr,
       )..layout();
       tp.paint(canvas, Offset((x(kg) - tp.width / 2).clamp(0, size.width - tp.width), y + 9));
     }
-
-    label('slow', .15);
-    label('0.6–0.9', .75);
-    label('fast', 1.3);
-    final value = v;
-    if (value == null) return;
-    final p = Offset(x(value.clamp(lo, hi)), y);
+    final value = v, c = change;
+    if (value == null || c == null) return;
+    final p = Offset(x(value.clamp(sc.lo, sc.hi)), y);
     canvas.drawCircle(p, 9, Paint()..color = t.accent);
     canvas.drawCircle(
       p,
@@ -462,14 +485,14 @@ class _PacePainter extends CustomPainter {
         ..color = t.ground,
     );
     final tp = TextPainter(
-      text: TextSpan(text: '${value >= 0 ? '−' : '+'}${value.abs().toStringAsFixed(1)} kg/wk', style: t.sec(t.ink)),
+      text: TextSpan(text: '${c <= 0 ? '−' : '+'}${c.abs().toStringAsFixed(1)} kg/wk', style: t.sec(t.ink)),
       textDirection: TextDirection.ltr,
     )..layout();
     tp.paint(canvas, Offset((p.dx - tp.width / 2).clamp(0, size.width - tp.width), 0));
   }
 
   @override
-  bool shouldRepaint(_PacePainter o) => o.v != v || o.t != t;
+  bool shouldRepaint(_PacePainter o) => o.v != v || o.t != t || o.goal != goal;
 }
 
 /// The one header for every screen you open: back (or a down chevron for a session you close),
@@ -494,7 +517,7 @@ class PageHeader extends StatelessWidget {
             IconButton(
               onPressed: onBack ?? () => Navigator.maybePop(context),
               tooltip: close ? 'Close' : 'Back',
-              icon: Icon(close ? Icons.keyboard_arrow_down_rounded : Icons.arrow_back, color: t.ink),
+              icon: Icon(backIcon(context, close: close), color: t.ink),
             ),
             Expanded(
               child: Text(title, style: t.title(), maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -506,4 +529,178 @@ class PageHeader extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Pop-ups in the app's look: a deep-red card, the question in the display font, one yellow pill
+/// for the main action and plain ink text for the rest. Every pop-up in the app goes through here.
+Widget _popCard(BuildContext context, String title, List<Widget> children) {
+  final t = Daur.of(context);
+  return Dialog(
+    backgroundColor: t.infield,
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: t.x(22)),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _popMain(Daur t, String label, VoidCallback onTap) => FilledButton(
+  onPressed: onTap,
+  style: FilledButton.styleFrom(
+    backgroundColor: t.accent,
+    foregroundColor: t.onAccent,
+    minimumSize: const Size.fromHeight(52),
+    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+  ),
+  child: Text(label),
+);
+
+Widget _popSide(Daur t, String label, VoidCallback onTap) => TextButton(
+  onPressed: onTap,
+  style: TextButton.styleFrom(
+    foregroundColor: t.ink,
+    minimumSize: const Size.fromHeight(48),
+    textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+  ),
+  child: Text(label),
+);
+
+/// "Are you sure?". Android: the action as the yellow pill, Cancel under it. iPhone: the system
+/// alert, Cancel and the action side by side, the action red when it deletes or signs out.
+Future<bool> confirmPop(
+  BuildContext context,
+  String title,
+  String body,
+  String action, {
+  bool destructive = false,
+}) async {
+  if (isIOS(context)) {
+    return await showCupertinoDialog<bool>(
+          context: context,
+          builder: (ctx) => CupertinoAlertDialog(
+            title: Text(title),
+            content: Text(body),
+            actions: [
+              CupertinoDialogAction(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              CupertinoDialogAction(
+                isDefaultAction: !destructive,
+                isDestructiveAction: destructive,
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(action),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+  return await showDialog<bool>(
+        context: context,
+        builder: (ctx) {
+          final t = Daur.of(ctx);
+          return _popCard(ctx, title, [
+            Text(body, style: t.sec()),
+            const SizedBox(height: 20),
+            _popMain(t, action, () => Navigator.pop(ctx, true)),
+            _popSide(t, 'Cancel', () => Navigator.pop(ctx, false)),
+          ]);
+        },
+      ) ??
+      false;
+}
+
+/// Asks for one number, typed big. [side] is an optional second action (closes first, then runs).
+Future<double?> askNumber(
+  BuildContext context,
+  String title, {
+  String? initial,
+  String? hint,
+  String? prefix,
+  String? suffix,
+  bool decimal = false,
+  (String, VoidCallback)? side,
+}) {
+  final c = TextEditingController(text: initial ?? '');
+  if (isIOS(context)) {
+    return showCupertinoDialog<double>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: Text(title),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: CupertinoTextField(
+            controller: c,
+            autofocus: true,
+            placeholder: hint,
+            prefix: prefix == null ? null : Padding(padding: const EdgeInsets.only(left: 8), child: Text(prefix)),
+            suffix: suffix == null ? null : Padding(padding: const EdgeInsets.only(right: 8), child: Text(suffix)),
+            keyboardType: TextInputType.numberWithOptions(decimal: decimal),
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(decimal ? r'[0-9.]' : r'[0-9]'))],
+            onSubmitted: (_) => Navigator.pop(ctx, double.tryParse(c.text.trim())),
+          ),
+        ),
+        actions: [
+          if (side != null)
+            CupertinoDialogAction(
+              onPressed: () {
+                Navigator.pop(ctx);
+                side.$2();
+              },
+              child: Text(side.$1),
+            ),
+          CupertinoDialogAction(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(ctx, double.tryParse(c.text.trim())),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+  return showDialog<double>(
+    context: context,
+    builder: (ctx) {
+      final t = Daur.of(ctx);
+      void save() => Navigator.pop(ctx, double.tryParse(c.text.trim()));
+      UnderlineInputBorder line(Color color) => UnderlineInputBorder(borderSide: BorderSide(color: color, width: 2));
+      return _popCard(ctx, title, [
+        TextField(
+          controller: c,
+          autofocus: true,
+          keyboardType: TextInputType.numberWithOptions(decimal: decimal),
+          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(decimal ? r'[0-9.]' : r'[0-9]'))],
+          onSubmitted: (_) => save(),
+          style: t.x(36),
+          cursorColor: t.accent,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: t.sec(t.ink2),
+            prefixText: prefix,
+            suffixText: suffix,
+            prefixStyle: t.x(20),
+            suffixStyle: t.x(18, color: t.ink2),
+            enabledBorder: line(t.lane),
+            focusedBorder: line(t.accent),
+          ),
+        ),
+        const SizedBox(height: 20),
+        _popMain(t, 'Save', save),
+        if (side != null)
+          _popSide(t, side.$1, () {
+            Navigator.pop(ctx);
+            side.$2();
+          }),
+      ]);
+    },
+  );
 }

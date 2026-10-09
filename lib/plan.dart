@@ -12,15 +12,42 @@ class MealOption {
   final List<String> items;
   final int kcal, protein;
   const MealOption(this.name, this.items, this.kcal, this.protein);
+
+  Map<String, Object> toJson() => {'n': name, 'i': items, 'k': kcal, 'p': protein};
+  static MealOption from(Map j) => MealOption(
+    j['n'] as String,
+    [for (final x in j['i'] as List) x as String],
+    (j['k'] as num).toInt(),
+    (j['p'] as num).toInt(),
+  );
 }
 
 class Meal {
   final String id, name, window, note;
   final List<MealOption> options;
   const Meal(this.id, this.name, this.window, this.options, [this.note = '']);
+
+  Meal withOptions(List<MealOption> options, [String? note]) => Meal(id, name, window, options, note ?? this.note);
+
+  Map<String, Object> toJson() => {
+    'id': id,
+    'n': name,
+    'w': window,
+    'o': [for (final o in options) o.toJson()],
+    if (note.isNotEmpty) 'note': note,
+  };
+  static Meal from(Map j) => Meal(j['id'] as String, j['n'] as String, j['w'] as String, [
+    for (final o in j['o'] as List) MealOption.from(o as Map),
+  ], j['note'] as String? ?? '');
 }
 
-const meals = [
+/// Today's diet chart: the trainer's when there is one (Store.setChart), else the plan below.
+/// The four meals and their windows stay; what's in each meal is the chart's.
+List<Meal> get meals => _chart;
+List<Meal> _chart = defaultMeals;
+void useChart(List<Meal>? chart) => _chart = chart == null || chart.length != 4 ? defaultMeals : chart;
+
+const defaultMeals = [
   Meal('m1', 'Breakfast', '08:00–09:00', [
     MealOption(
       'Eggs + roti',
@@ -169,26 +196,49 @@ class Profile {
   final bool male;
   final int age, heightCm;
   final int activity; // 0 desk job, 1 on my feet, 2 physical work
-  const Profile({required this.male, required this.age, required this.heightCm, this.activity = 0});
+  final int goal; // 0 lose, 1 keep, 2 gain
+  const Profile({required this.male, required this.age, required this.heightCm, this.activity = 0, this.goal = 0});
 
   static const activityNames = ['Desk job', 'On my feet', 'Physical work'];
+  static const goalNames = ['Lose', 'Keep', 'Gain'];
+
+  /// The weekly pace each goal aims for, in words.
+  String get paceText => switch (goal) {
+    1 => 'steady weight',
+    2 => 'about 0.25 kg a week up',
+    _ => 'about 0.5 kg a week down',
+  };
   static const _factor = [1.2, 1.375, 1.55];
 
-  Map<String, Object> toJson() => {'m': male, 'a': age, 'h': heightCm, 'act': activity};
+  Map<String, Object> toJson() => {'m': male, 'a': age, 'h': heightCm, 'act': activity, 'g': goal};
   static Profile from(Map j) => Profile(
     male: j['m'] as bool,
     age: (j['a'] as num).toInt(),
     heightCm: (j['h'] as num).toInt(),
     activity: (j['act'] as num?)?.toInt() ?? 0,
+    goal: (j['g'] as num?)?.toInt() ?? 0,
+  );
+
+  Profile copyWith({bool? male, int? age, int? heightCm, int? activity, int? goal}) => Profile(
+    male: male ?? this.male,
+    age: age ?? this.age,
+    heightCm: heightCm ?? this.heightCm,
+    activity: activity ?? this.activity,
+    goal: goal ?? this.goal,
   );
 
   /// Maintenance calories: Mifflin–St Jeor × activity.
   double tdee(double kg) => (10 * kg + 6.25 * heightCm - 5 * age + (male ? 5 : -161)) * _factor[activity.clamp(0, 2)];
 
-  /// About 0.5 kg a week: 500 under maintenance, never more than a quarter, never below a floor.
+  /// Lose: about 0.5 kg a week, 500 under maintenance, never more than a quarter, never below a
+  /// floor. Keep: maintenance. Gain: 300 over, a slow gain that stays mostly muscle with training.
   int kcal(double kg) {
     final m = tdee(kg);
-    final k = (m - (m * .25).clamp(0, 500)).clamp(male ? 1500.0 : 1200.0, 4000.0);
+    final k = switch (goal) {
+      1 => m,
+      2 => m + 300,
+      _ => m - (m * .25).clamp(0, 500),
+    }.clamp(male ? 1500.0 : 1200.0, 4500.0);
     return (k / 50).round() * 50;
   }
 
@@ -197,15 +247,16 @@ class Profile {
     final h = heightCm / 100;
     final ref = kg / (h * h) > 25 ? 25 * h * h : kg;
     int r5(double v) => (v / 5).round() * 5;
-    return (r5(ref * 1.6), r5(ref * 2.0));
+    return (r5(ref * 1.6), r5(ref * (goal == 2 ? 2.2 : 2.0)));
   }
 
   /// 35 ml per kg, in 250 ml glasses, 8–16.
   int glasses(double kg) => (kg * 35 / 250).round().clamp(8, 16);
 
-  /// Month targets from the expected loss at this deficit (7,700 kcal ≈ 1 kg).
+  /// Month targets from the expected change at this target (7,700 kcal ≈ 1 kg): down for Lose,
+  /// the same for Keep, up for Gain.
   List<(String, String, int)> targets(double startKg) {
-    final perMonth = (tdee(startKg) - kcal(startKg)) * 30 / 7700;
+    final perMonth = (tdee(startKg) - kcal(startKg)) * 30 / 7700; // positive = down
     String half(double v) {
       final x = (v * 2).round() / 2; // nearest 0.5 kg
       return x.toStringAsFixed(x == x.roundToDouble() ? 0 : 1);

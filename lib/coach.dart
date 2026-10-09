@@ -145,25 +145,27 @@ class CoachCard extends StatelessWidget {
     };
   }
 
-  /// Lap 28: four weeks of loss on the same gauge as Progress (0.6–0.9 kg a week is on pace).
+  /// Lap 28: four weeks of change on the same gauge as Progress, against the goal's pace.
   Widget _pace(Store s, VoidCallback done) {
     final now = s.trendKg ?? s.latestKg ?? s.startKg;
+    final d = now - s.startKg;
     return _Card(
       icon: Icons.flag_outlined,
       title: 'Four weeks in',
-      body: '−${(s.startKg - now).toStringAsFixed(1)} kg so far',
-      visual: PaceGauge(perWeek: (s.startKg - now) / 4, kcal: s.kcalGoal),
+      body: '${d <= 0 ? '−' : '+'}${d.abs().toStringAsFixed(1)} kg so far',
+      visual: PaceGauge(change: d / 4, goal: s.goal, kcal: s.kcalGoal),
       primary: ('Got it', done),
     );
   }
 
   Widget _finish(BuildContext context) {
     final s = store;
-    final lost = s.startKg - (s.latestKg ?? s.startKg);
+    final d = (s.latestKg ?? s.startKg) - s.startKg;
     return _Card(
       icon: Icons.military_tech_outlined,
       title: 'Day 84. The plan is done',
-      body: '${lost > 0 ? '−${lost.toStringAsFixed(1)} kg · ' : ''}maintenance is ~${thousands(s.baseKcal + 500)} kcal',
+      body:
+          '${d.abs() >= .1 ? '${d < 0 ? '−' : '+'}${d.abs().toStringAsFixed(1)} kg · ' : ''}maintenance is ~${thousands(s.bodyBurn)} kcal',
       primary: (
         'Another 12 weeks',
         () {

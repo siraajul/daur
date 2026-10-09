@@ -562,6 +562,7 @@
 		4509D6EA68BAABDEF1404A65 /* Profile */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				DEVELOPMENT_TEAM = 622QE445GT;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = DaurWidget/DaurWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -588,6 +589,7 @@
 		6CA4ECD94F459C4F9FEBAC1F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				DEVELOPMENT_TEAM = 622QE445GT;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = DaurWidget/DaurWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -773,6 +775,7 @@
 		A27CA8E3AB683EFF3AA87DA6 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				DEVELOPMENT_TEAM = 622QE445GT;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = DaurWidget/DaurWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;

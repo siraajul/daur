@@ -140,12 +140,27 @@ class Store extends ChangeNotifier {
   bool signedIn = false; // not saved: cloud.dart keeps it current
   String? fastPlan; // '14:10' | '16:8' | '18:6' (hours fasting : eating); null = not fasting
   int eatStart = 13; // the eating window opens at this hour
+  DateTime? fastFrom; // the fast running now, started by hand; null = none
+  List<(DateTime, DateTime)> fasts = []; // finished fasts (start, end), oldest first, last 60
   List<Expense> expenses = [];
   int? monthBudget; // taka
   int freezes = 0; // streak freezes in hand (max 2), one earned per 7 full days in a row
   String? freezeEarnedOn; // the day the last one was earned (once per day)
   Set<String> frozenDays = {}; // missed days a freeze covered: the streak passes over them
   String? familyId; // the family board this person is on (cloud.dart)
+  // coaching (cloud.dart): helpers (a mother for the diet, a trainer) follow this plan
+  Map<String, String> inviteCodes = {}; // role ('diet' | 'trainer') -> the code this person made
+  List<Map<String, String>> helping = []; // people this person helps: {owner, name, role}
+  bool helperOnly = false; // this phone only helps someone; it has no plan of its own
+  String? role; // how this person uses Daur: 'me' | 'trainer' | 'family'; null = not asked yet
+  String notesSeen = ''; // ISO time of the newest note already shown on Today
+  List<Meal>? chart; // the trainer's diet chart (null = the plan in plan.dart)
+  String chartBy = ''; // who wrote it (shown with the chart)
+  List<String> chartChanges = []; // what the last chart changed, in words ("Lunch: Beef + rice added")
+  String chartAt = '', cookAt = ''; // ISO times of the last chart / cooking picks applied from the cloud
+  String helperLang = 'bn'; // a diet helper's page: 'bn' Bangla or 'en' English
+  Map<String, String> chartSeen = {}; // owner -> the chart time this helper has already looked at
+  int studentsNeed = 0, studentsTotal = 0; // a trainer's dashboard, for the Sunday digest
   String? aiDay; // the Pacific-time day aiUsed counts (Google's free quota resets then)
   Map<String, int> aiUsed = {}; // 'flash' / 'lite' → AI estimates made on this phone that day
   Map<String, List<Eaten>> aiMeals = {}; // normalised description → the estimate (reused, no AI)
@@ -233,12 +248,32 @@ class Store extends ChangeNotifier {
     ownerUid = j['ownerUid'] as String?;
     fastPlan = j['fastPlan'] as String?;
     eatStart = j['eatStart'] as int? ?? 13;
+    fastFrom = DateTime.tryParse(j['fastFrom'] as String? ?? '');
+    fasts = [
+      for (final f in (j['fasts'] as List? ?? const []))
+        (DateTime.parse((f as List)[0] as String), DateTime.parse(f[1] as String)),
+    ];
     expenses = [for (final x in (j['expenses'] as List? ?? [])) Expense.from(x as Map)];
     monthBudget = j['monthBudget'] as int?;
     freezes = j['freezes'] as int? ?? 0;
     freezeEarnedOn = j['freezeEarnedOn'] as String?;
     frozenDays = Set<String>.from(j['frozenDays'] ?? []);
     familyId = j['familyId'] as String?;
+    inviteCodes = Map<String, String>.from(j['inviteCodes'] ?? {});
+    helping = [for (final h in (j['helping'] as List? ?? const [])) Map<String, String>.from(h as Map)];
+    helperOnly = j['helperOnly'] as bool? ?? false;
+    role = j['role'] as String?;
+    notesSeen = j['notesSeen'] as String? ?? '';
+    chart = j['chart'] == null ? null : [for (final m in j['chart'] as List) Meal.from(m as Map)];
+    chartBy = j['chartBy'] as String? ?? '';
+    chartChanges = [for (final x in (j['chartChanges'] as List? ?? const [])) x as String];
+    chartAt = j['chartAt'] as String? ?? '';
+    cookAt = j['cookAt'] as String? ?? '';
+    helperLang = j['helperLang'] as String? ?? 'bn';
+    chartSeen = Map<String, String>.from(j['chartSeen'] ?? {});
+    studentsNeed = j['studentsNeed'] as int? ?? 0;
+    studentsTotal = j['studentsTotal'] as int? ?? 0;
+    useChart(chart);
     aiDay = j['aiDay'] as String?;
     aiUsed = Map<String, int>.from(j['aiUsed'] ?? {});
     // re-filed under today's key rules, so estimates saved by an older version still match
@@ -315,12 +350,30 @@ class Store extends ChangeNotifier {
     'ownerUid': ownerUid,
     'fastPlan': fastPlan,
     'eatStart': eatStart,
+    'fastFrom': fastFrom?.toIso8601String(),
+    'fasts': [
+      for (final (a, b) in fasts) [a.toIso8601String(), b.toIso8601String()],
+    ],
     'expenses': [for (final x in expenses) x.toJson()],
     'monthBudget': monthBudget,
     'freezes': freezes,
     'freezeEarnedOn': freezeEarnedOn,
     'frozenDays': frozenDays.toList(),
     'familyId': familyId,
+    'inviteCodes': inviteCodes,
+    'helping': helping,
+    'helperOnly': helperOnly,
+    'role': role,
+    'notesSeen': notesSeen,
+    if (chart != null) 'chart': [for (final m in chart!) m.toJson()],
+    'chartBy': chartBy,
+    'chartChanges': chartChanges,
+    'chartAt': chartAt,
+    'cookAt': cookAt,
+    'helperLang': helperLang,
+    'chartSeen': chartSeen,
+    'studentsNeed': studentsNeed,
+    'studentsTotal': studentsTotal,
     'aiDay': aiDay,
     'aiUsed': aiUsed,
     'aiMeals': {
@@ -479,6 +532,78 @@ class Store extends ChangeNotifier {
     if (plan != null) eatStart = (start ?? defaultStart(plan)).clamp(5, 24 - (24 - int.parse(plan.split(':').first)));
     _save();
   }
+
+  /// The fast's goal in hours: the plan's, or 16 if the plan was turned off mid-fast.
+  int get fastGoal => fastPlan == null ? 16 : fastHours;
+
+  void startFast([DateTime? at]) {
+    fastFrom = at ?? DateTime.now();
+    _save();
+  }
+
+  /// Ends the running fast and keeps it (if it lasted at least 30 minutes). Returns its length.
+  Duration? endFast([DateTime? at]) {
+    final from = fastFrom;
+    if (from == null) return null;
+    final to = at ?? DateTime.now();
+    if (to.difference(from).inMinutes >= 30) {
+      fasts = [...fasts, (from, to)];
+      if (fasts.length > 60) fasts = fasts.sublist(fasts.length - 60);
+    }
+    fastFrom = null;
+    _save();
+    return to.difference(from);
+  }
+
+  /// The longest fast that ended on [day], in minutes (0 = none).
+  int fastMinOn(String day) => fasts
+      .where((f) => dayKey(f.$2) == day)
+      .fold(0, (a, f) => f.$2.difference(f.$1).inMinutes > a ? f.$2.difference(f.$1).inMinutes : a);
+
+  /// Days in a row with a fast that reached the goal; today counts once it's done, else from yesterday.
+  int get fastStreak {
+    var d = DateTime.now();
+    if (fastMinOn(dayKey(d)) < fastGoal * 60) d = d.subtract(const Duration(days: 1));
+    var n = 0;
+    while (fastMinOn(dayKey(d)) >= fastGoal * 60) {
+      n++;
+      d = d.subtract(const Duration(days: 1));
+    }
+    return n;
+  }
+
+  // ---- calorie balance: eaten against burned ----
+
+  /// What the body burns in a day before exercise: maintenance for this weight and the day job
+  /// (the plan's target is this minus the deficit). Without a profile, the plan's 1,800 + 500.
+  int get bodyBurn => (profile?.tdee(bodyKg) ?? (baseKcal + 500)).round();
+
+  /// Today's steps: from the health store when there is one, typed in otherwise.
+  int get stepsToday => stepsHistory[today] ?? manualSteps ?? 0;
+
+  /// Exercise burned today, above resting (the day job's walking is already in [bodyBurn]):
+  /// steps beyond 3,000 at ≈0.5 kcal per kg per km, treadmill as measured, gym sets at ≈3 min each
+  /// of strength work (5 MET).
+  ({int walk, int treadmill, int gym}) get moved => (
+    walk: ((stepsToday - 3000).clamp(0, 100000) / 1350 * .5 * bodyKg).round(),
+    treadmill: cardio.fold(0.0, (a, c) => a + c.kcal).round(),
+    gym: (setsDoneToday * 3 / 60 * (5 - 1) * bodyKg).round(),
+  );
+  int get movedKcal => moved.walk + moved.treadmill + moved.gym;
+
+  /// 0 lose, 1 keep, 2 gain (the original plan, without a profile, is a loss plan).
+  int get goal => profile?.goal ?? 0;
+  bool get gaining => goal == 2;
+
+  /// Still to burn today to stay on plan: eaten over the target, less what's already been moved.
+  /// Not for a gain: going over is the point.
+  int get burnLeft => gaining ? 0 : (kcal - kcalGoal - movedKcal).clamp(0, 1 << 30);
+
+  /// Gain: still to eat today to reach the target, plus whatever exercise burned on top.
+  int get eatLeft => gaining ? (kcalGoal + movedKcal - kcal).clamp(0, 1 << 30) : 0;
+
+  /// Minutes of an activity of [met] that burn [kcal] above resting, at this body weight.
+  int minutesFor(int kcal, double met) => (kcal / ((met - 1) * bodyKg / 60)).ceil();
 
   // ---- spending ----
 
@@ -1136,7 +1261,7 @@ class Store extends ChangeNotifier {
   }
 
   /// Under 0.4 kg a week for two weeks, after the first three (water weight) and not in a break.
-  bool get stalled => lap >= 21 && !inMaintenance && (twoWeekDrop ?? 1) < .8;
+  bool get stalled => goal == 0 && lap >= 21 && !inMaintenance && (twoWeekDrop ?? 1) < .8;
 
   /// Average kcal and protein over the last 7 finished days that have food logged.
   ({int kcal, int protein, int days}) get weekFood {
@@ -1233,6 +1358,166 @@ class Store extends ChangeNotifier {
     familyId = id;
     _save();
   }
+
+  // ---- coaching ----
+
+  void setInvite(String role, String? code) {
+    code == null ? inviteCodes.remove(role) : inviteCodes[role] = code;
+    _save();
+  }
+
+  void addHelping(String owner, String name, String role) {
+    helping = [
+      ...helping.where((h) => h['owner'] != owner),
+      {'owner': owner, 'name': name, 'role': role},
+    ];
+    _save();
+  }
+
+  void removeHelping(String owner) {
+    helping = helping.where((h) => h['owner'] != owner).toList();
+    _save();
+  }
+
+  /// A phone that only helps someone skips onboarding and opens on the people it helps; turning
+  /// it off starts their own plan's onboarding.
+  void setHelperOnly(bool v) {
+    helperOnly = v;
+    onboarded = v;
+    _save();
+  }
+
+  /// How this person uses Daur (asked once, after the account): just them, a trainer, or family.
+  void setRole(String r) {
+    role = r;
+    _save();
+  }
+
+  /// A Students / Family tab next to Today, Gym and Progress: trainers and family helpers, and
+  /// anyone who has started helping someone.
+  bool get helps => role == 'trainer' || role == 'family' || helping.isNotEmpty;
+
+  /// A new diet chart (from the trainer, or back to the plan with null). Meals already logged keep
+  /// what was eaten; the choice of option carries over where the chart still has it.
+  void setChart(List<Meal>? c, {String by = '', List<String> changes = const [], String at = ''}) {
+    if (c != null && c.length != 4) return; // four meals, or nothing
+    chart = c;
+    chartBy = c == null ? '' : by;
+    chartChanges = changes;
+    if (at.isNotEmpty) chartAt = at;
+    useChart(c);
+    _save();
+  }
+
+  /// What a helper picked to cook today ({meal id: option}); meals already eaten keep theirs.
+  /// Returns what changed, in words, for the "Ma is cooking…" message.
+  List<String> applyCook(Map<String, int> picks, {required String at}) {
+    cookAt = at;
+    final said = <String>[];
+    for (final m in meals) {
+      final i = picks[m.id];
+      if (i == null || i < 0 || i >= m.options.length || done.containsKey(m.id)) continue;
+      if (option[m.id] != i) said.add('${m.name}: ${m.options[i].name}');
+      option[m.id] = i;
+    }
+    _save();
+    return said;
+  }
+
+  /// After an Undo restored an older state: the chart or picks at [at] stay seen, not re-applied.
+  void markPlanSeen(String kind, String at) {
+    kind == 'diet' ? chartAt = at : cookAt = at;
+    _save();
+  }
+
+  void setHelperLang(String lang) {
+    helperLang = lang;
+    _save();
+  }
+
+  /// How many students need the trainer (from the dashboard), for the Sunday digest.
+  void noteStudents(int need, int total) {
+    if (need == studentsNeed && total == studentsTotal) return;
+    studentsNeed = need;
+    studentsTotal = total;
+    _save();
+  }
+
+  void seeChart(String owner, String at) {
+    chartSeen[owner] = at;
+    _save();
+  }
+
+  void seeNotes(String newest) {
+    if (newest.compareTo(notesSeen) <= 0) return;
+    notesSeen = newest;
+    _save();
+  }
+
+  /// What a helper sees (cloud.dart publishes it): today's meals, kcal and protein, water, steps,
+  /// sleep, weight, streak, gym and strength. No spending, no account details.
+  Map<String, Object?> coachSummary() => {
+    'v': 1,
+    'day': today,
+    'lap': lap,
+    'streak': streak,
+    'best': bestStreak,
+    'meals': [
+      for (final m in meals)
+        {
+          'name': m.name,
+          'window': m.window,
+          'status': done.containsKey(m.id)
+              ? 'done'
+              : skipped.contains(m.id)
+              ? 'skipped'
+              : fasted(m)
+              ? 'fasting'
+              : m == nextMeal
+              ? 'next'
+              : 'todo',
+          'food': done.containsKey(m.id) ? mealLabel(m) : chosen(m).name,
+          'option': m.options.indexOf(chosen(m)),
+          'items': chosen(m).items,
+          'kcal': mealKcal(m),
+          'time': done[m.id],
+        },
+    ],
+    'chart': [for (final m in meals) m.toJson()],
+    'chartBy': chartBy,
+    'chartChanges': chartChanges,
+    'chartAt': chartAt,
+    'extras': [
+      for (final e in extras) {'name': e.name, 'kcal': e.totalKcal},
+    ],
+    'kcal': kcal,
+    'kcalGoal': kcalGoal,
+    'protein': protein,
+    'proteinRange': [proteinRange.$1, proteinRange.$2],
+    'goal': goal,
+    'burnLeft': burnLeft,
+    'eatLeft': eatLeft,
+    'water': water,
+    'waterGoal': waterGoal,
+    'steps': stepsToday,
+    'stepTarget': stepTargetOn(today),
+    'sleepMin': sleepMin,
+    'startKg': startKg,
+    'nowKg': trendKg ?? latestKg,
+    'weights': [
+      for (final w in weights.length > 60 ? weights.sublist(weights.length - 60) : weights) [w.day, w.kg],
+    ],
+    'gymThisWeek': gymThisWeek,
+    // the last 7 days, for a trainer's dashboard: weight change (7-day averages) and full days logged
+    'kgWeek': week.kgChange,
+    'fullDays': week.full,
+    'sessions': [
+      for (final d in (routineLog.keys.toList()..sort()).reversed.take(8)) [d, routineLog[d], gymHistory[d] ?? 0],
+    ],
+    'strength': [
+      for (final x in strength) {'ex': x.ex, 'unit': x.unit, 'start': x.start, 'now': x.now},
+    ],
+  };
 
   int? get sleepMin => sleepHistory[today];
   void setSleep(int? minutes) {

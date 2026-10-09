@@ -49,6 +49,51 @@ rules_version = '2';
 //   - updatedAt: timestamp (required, == request.time on every write)
 // No personal data: two counters. Any signed-in user may read them and add exactly 1 to one.
 //
+// Collection: invites  (a code someone gives their diet helper or trainer)
+// Document ID: the code, ^[A-HJ-NP-Z2-9]{8}$
+// Fields:
+//   - ownerUid: string (required, == creator's uid) - whose plan the helper will follow
+//   - role: string (required, 'diet' | 'trainer')
+//   - createdAt: timestamp (required, == request.time on create)
+// Readable (by id only) by anyone signed in who knows the code; no updates; the owner deletes.
+//
+// Collection: coaching  (what helpers see of someone's plan)
+// Document ID: the owner's uid
+// Fields:
+//   - ownerUid: string (required, == document id)
+//   - name: string (required, 1..60) - shown to helpers; no email
+//   - photoUrl: string (optional, https URL)
+//   - data: string (required, 2..200000 chars) - JSON summary: today's meals, kcal, water, steps,
+//     sleep, weight, gym and strength. No spending, no account details.
+//   - updatedAt: timestamp (required, == request.time on every write)
+//
+// Subcollection: coaching/{owner}/helpers
+// Document ID: the helper's uid (written by the helper, with a code the owner made)
+// Fields:
+//   - name: string (required, 1..60), photoUrl: string (optional, https URL)
+//   - role: string (required, == the invite's role)
+//   - code: string (required, an invite whose ownerUid is this owner)
+//   - joinedAt: timestamp (required, == request.time)
+//
+// Subcollection: coaching/{owner}/notes
+// Document ID: auto
+// Fields:
+//   - fromUid: string (required, == the writer's uid)
+//   - name: string (required, 1..60)
+//   - role: string (required, 'owner' for the owner, else the writer's helper role)
+//   - text: string (required, 1..500)
+//   - at: timestamp (required, == request.time)
+// No updates; the author or the owner deletes.
+//
+// Subcollection: coaching/{owner}/plan
+// Document 'diet' (the diet chart; the owner or their trainer writes it):
+//   - data: string (required, 2..100000) - the four meals and their options, as JSON
+//   - changes: list (required, 0..10) - what changed, in words
+//   - byUid: string (== writer), byName: string (1..60), at: timestamp (== request.time)
+// Document 'cook' (what's cooked today; the owner or any helper picks):
+//   - picks: map (required, keys m1..m4, values int 0..9) - option per meal
+//   - day: string (yyyy-mm-dd), byUid, byName, at as above
+//
 // Access: users/* are private to their owner. A family document and its board are readable
 // only by its members. The board is listed (one collection read); everything else is gets.
 // ===============================================================
@@ -240,6 +285,129 @@ service cloud.firestore {
         allow read: if isMember(code);
         allow create, update: if isOwner(uid) && isMember(code) && isValidRow(request.resource.data);
         allow delete: if isOwner(uid);
+      }
+    }
+
+    // ===============================================================
+    // invites/{code} and coaching/{owner}: helpers who follow someone's plan
+    // ===============================================================
+    function helperDoc(owner) {
+      return /databases/$(database)/documents/coaching/$(owner)/helpers/$(request.auth.uid);
+    }
+
+    function isHelper(owner) {
+      return isAuthenticated() && exists(helperDoc(owner));
+    }
+
+    function isValidRole(r) {
+      return r == 'diet' || r == 'trainer';
+    }
+
+    match /invites/{code} {
+      function isValidInvite(data) {
+        return hasOnlyAllowedFields(['ownerUid', 'role', 'createdAt']) &&
+               hasRequiredFields(['ownerUid', 'role', 'createdAt']) &&
+               data.ownerUid == request.auth.uid &&
+               isValidRole(data.role) &&
+               isNow(data.createdAt);
+      }
+
+      // by id only: knowing the code is the permission; codes can't be listed
+      allow get: if isAuthenticated();
+      allow create: if isAuthenticated() && code.matches('^[A-HJ-NP-Z2-9]{8}$') && isValidInvite(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    match /coaching/{owner} {
+      function isValidSummary(data) {
+        return hasOnlyAllowedFields(['ownerUid', 'name', 'photoUrl', 'data', 'updatedAt']) &&
+               hasRequiredFields(['ownerUid', 'name', 'data', 'updatedAt']) &&
+               data.ownerUid == owner &&
+               data.name is string && data.name.size() >= 1 && data.name.size() <= 60 &&
+               (!('photoUrl' in data) || isValidUrl(data.photoUrl)) &&
+               data.data is string && data.data.size() >= 2 && data.data.size() <= 200000 &&
+               isNow(data.updatedAt);
+      }
+
+      allow get: if isOwner(owner) || isHelper(owner);
+      allow create, update: if isOwner(owner) && isValidSummary(request.resource.data);
+      allow delete: if isOwner(owner);
+
+      // coaching/{owner}/helpers/{uid}: a helper joins with a code the owner made for that role
+      match /helpers/{uid} {
+        function isValidHelper(data) {
+          let invite = get(/databases/$(database)/documents/invites/$(data.code)).data;
+          return hasOnlyAllowedFields(['name', 'photoUrl', 'role', 'code', 'joinedAt']) &&
+                 hasRequiredFields(['name', 'role', 'code', 'joinedAt']) &&
+                 data.name is string && data.name.size() >= 1 && data.name.size() <= 60 &&
+                 (!('photoUrl' in data) || isValidUrl(data.photoUrl)) &&
+                 data.code is string && data.code.matches('^[A-HJ-NP-Z2-9]{8}$') &&
+                 invite.ownerUid == owner && invite.role == data.role &&
+                 isNow(data.joinedAt);
+        }
+
+        allow read: if isOwner(owner) || isOwner(uid);
+        allow create, update: if isOwner(uid) && uid != owner && isValidHelper(request.resource.data);
+        allow delete: if isOwner(owner) || isOwner(uid);
+      }
+
+      // coaching/{owner}/plan/{doc}: the diet chart (owner or trainer) and today's cooking (anyone helping)
+      match /plan/{doc} {
+        function isTrainer() {
+          return isHelper(owner) && get(helperDoc(owner)).data.role == 'trainer';
+        }
+
+        function isValidBy(data) {
+          return data.byUid == request.auth.uid &&
+                 data.byName is string && data.byName.size() >= 1 && data.byName.size() <= 60 &&
+                 isNow(data.at);
+        }
+
+        function isValidDiet(data) {
+          return hasOnlyAllowedFields(['data', 'changes', 'byUid', 'byName', 'at']) &&
+                 hasRequiredFields(['data', 'changes', 'byUid', 'byName', 'at']) &&
+                 data.data is string && data.data.size() >= 2 && data.data.size() <= 100000 &&
+                 data.changes is list && data.changes.size() <= 10 &&
+                 isValidBy(data);
+        }
+
+        function isPick(p, k) {
+          return !(k in p) || (p[k] is int && p[k] >= 0 && p[k] <= 9);
+        }
+
+        function isValidCook(data) {
+          return hasOnlyAllowedFields(['picks', 'day', 'byUid', 'byName', 'at']) &&
+                 hasRequiredFields(['picks', 'day', 'byUid', 'byName', 'at']) &&
+                 data.picks is map && data.picks.keys().hasOnly(['m1', 'm2', 'm3', 'm4']) &&
+                 isPick(data.picks, 'm1') && isPick(data.picks, 'm2') &&
+                 isPick(data.picks, 'm3') && isPick(data.picks, 'm4') &&
+                 data.day is string && data.day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+                 isValidBy(data);
+        }
+
+        allow read: if isOwner(owner) || isHelper(owner);
+        allow create, update: if isAuthenticated() &&
+                                 ((doc == 'diet' && (isOwner(owner) || isTrainer()) && isValidDiet(request.resource.data)) ||
+                                  (doc == 'cook' && (isOwner(owner) || isHelper(owner)) && isValidCook(request.resource.data)));
+        allow delete: if isOwner(owner);
+      }
+
+      // coaching/{owner}/notes/{id}: the owner and their helpers, each in their own name
+      match /notes/{id} {
+        function isValidNote(data) {
+          return hasOnlyAllowedFields(['fromUid', 'name', 'role', 'text', 'at']) &&
+                 hasRequiredFields(['fromUid', 'name', 'role', 'text', 'at']) &&
+                 data.fromUid == request.auth.uid &&
+                 data.name is string && data.name.size() >= 1 && data.name.size() <= 60 &&
+                 data.text is string && data.text.size() >= 1 && data.text.size() <= 500 &&
+                 ((isOwner(owner) && data.role == 'owner') ||
+                  (isHelper(owner) && data.role == get(helperDoc(owner)).data.role)) &&
+                 isNow(data.at);
+        }
+
+        allow read: if isOwner(owner) || isHelper(owner);
+        allow create: if isAuthenticated() && isValidNote(request.resource.data);
+        allow delete: if isOwner(owner) || (isAuthenticated() && resource.data.fromUid == request.auth.uid);
       }
     }
 

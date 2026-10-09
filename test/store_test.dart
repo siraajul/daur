@@ -1,10 +1,17 @@
+import 'dart:convert';
+
 import 'package:daur/badges.dart';
+import 'package:daur/diet_chart.dart' show chartChanges;
+import 'package:daur/fasting.dart' show stageAt;
 import 'package:daur/meal_ai.dart';
 import 'package:daur/plan.dart';
 import 'package:daur/reminders.dart';
 import 'package:daur/foods.dart';
 import 'package:daur/store.dart';
+import 'package:daur/students.dart' show studentFlags;
 import 'package:daur/targets.dart';
+import 'package:daur/today.dart' show thousands;
+import 'package:daur/water_walk.dart' show litres;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -689,5 +696,230 @@ void main() {
     expect(s.exercisesOn('Push'), contains('Core / plank'));
     final again = await Store.load();
     expect(again.exercisesOn('Push'), contains('Push-ups')); // saved
+  });
+
+  test('fasting: start/end logs real fasts, short ones dropped, streak, window reminders', () async {
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    s.setFast('16:8'); // eats 13:00–21:00
+    final now = DateTime.now();
+    s.startFast(now.subtract(const Duration(minutes: 10)));
+    expect(s.endFast(now)!.inMinutes, 10);
+    expect(s.fasts, isEmpty); // under 30 min: not kept
+    for (var d = 2; d >= 0; d--) {
+      final end = DateTime(now.year, now.month, now.day - d, 12, 30);
+      s.startFast(end.subtract(Duration(hours: d == 1 ? 12 : 17)));
+      s.endFast(end);
+    }
+    expect(s.fastMinOn(dayKey(now)), 17 * 60);
+    expect(s.fastStreak, 1); // yesterday's 12 h missed the 16 h goal
+    expect(stageAt(const Duration(hours: 13)), 3); // burning fat
+
+    final again = await Store.load();
+    expect(again.fasts.length, 3); // saved
+    again.setReminders(true);
+    final morning = DateTime(now.year, now.month, now.day + 1, 6);
+    final p = Reminders.plan(again, morning).where((x) => x.channel == 'fasting' && x.when.day == morning.day);
+    expect(p.map((x) => '${x.when.hour}:${x.when.minute}'), ['13:0', '20:30']);
+  });
+
+  test('21:30 check lists what is still open today, one line each', () async {
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    s.setReminders(true);
+    s.logMeal(meals[0]);
+    s.logMeal(meals[1]);
+    s.setWater(10);
+    final t = DateTime.now();
+    final p = Reminders.plan(s, DateTime(t.year, t.month, t.day, 12), steps: 4000);
+    final check = p.firstWhere((x) => x.channel == 'streak' && x.when.day == t.day);
+    expect(check.lines, [
+      'Snack · not logged yet',
+      'Dinner · not logged yet',
+      'Water · ${litres(s.waterGoal - 10)} L to go',
+      'Steps · 3,000 short',
+    ]);
+    expect(check.progress, (2, 4));
+  });
+
+  test('burn: what is left to burn after eating over the target, and how long it takes', () async {
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    expect(s.burnLeft, 0); // nothing eaten
+    for (final m in meals) {
+      s.logMeal(m);
+    }
+    s.addExtras([const Eaten('Biryani', 700, 20)]); // on top of the plan's day
+    final over = s.kcal - s.kcalGoal;
+    expect(over, greaterThan(600));
+    expect(s.burnLeft, over); // no exercise yet
+    s.noteSteps(8400); // 5,400 over the 3,000 the day job already counts
+    expect(s.moved.walk, (5400 / 1350 * .5 * s.bodyKg).round());
+    expect(s.burnLeft, over - s.moved.walk);
+    s.setReminders(true);
+    final t = DateTime.now();
+    final evening = Reminders.plan(
+      s,
+      DateTime(t.year, t.month, t.day, 12),
+      steps: 8400,
+    ).firstWhere((x) => x.channel == 'walk' && x.when.day == t.day);
+    expect(evening.title, 'Walk off ${thousands(s.burnLeft)} kcal');
+    expect(evening.payload, 'burn');
+    // 109 kg, brisk walk 4.3 MET: about 6 kcal a minute above resting
+    expect(s.minutesFor(360, 4.3), inInclusiveRange(59, 61));
+  });
+
+  test('coaching: helpers get today, weight and gym, never spending; helping is remembered', () async {
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    s.logMeal(meals[0]);
+    s.logWeight(108.6);
+    s.addExpense(const Expense('2026-10-10', 450, 'food', 'groceries'));
+    final sum = s.coachSummary();
+    final json = jsonEncode(sum); // must travel as JSON
+    expect(json.contains('groceries'), isFalse);
+    expect(sum.keys, isNot(contains('expenses')));
+    final m = (sum['meals'] as List).first as Map;
+    expect(m['status'], 'done');
+    expect(sum['kcal'], s.kcal);
+    expect((sum['weights'] as List).last, [s.today, 108.6]);
+
+    s.addHelping('owner1', 'Siraj', 'diet');
+    s.addHelping('owner1', 'Siraj', 'trainer'); // re-joining replaces
+    s.setHelperOnly(true);
+    final again = await Store.load();
+    expect(again.helping, [
+      {'owner': 'owner1', 'name': 'Siraj', 'role': 'trainer'},
+    ]);
+    expect(again.helperOnly && again.onboarded, isTrue);
+  });
+
+  test('goal: lose, keep and gain set the target, month targets, burn or eat, and medals', () async {
+    const base = Profile(male: true, age: 30, heightCm: 170);
+    final m = base.tdee(70);
+    expect(base.kcal(70), lessThan(m)); // lose: under maintenance
+    expect((base.copyWith(goal: 1).kcal(70) - m).abs(), lessThan(50)); // keep: maintenance
+    expect(base.copyWith(goal: 2).kcal(70), greaterThan(m + 250)); // gain: about 300 over
+    double mid(String r) => r.split('–').map(double.parse).reduce((a, b) => a + b) / 2;
+    expect(mid(base.targets(70).last.$2), lessThan(70));
+    expect(mid(base.copyWith(goal: 1).targets(70).last.$2), 70);
+    expect(mid(base.copyWith(goal: 2).targets(70).last.$2), greaterThan(70));
+
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    s.setProfile(base.copyWith(goal: 2));
+    expect(s.gaining, isTrue);
+    s.logMeal(meals[0]);
+    expect(s.burnLeft, 0); // a gain never burns off
+    expect(s.eatLeft, s.kcalGoal - s.kcal);
+    for (final x in meals) {
+      s.logMeal(x);
+    }
+    s.addExtras([const Eaten('Kacchi', 900, 30)]);
+    expect(s.eatLeft, 0);
+    expect(s.burnLeft, 0);
+    final ids = medalsFor(s).map((x) => x.id);
+    expect(ids, contains('up-1'));
+    expect(ids, isNot(contains('kg-1')));
+    expect(s.coachSummary()['goal'], 2);
+  });
+
+  test('diet chart: a trainer\'s chart replaces the plan, survives a restart, resets to the plan', () async {
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    final lunch = defaultMeals[1].withOptions([
+      const MealOption('Beef + rice', ['150 g beef', '1 cup cooked rice', 'Salad'], 620, 45),
+    ], 'From Coach Rafi');
+    s.setChart([defaultMeals[0], lunch, defaultMeals[2], defaultMeals[3]], by: 'Coach Rafi');
+    expect(meals[1].options.single.name, 'Beef + rice');
+    s.choose(meals[1], 0);
+    expect(s.chosen(meals[1]).items, contains('150 g beef'));
+
+    final again = await Store.load();
+    expect(meals[1].options.single.name, 'Beef + rice');
+    expect(again.chartBy, 'Coach Rafi');
+    expect(again.mealKcal(meals[1]), greaterThan(0));
+    // a chart that isn't four meals is ignored, never half-applied
+    again.setChart([defaultMeals[0]]);
+    expect(meals.length, 4);
+    expect(meals[1].name, 'Lunch');
+    again.setChart(null);
+    expect(meals[1].options.length, defaultMeals[1].options.length);
+  });
+
+  test('cooking picks: a helper\'s choice changes what\'s planned, never a meal already eaten', () async {
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    s.logMeal(meals[0]); // breakfast eaten with its default
+    final before = s.chosen(meals[0]).name;
+    final said = s.applyCook({'m1': 0, 'm4': 1}, at: '2026-10-10T12:00:00.000');
+    expect(s.chosen(meals[0]).name, before); // eaten stays eaten
+    expect(s.chosen(meals[3]).name, meals[3].options[1].name);
+    expect(said, ['Dinner: ${meals[3].options[1].name}']);
+    expect(s.applyCook({'m4': 99}, at: '2026-10-10T12:01:00.000'), isEmpty); // out of range: ignored
+    expect(s.cookAt, '2026-10-10T12:01:00.000');
+    final sum = s.coachSummary();
+    expect((sum['chart'] as List).length, 4);
+    expect(((sum['meals'] as List)[3] as Map)['option'], 1);
+  });
+
+  test('chart changes say what a trainer changed, meal by meal', () {
+    final after = [
+      defaultMeals[0],
+      defaultMeals[1].withOptions([
+        defaultMeals[1].options[0],
+        const MealOption('Beef + rice', ['150 g beef', '1 cup rice'], 620, 45),
+      ]),
+      defaultMeals[2],
+      defaultMeals[3].withOptions([
+        for (final o in defaultMeals[3].options)
+          o.name == 'Fish' ? MealOption(o.name, o.items, o.kcal + 40, o.protein) : o,
+      ], 'Less oil'),
+    ];
+    expect(chartChanges(defaultMeals, after), [
+      'Lunch: Beef + rice added',
+      'Lunch: Fish: rui + 1 cup rice removed',
+      'Dinner: Fish changed',
+      'Dinner: note changed',
+    ]);
+    expect(chartChanges(defaultMeals, defaultMeals), isEmpty);
+  });
+
+  test('students: who needs the trainer, and why, most urgent first', () {
+    final now = DateTime(2026, 10, 10, 21);
+    String ago(int days) => dayKey(now.subtract(Duration(days: days)));
+    final onTrack = {
+      'lap': 20,
+      'goal': 0,
+      'day': dayKey(now),
+      'kgWeek': -0.6,
+      'fullDays': 6,
+      'sessions': [
+        [ago(1), 'Push', 12],
+      ],
+      'burnLeft': 0,
+      'eatLeft': 0,
+    };
+    expect(studentFlags(onTrack, now.subtract(const Duration(hours: 2)), now), isEmpty);
+    final slipping = {
+      ...onTrack,
+      'day': ago(3),
+      'kgWeek': 0.1,
+      'fullDays': 2,
+      'sessions': [
+        [ago(6), 'Legs', 10],
+      ],
+      'burnLeft': 400,
+    };
+    expect(studentFlags(slipping, now.subtract(const Duration(days: 3)), now), [
+      'Not opened in 3 days',
+      'No gym in 6 days',
+      'Weight not moving this week',
+      'Logged 2 of 7 days',
+      // "over today" only counts when the summary is today's
+    ]);
+    final gainer = {...onTrack, 'goal': 2, 'kgWeek': -0.1, 'eatLeft': 350};
+    expect(studentFlags(gainer, now, now), ['Not gaining this week', '350 kcal short today']);
+    expect(studentFlags({'lap': 1}, null, now), ['Never opened Daur']);
   });
 }

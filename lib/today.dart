@@ -1,7 +1,12 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'dau.dart';
+import 'adaptive.dart';
+import 'burn.dart';
 import 'coach.dart';
+import 'coaching.dart' show NoteCard;
 import 'fasting.dart';
 import 'meal_sheet.dart';
 import 'plan.dart';
@@ -38,12 +43,13 @@ class MenuButton extends StatelessWidget {
   final bool dot; // a one-time hint that the drawer holds more (day 3)
   @override
   Widget build(BuildContext context) => IconButton(
-    onPressed: () => Scaffold.of(context).openDrawer(),
+    onPressed: () => openMenu(context),
     icon: Badge(
       isLabelVisible: dot,
       backgroundColor: Daur.of(context).accent,
       smallSize: 9,
-      child: Icon(Icons.menu, color: Daur.of(context).ink),
+      // Android: the drawer's ≡; iPhone: a profile button that opens the More page
+      child: Icon(isIOS(context) ? CupertinoIcons.person_crop_circle : Icons.menu, color: Daur.of(context).ink),
     ),
     tooltip: dot ? 'Menu: Food guide, Reminders and more' : 'Menu',
   );
@@ -115,6 +121,7 @@ class TodayScreen extends StatelessWidget {
                     ],
                   ),
                   CoachCard(store: s),
+                  NoteCard(store: s),
                   if (s.fastPlan != null) FastBar(store: s),
                   const SizedBox(height: 8),
                   Track(
@@ -127,6 +134,9 @@ class TodayScreen extends StatelessWidget {
                         ? 'Done for today\n${thousands(s.kcal)} kcal · ${s.protein} g protein'
                         : '${thousands(s.kcal)} of ${thousands(s.kcalGoal)} kcal\n${s.protein} of ${s.proteinText} g protein',
                   ),
+                  if (s.kcal > 0) Center(child: _BurnPill(store: s)),
+                  // the lap is run: Dau cheers (decoration; the caption already says it)
+                  if (s.legsDone == 4) const Center(child: Dau(mood: DauMood.cheer, size: 96)),
                   const SizedBox(height: 8),
                   for (final (i, m) in meals.indexed) _Leg(store: s, meal: m, n: (i + 1) * 100, isNext: m == next),
                   for (final (i, e) in s.extras.indexed)
@@ -170,6 +180,18 @@ class TodayScreen extends StatelessWidget {
                           right: '',
                         );
                       },
+                    ),
+                  // over the day's target: how much is left to burn, and the plainest way to do it
+                  if (s.burnLeft > 0)
+                    InkWell(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BurnScreen(store: s))),
+                      child: _Line(
+                        lead: Icon(Icons.local_fire_department_rounded, color: t.accent),
+                        title: '${thousands(s.kcal - s.kcalGoal)} kcal over',
+                        sub:
+                            'Burn ${thousands(s.burnLeft)} more · ${hoursMinutes(s.minutesFor(s.burnLeft, burnWays.first.$4))} brisk walk',
+                        right: '',
+                      ),
                     ),
                   const SizedBox(height: 24),
                   // water, walk, sleep: three tiles, each opens its screen; water adds a glass in one tap
@@ -261,73 +283,79 @@ class TodayScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _enterSleep(BuildContext context) async {
-    final m = store.sleepMin;
-    final c = TextEditingController(text: m == null ? '' : (m / 60).toStringAsFixed(1));
-    final v = await showDialog<double>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hours slept last night'),
-        content: TextField(
-          controller: c,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'e.g. 7.5'),
-        ),
-        actions: [
-          if (Steps.supported)
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(ctx);
-                final min = await Steps.sleepLastNight(ask: true);
-                if (min != null) {
-                  store.setSleep(min);
-                } else if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      behavior: SnackBarBehavior.floating,
-                      content: Text('No sleep in Health yet · a watch or sleep app adds it'),
-                    ),
-                  );
-                }
-              },
-              child: const Text('From Health'),
-            ),
-          TextButton(onPressed: () => Navigator.pop(ctx, double.tryParse(c.text)), child: const Text('Save')),
-        ],
-      ),
-    );
-    if (v != null && v > 0 && v < 20) store.setSleep((v * 60).round());
-  }
+  void _enterSleep(BuildContext context) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => SleepScreen(store: store)));
 
   Future<void> _enterSteps(BuildContext context) async {
-    final c = TextEditingController(text: store.manualSteps?.toString() ?? '');
-    final v = await showDialog<int>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Steps today'),
-        content: TextField(
-          controller: c,
-          keyboardType: TextInputType.number,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'From your step counter'),
-        ),
-        actions: [
-          if (Steps.supported)
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(ctx);
+    final v = await askNumber(
+      context,
+      'Steps today',
+      initial: store.manualSteps?.toString(),
+      hint: 'From your step counter',
+      side: Steps.supported
+          ? (
+              'Connect Health',
+              () async {
                 // Health Connect missing (Android 9–13): open its store page; otherwise ask for access
                 await Steps.available() ? await Steps.today(ask: true) : await Steps.installHealthConnect();
                 await onRefreshSteps();
               },
-              child: const Text('Connect Health'),
+            )
+          : null,
+    );
+    if (v != null) store.setManualSteps(v.round());
+  }
+}
+
+/// Under the track: yellow "72 to burn · 13 min walk" once over today's target, a quiet
+/// "1,398 kcal left today" before. Either way it opens Burn.
+class _BurnPill extends StatelessWidget {
+  const _BurnPill({required this.store});
+  final Store store;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Daur.of(context), s = store, left = s.burnLeft;
+    // Gain: what's still to eat, in yellow from 18:00 when the day is running out
+    final over = s.gaining ? s.eatLeft > 0 && DateTime.now().hour >= 18 : left > 0;
+    final text = s.gaining
+        ? (s.eatLeft > 0 ? '${thousands(s.eatLeft)} kcal still to eat' : 'Today\'s target eaten')
+        : over
+        ? '${thousands(left)} to burn · ${hoursMinutes(s.minutesFor(left, burnWays.first.$4))} walk'
+        : '${thousands((s.kcalGoal - s.kcal).clamp(0, 1 << 30))} kcal left today';
+    return Semantics(
+      button: true,
+      label: '$text. Opens ${s.gaining ? 'Fuel' : 'Burn'}',
+      excludeSemantics: true,
+      child: Material(
+        color: over ? t.accent : t.infield,
+        shape: const StadiumBorder(),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BurnScreen(store: s))),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 14, 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  over ? Icons.local_fire_department_rounded : Icons.local_fire_department_outlined,
+                  size: 18,
+                  color: over ? t.onAccent : t.ink,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  text,
+                  style: t.body(color: over ? t.onAccent : t.ink, weight: FontWeight.w700),
+                ),
+                const SizedBox(width: 2),
+                Icon(Icons.chevron_right_rounded, size: 18, color: over ? t.onAccent : t.ink2),
+              ],
             ),
-          TextButton(onPressed: () => Navigator.pop(ctx, int.tryParse(c.text)), child: const Text('Save')),
-        ],
+          ),
+        ),
       ),
     );
-    if (v != null) store.setManualSteps(v);
   }
 }
 
