@@ -1,10 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show BuildContext, ScaffoldMessenger, SnackBar, SnackBarBehavior, Text;
 import 'package:flutter/painting.dart' show Color;
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:live_activities/live_activities.dart';
 
+import 'fasting.dart' show fastStages;
 import 'reminders.dart';
+import 'store.dart';
 import 'widget_sync.dart' show WidgetSync;
 
 /// Live workout status outside the app, while the rest timer or treadmill runs:
@@ -155,6 +158,59 @@ class Live {
     } else {
       await _activities.createActivity(_activityId, data, removeWhenAppIsKilled: true);
       _iosActive = true;
+    }
+  }
+
+  // ---- the running fast ----
+
+  static const _fastChannel = MethodChannel('daur/fast'); // android/…/FastLive.kt
+  static const _fastActivityId = 'daur-fast';
+  static String? _fastKey; // what's shown now, so unrelated store changes don't redraw it
+
+  /// Keep the fast's live notification (Android) or Live Activity (iOS) in step with the store.
+  static void watchFast(Store s) {
+    if (kIsWeb) return;
+    s.addListener(() => syncFast(s));
+    syncFast(s);
+  }
+
+  static Future<void> syncFast(Store s) async {
+    final from = s.fastFrom;
+    final key = from == null ? null : '${from.millisecondsSinceEpoch}/${s.fastGoal}';
+    if (key == _fastKey) return;
+    _fastKey = key;
+    try {
+      if (_android) {
+        if (from == null) {
+          await _fastChannel.invokeMethod('cancel');
+        } else {
+          await _init(); // notification permission, asked in context
+          await _fastChannel.invokeMethod('show', {
+            'from': from.millisecondsSinceEpoch,
+            'goal': s.fastGoal,
+            'hours': [for (final st in fastStages) st.$1],
+            'names': [for (final st in fastStages) st.$2],
+          });
+        }
+      } else if (_ios) {
+        await _init();
+        if (from == null) {
+          await _activities.endActivity(_fastActivityId);
+        } else if (await _activities.areActivitiesEnabled()) {
+          final end = from.add(Duration(hours: s.fastGoal));
+          await _activities.createOrUpdateActivity(_fastActivityId, {
+            'kind': 'fast',
+            'title': 'Fasting',
+            'sub':
+                'Goal ${s.fastGoal}h · done at ${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}',
+            'start': from.millisecondsSinceEpoch / 1000,
+            'end': end.millisecondsSinceEpoch / 1000,
+            'total': s.fastGoal * 3600,
+          }, removeWhenAppIsKilled: false);
+        }
+      }
+    } catch (e) {
+      debugPrint('Live.syncFast: $e');
     }
   }
 

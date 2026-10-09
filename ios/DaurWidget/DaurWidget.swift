@@ -435,9 +435,27 @@ private struct WorkoutLive {
     total = max(1, d?.double(forKey: a.prefixedKey("total")) ?? 90)
   }
 
-  /// How far round the lap: rest = time used; treadmill = position within the current 400 m.
+  /// How far round the lap: rest = time used; fast = share of the goal; treadmill = within the 400 m.
   var progress: Double {
-    kind == "rest" ? min(1, max(0, 1 - end.timeIntervalSinceNow / total)) : 0.25
+    kind == "rest"
+      ? min(1, max(0, 1 - end.timeIntervalSinceNow / total))
+      : kind == "fast" ? min(1, max(0, -start.timeIntervalSinceNow / total)) : 0.25
+  }
+
+  var label: String { kind == "rest" ? "Rest" : kind == "fast" ? "Fasting" : "Treadmill" }
+
+  /// The lap glyph, or for a fast a bar that fills to the goal on its own (no updates needed).
+  @ViewBuilder var gauge: some View {
+    if kind == "fast" {
+      ProgressView(timerInterval: start...max(end, start.addingTimeInterval(1)), countsDown: false) {
+        EmptyView()
+      } currentValueLabel: {
+        EmptyView()
+      }
+      .tint(runner)
+    } else {
+      LapGlyph(progress: progress)
+    }
   }
 
   @ViewBuilder var clock: some View {
@@ -452,7 +470,9 @@ private struct WorkoutLive {
 
   var glyph: some View {
     Group {
-      if kind == "rest" {
+      if kind == "fast" {
+        Image(systemName: "hourglass").foregroundStyle(ink)
+      } else if kind == "rest" {
         RoundedRectangle(cornerRadius: 6).stroke(ink, lineWidth: 2).frame(width: 20, height: 12)
           .overlay(alignment: .topLeading) { Circle().fill(runner).frame(width: 6, height: 6).offset(x: 2, y: -2) }
       } else {
@@ -468,9 +488,9 @@ struct DaurLiveActivity: Widget {
     ActivityConfiguration(for: LiveActivitiesAppAttributes.self) { context in
       let w = WorkoutLive(context.attributes)
       HStack(spacing: 12) {
-        LapGlyph(progress: w.progress).frame(width: 64, height: 42)
+        w.gauge.frame(width: 64, height: 42)
         VStack(alignment: .leading, spacing: 2) {
-          Text(w.kind == "rest" ? "Rest" : "Treadmill").font(x(20)).foregroundStyle(ink)
+          Text(w.label).font(x(20)).foregroundStyle(ink)
           Text(w.sub).font(.system(size: 13)).foregroundStyle(ink2).lineLimit(2)
         }
         Spacer(minLength: 4)
@@ -482,9 +502,9 @@ struct DaurLiveActivity: Widget {
     } dynamicIsland: { context in
       let w = WorkoutLive(context.attributes)
       return DynamicIsland {
-        DynamicIslandExpandedRegion(.leading) { LapGlyph(progress: w.progress).frame(width: 72, height: 46) }
+        DynamicIslandExpandedRegion(.leading) { w.gauge.frame(width: 72, height: 46) }
         DynamicIslandExpandedRegion(.center) {
-          Text(w.kind == "rest" ? "Rest" : "Treadmill").font(.headline).frame(maxWidth: .infinity, alignment: .leading)
+          Text(w.label).font(.headline).frame(maxWidth: .infinity, alignment: .leading)
         }
         DynamicIslandExpandedRegion(.trailing) { w.clock.font(x(28)).monospacedDigit().foregroundStyle(runner) }
         DynamicIslandExpandedRegion(.bottom) { Text(w.sub).font(.subheadline).foregroundStyle(.secondary).lineLimit(1) }

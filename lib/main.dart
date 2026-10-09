@@ -15,6 +15,7 @@ import 'fasting.dart' show FastingScreen;
 import 'food.dart' show FoodScreen;
 import 'food_db.dart';
 import 'gym.dart';
+import 'live.dart';
 import 'onboarding.dart';
 import 'plan.dart';
 import 'progress.dart';
@@ -59,6 +60,7 @@ Future<void> main() async {
   scheduleBackgroundRefresh(); // steps + widgets every ~30 min, app closed (Android)
   Reminders.bind(store);
   Reminders.attach(store); // local reminders reschedule on every change
+  Live.watchFast(store); // the running fast, live on the lock screen and status bar
   Cloud.instance.attach(store); // Google sign-in + Firestore backup, when signed in
 }
 
