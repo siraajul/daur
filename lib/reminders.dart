@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart' show Color;
@@ -113,6 +114,9 @@ class Reminders {
     String? sub,
     String? body,
     (int, int)? progress,
+    List<String> lines = const [],
+    Uint8List? picture,
+    String? title,
   }) {
     final (name, desc) = _channels[channel]!;
     return NotificationDetails(
@@ -127,14 +131,35 @@ class Reminders {
         groupKey: 'daur',
         largeIcon: DrawableResourceAndroidBitmap('notif_$channel'),
         subText: sub,
-        styleInformation: body == null ? null : BigTextStyleInformation(body),
+        styleInformation: picture != null
+            ? BigPictureStyleInformation(
+                ByteArrayAndroidBitmap(picture),
+                contentTitle: title,
+                summaryText: body,
+                hideExpandedLargeIcon: true,
+              )
+            : lines.isNotEmpty
+            ? InboxStyleInformation(lines, contentTitle: title)
+            : body == null
+            ? null
+            : BigTextStyleInformation(body),
         showProgress: progress != null,
         maxProgress: progress?.$2 ?? 0,
         progress: progress == null ? 0 : progress.$1.clamp(0, progress.$2),
         actions: actions,
         category: AndroidNotificationCategory.reminder,
       ),
-      iOS: DarwinNotificationDetails(threadIdentifier: channel, categoryIdentifier: cat, subtitle: sub),
+      iOS: DarwinNotificationDetails(
+        threadIdentifier: channel,
+        categoryIdentifier: cat,
+        subtitle: sub,
+        // quiet for nudges, through Focus for the streak (needs the time-sensitive entitlement)
+        interruptionLevel: switch (channel) {
+          'water' || 'walk' || 'checkins' => InterruptionLevel.passive,
+          'streak' => InterruptionLevel.timeSensitive,
+          _ => InterruptionLevel.active,
+        },
+      ),
     );
   }
 
@@ -156,6 +181,7 @@ class Reminders {
         String body,
         String payload, {
         (int, int)? progress,
+        List<String> lines = const [],
       }) {
         if (when.isAfter(now)) {
           out.add(
@@ -168,6 +194,7 @@ class Reminders {
               payload,
               sub: 'Day $lap of $laps',
               progress: progress,
+              lines: lines,
             ),
           );
         }
@@ -270,6 +297,17 @@ class Reminders {
               : 'Log what\'s left before midnight.',
           'open',
           progress: d == 0 ? (s.legsDone, 4) : null,
+          // expanded: everything still open today, one line each (Android inbox style)
+          lines: d > 0
+              ? const []
+              : [
+                  for (final m in meals)
+                    if (!s.fasted(m) && !s.done.containsKey(m.id) && !s.skipped.contains(m.id))
+                      '${m.name} · not logged yet',
+                  if (s.water < s.waterGoal) 'Water · ${litres(s.waterGoal - s.water)} L to go',
+                  if (steps != null && steps < stepTargetForDay(lap))
+                    'Steps · ${thousands(stepTargetForDay(lap) - steps)} short',
+                ],
         );
       }
       // Sunday evening: the week in one screen
@@ -327,7 +365,10 @@ class Reminders {
       for (final p in pending) {
         if (p.id >= _base && p.id < _base + 400) await plugin.cancel(id: p.id);
       }
-      for (final p in plan(s, DateTime.now(), steps: WidgetSync.steps)) {
+      final now = DateTime.now();
+      for (final p in plan(s, now, steps: WidgetSync.steps)) {
+        // today's Sunday recap carries the week as a picture; later Sundays don't know their week yet
+        final picture = p.payload == 'recap' && p.when.day == now.day ? await recapPicture(s) : null;
         final actions = switch (p.channel) {
           'meals' => const [
             AndroidNotificationAction('log', 'Log as planned'),
@@ -346,6 +387,9 @@ class Reminders {
             sub: p.sub,
             body: p.body,
             progress: p.progress,
+            lines: p.lines,
+            picture: picture,
+            title: p.title,
             cat: p.channel == 'meals'
                 ? 'meal'
                 : p.channel == 'water'
@@ -418,5 +462,84 @@ class Planned {
   final String channel, title, body, payload;
   final String? sub; // "Day 12 of 84", under the app name
   final (int, int)? progress; // done of total, drawn as a bar
-  const Planned(this.id, this.when, this.channel, this.title, this.body, this.payload, {this.sub, this.progress});
+  final List<String> lines; // expanded as a list (what's still open today)
+  const Planned(
+    this.id,
+    this.when,
+    this.channel,
+    this.title,
+    this.body,
+    this.payload, {
+    this.sub,
+    this.progress,
+    this.lines = const [],
+  });
+}
+
+/// The Sunday recap as a picture for the notification: full days big, the week as 7 discs
+/// (yellow = perfect, cream = all 4 meals, an arc for part of a day), the numbers under it.
+Future<Uint8List?> recapPicture(Store s) async {
+  try {
+    const w = 1024.0, h = 512.0;
+    const red = ui.Color(0xFFAD3B26), ink = ui.Color(0xFFFFF8F3), ink2 = ui.Color(0xFFFFD9CC);
+    const yellow = ui.Color(0xFFFFD23F), dark = ui.Color(0xFF3A1208);
+    final rec = ui.PictureRecorder();
+    final c = ui.Canvas(rec);
+    c.drawRect(const ui.Rect.fromLTWH(0, 0, w, h), ui.Paint()..color = red);
+    void text(String t, double x, double y, double size, ui.Color color, {ui.FontWeight weight = ui.FontWeight.w700}) {
+      final b = ui.ParagraphBuilder(ui.ParagraphStyle(fontSize: size, fontWeight: weight))
+        ..pushStyle(ui.TextStyle(color: color))
+        ..addText(t);
+      c.drawParagraph(b.build()..layout(const ui.ParagraphConstraints(width: w - 112)), ui.Offset(x, y));
+    }
+
+    final wk = s.week, days = s.lastDays(7);
+    text('YOUR WEEK', 56, 36, 32, ink2, weight: ui.FontWeight.w600);
+    text('${wk.full} of 7 full days', 56, 76, 84, ink, weight: ui.FontWeight.w900);
+    for (final (i, d) in days.indexed) {
+      final cx = 56 + 54 + i * 136.0, cy = 296.0, r = 54.0;
+      final legs = d == s.today ? s.legsDone : s.lapHistory[d] ?? 0;
+      final ring = ui.Paint()
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 6;
+      if (s.perfect(d) || legs >= 4) {
+        c.drawCircle(ui.Offset(cx, cy), r, ui.Paint()..color = s.perfect(d) ? yellow : ink);
+      } else {
+        c.drawCircle(ui.Offset(cx, cy), r - 3, ring..color = ink.withValues(alpha: .35));
+        if (legs > 0) {
+          c.drawArc(
+            ui.Rect.fromCircle(center: ui.Offset(cx, cy), radius: r - 3),
+            -1.5708,
+            legs / 4 * 6.2832,
+            false,
+            ring
+              ..color = ink
+              ..strokeCap = ui.StrokeCap.round,
+          );
+        }
+      }
+      final letter = 'MTWTFSS'[DateTime.parse(d).weekday - 1];
+      text(letter, cx - 11, cy - 19, 34, s.perfect(d) || legs >= 4 ? dark : ink);
+    }
+    final kg = wk.kgChange;
+    text(
+      [
+        if (kg != null) '${kg <= 0 ? '−' : '+'}${kg.abs().toStringAsFixed(1)} kg',
+        '${thousands(wk.steps)} steps a day',
+        '${wk.gym} gym',
+        '${wk.perfect} perfect',
+      ].join('  ·  '),
+      56,
+      406,
+      40,
+      ink,
+      weight: ui.FontWeight.w600,
+    );
+    final img = await rec.endRecording().toImage(w.toInt(), h.toInt());
+    final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
+    return bytes?.buffer.asUint8List();
+  } catch (e) {
+    debugPrint('recapPicture: $e');
+    return null;
+  }
 }

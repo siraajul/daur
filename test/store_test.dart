@@ -6,6 +6,7 @@ import 'package:daur/reminders.dart';
 import 'package:daur/foods.dart';
 import 'package:daur/store.dart';
 import 'package:daur/targets.dart';
+import 'package:daur/water_walk.dart' show litres;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -715,5 +716,24 @@ void main() {
     final morning = DateTime(now.year, now.month, now.day + 1, 6);
     final p = Reminders.plan(again, morning).where((x) => x.channel == 'fasting' && x.when.day == morning.day);
     expect(p.map((x) => '${x.when.hour}:${x.when.minute}'), ['13:0', '20:30']);
+  });
+
+  test('21:30 check lists what is still open today, one line each', () async {
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    s.setReminders(true);
+    s.logMeal(meals[0]);
+    s.logMeal(meals[1]);
+    s.setWater(10);
+    final t = DateTime.now();
+    final p = Reminders.plan(s, DateTime(t.year, t.month, t.day, 12), steps: 4000);
+    final check = p.firstWhere((x) => x.channel == 'streak' && x.when.day == t.day);
+    expect(check.lines, [
+      'Snack · not logged yet',
+      'Dinner · not logged yet',
+      'Water · ${litres(s.waterGoal - 10)} L to go',
+      'Steps · 3,000 short',
+    ]);
+    expect(check.progress, (2, 4));
   });
 }
