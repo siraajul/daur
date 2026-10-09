@@ -85,6 +85,15 @@ rules_version = '2';
 //   - at: timestamp (required, == request.time)
 // No updates; the author or the owner deletes.
 //
+// Subcollection: coaching/{owner}/plan
+// Document 'diet' (the diet chart; the owner or their trainer writes it):
+//   - data: string (required, 2..100000) - the four meals and their options, as JSON
+//   - changes: list (required, 0..10) - what changed, in words
+//   - byUid: string (== writer), byName: string (1..60), at: timestamp (== request.time)
+// Document 'cook' (what's cooked today; the owner or any helper picks):
+//   - picks: map (required, keys m1..m4, values int 0..9) - option per meal
+//   - day: string (yyyy-mm-dd), byUid, byName, at as above
+//
 // Access: users/* are private to their owner. A family document and its board are readable
 // only by its members. The board is listed (one collection read); everything else is gets.
 // ===============================================================
@@ -340,6 +349,47 @@ service cloud.firestore {
         allow read: if isOwner(owner) || isOwner(uid);
         allow create, update: if isOwner(uid) && uid != owner && isValidHelper(request.resource.data);
         allow delete: if isOwner(owner) || isOwner(uid);
+      }
+
+      // coaching/{owner}/plan/{doc}: the diet chart (owner or trainer) and today's cooking (anyone helping)
+      match /plan/{doc} {
+        function isTrainer() {
+          return isHelper(owner) && get(helperDoc(owner)).data.role == 'trainer';
+        }
+
+        function isValidBy(data) {
+          return data.byUid == request.auth.uid &&
+                 data.byName is string && data.byName.size() >= 1 && data.byName.size() <= 60 &&
+                 isNow(data.at);
+        }
+
+        function isValidDiet(data) {
+          return hasOnlyAllowedFields(['data', 'changes', 'byUid', 'byName', 'at']) &&
+                 hasRequiredFields(['data', 'changes', 'byUid', 'byName', 'at']) &&
+                 data.data is string && data.data.size() >= 2 && data.data.size() <= 100000 &&
+                 data.changes is list && data.changes.size() <= 10 &&
+                 isValidBy(data);
+        }
+
+        function isPick(p, k) {
+          return !(k in p) || (p[k] is int && p[k] >= 0 && p[k] <= 9);
+        }
+
+        function isValidCook(data) {
+          return hasOnlyAllowedFields(['picks', 'day', 'byUid', 'byName', 'at']) &&
+                 hasRequiredFields(['picks', 'day', 'byUid', 'byName', 'at']) &&
+                 data.picks is map && data.picks.keys().hasOnly(['m1', 'm2', 'm3', 'm4']) &&
+                 isPick(data.picks, 'm1') && isPick(data.picks, 'm2') &&
+                 isPick(data.picks, 'm3') && isPick(data.picks, 'm4') &&
+                 data.day is string && data.day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+                 isValidBy(data);
+        }
+
+        allow read: if isOwner(owner) || isHelper(owner);
+        allow create, update: if isAuthenticated() &&
+                                 ((doc == 'diet' && (isOwner(owner) || isTrainer()) && isValidDiet(request.resource.data)) ||
+                                  (doc == 'cook' && (isOwner(owner) || isHelper(owner)) && isValidCook(request.resource.data)));
+        allow delete: if isOwner(owner);
       }
 
       // coaching/{owner}/notes/{id}: the owner and their helpers, each in their own name

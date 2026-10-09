@@ -8,6 +8,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import 'plan.dart';
 import 'store.dart';
 
 /// Google Sign-In + Firestore backup/sync for Daur.
@@ -61,6 +62,7 @@ class Cloud extends ChangeNotifier {
       s.signedIn = u != null;
       notifyListeners();
       if (u != null) _syncOnSignIn(u);
+      _watchPlan();
     });
   }
 
@@ -357,6 +359,7 @@ class Cloud extends ChangeNotifier {
         'createdAt': FieldValue.serverTimestamp(),
       });
       s.setInvite(role, code);
+      _watchPlan();
       await pushCoaching();
       return null;
     } catch (e) {
@@ -487,6 +490,97 @@ class Cloud extends ChangeNotifier {
       await _coach(owner).collection('notes').doc(id).delete();
     } catch (e) {
       debugPrint('Cloud.deleteNote: $e');
+    }
+  }
+
+  // ---- the diet chart (the trainer writes it) and today's cooking (a helper picks options) ----
+  //
+  // coaching/{owner}/plan/diet  data: the chart as JSON, changes: what changed in words
+  // coaching/{owner}/plan/cook  picks: {meal id: option} for one day
+  // The owner's phone applies both as they arrive (with Undo); everyone reads the chart back from
+  // the owner's summary, so it always shows what the owner actually has.
+
+  DocumentReference<Map<String, dynamic>> _plan(String owner, String doc) => _coach(owner).collection('plan').doc(doc);
+
+  /// Plan changes applied on this phone: a message to show and the state to restore on Undo.
+  final planEvents = ValueNotifier<({String text, String undo, String kind, String at})?>(null);
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _dietSub, _cookSub;
+
+  static String? _at(Map<String, dynamic> d) => (d['at'] as Timestamp?)?.toDate().toIso8601String();
+
+  /// Listen for a new chart or cooking picks while this person has helpers.
+  void _watchPlan() {
+    _dietSub?.cancel();
+    _cookSub?.cancel();
+    final u = user, s = _store;
+    if (u == null || s == null || s.inviteCodes.isEmpty || s.helperOnly) return;
+    _dietSub = _plan(u.uid, 'diet').snapshots().listen((snap) {
+      final d = snap.data(), at = d == null ? null : _at(d);
+      if (d == null || at == null || at.compareTo(s.chartAt) <= 0 || d['byUid'] == u.uid) return;
+      try {
+        final chart = [for (final m in jsonDecode(d['data'] as String) as List) Meal.from(m as Map)];
+        final undo = s.snapshot();
+        final by = d['byName'] as String? ?? 'Your trainer';
+        s.setChart(chart, by: by, changes: [for (final c in d['changes'] as List? ?? const []) c as String], at: at);
+        planEvents.value = (text: 'New diet chart from $by', undo: undo, kind: 'diet', at: at);
+      } catch (e) {
+        debugPrint('Cloud.diet: $e');
+      }
+    });
+    _cookSub = _plan(u.uid, 'cook').snapshots().listen((snap) {
+      final d = snap.data(), at = d == null ? null : _at(d);
+      if (d == null || at == null || at.compareTo(s.cookAt) <= 0 || d['byUid'] == u.uid) return;
+      if (d['day'] != s.today) return; // yesterday's cooking is over
+      final undo = s.snapshot();
+      final said = s.applyCook(Map<String, int>.from(d['picks'] as Map), at: at);
+      if (said.isNotEmpty) {
+        planEvents.value = (
+          text: '${d['byName'] ?? 'Your helper'} is cooking · ${said.join(', ')}',
+          undo: undo,
+          kind: 'cook',
+          at: at,
+        );
+      }
+    });
+  }
+
+  /// The trainer (or the owner) saves [owner]'s diet chart; [changes] says what changed, briefly.
+  Future<String?> saveChart(String owner, List<Meal> chart, List<String> changes) async {
+    final u = user;
+    if (u == null) return 'Sign in first.';
+    try {
+      await _plan(owner, 'diet').set({
+        'data': jsonEncode([for (final m in chart) m.toJson()]),
+        'changes': [for (final c in changes.take(10)) c.substring(0, c.length.clamp(0, 120))],
+        'byUid': u.uid,
+        'byName': _name(u, 'Your trainer'),
+        'at': FieldValue.serverTimestamp(),
+      });
+      return null;
+    } on FirebaseException catch (e) {
+      return 'Couldn\'t save (${e.code}).';
+    }
+  }
+
+  /// A helper picks what to cook for [mealId] today; picks for other meals today stay.
+  Future<String?> pickToCook(String owner, String mealId, int option) async {
+    final u = user;
+    if (u == null) return 'Sign in first.';
+    final today = dayKey(DateTime.now());
+    try {
+      final cur = (await _plan(owner, 'cook').get()).data();
+      final picks = cur != null && cur['day'] == today ? Map<String, int>.from(cur['picks'] as Map) : <String, int>{};
+      picks[mealId] = option;
+      await _plan(owner, 'cook').set({
+        'picks': picks,
+        'day': today,
+        'byUid': u.uid,
+        'byName': _name(u, 'Your helper'),
+        'at': FieldValue.serverTimestamp(),
+      });
+      return null;
+    } on FirebaseException catch (e) {
+      return 'Couldn\'t save (${e.code}).';
     }
   }
 

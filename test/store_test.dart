@@ -841,4 +841,20 @@ void main() {
     again.setChart(null);
     expect(meals[1].options.length, defaultMeals[1].options.length);
   });
+
+  test('cooking picks: a helper\'s choice changes what\'s planned, never a meal already eaten', () async {
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    s.logMeal(meals[0]); // breakfast eaten with its default
+    final before = s.chosen(meals[0]).name;
+    final said = s.applyCook({'m1': 0, 'm4': 1}, at: '2026-10-10T12:00:00.000');
+    expect(s.chosen(meals[0]).name, before); // eaten stays eaten
+    expect(s.chosen(meals[3]).name, meals[3].options[1].name);
+    expect(said, ['Dinner: ${meals[3].options[1].name}']);
+    expect(s.applyCook({'m4': 99}, at: '2026-10-10T12:01:00.000'), isEmpty); // out of range: ignored
+    expect(s.cookAt, '2026-10-10T12:01:00.000');
+    final sum = s.coachSummary();
+    expect((sum['chart'] as List).length, 4);
+    expect(((sum['meals'] as List)[3] as Map)['option'], 1);
+  });
 }

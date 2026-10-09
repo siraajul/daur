@@ -117,6 +117,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     menuOpener = openMenu;
+    Cloud.instance.planEvents.addListener(_planEvent);
     _refreshSteps();
     _startStepsTimer();
     // iOS widget buttons open the app with daur://water or daur://meal (Android runs them in the background)
@@ -247,12 +248,25 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     Reminders.route.removeListener(_notificationRoute);
     widget.store.removeListener(_watchLap);
     menuOpener = null;
+    Cloud.instance.planEvents.removeListener(_planEvent);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   /// The tab on screen: the People tab can go away (left the last person), so fall back to Today.
   int get _shown => _tab < (widget.store.helps ? 4 : 3) ? _tab : 0;
+
+  /// A new diet chart from the trainer, or a helper's cooking picks, just applied: say so, with Undo.
+  void _planEvent() {
+    final e = Cloud.instance.planEvents.value;
+    if (e == null || !mounted) return;
+    Cloud.instance.planEvents.value = null;
+    final s = widget.store;
+    undoToast(context, e.text, () {
+      s.restore(e.undo);
+      s.markPlanSeen(e.kind, e.at); // undone stays undone, even after a restart
+    });
+  }
 
   /// What isn't on the bottom bar or Today, in groups. Android shows it as the drawer; iPhone,
   /// which has no drawers, as a More page opened from the profile button.

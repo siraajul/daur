@@ -156,6 +156,8 @@ class Store extends ChangeNotifier {
   String notesSeen = ''; // ISO time of the newest note already shown on Today
   List<Meal>? chart; // the trainer's diet chart (null = the plan in plan.dart)
   String chartBy = ''; // who wrote it (shown with the chart)
+  List<String> chartChanges = []; // what the last chart changed, in words ("Lunch: Beef + rice added")
+  String chartAt = '', cookAt = ''; // ISO times of the last chart / cooking picks applied from the cloud
   String? aiDay; // the Pacific-time day aiUsed counts (Google's free quota resets then)
   Map<String, int> aiUsed = {}; // 'flash' / 'lite' → AI estimates made on this phone that day
   Map<String, List<Eaten>> aiMeals = {}; // normalised description → the estimate (reused, no AI)
@@ -261,6 +263,9 @@ class Store extends ChangeNotifier {
     notesSeen = j['notesSeen'] as String? ?? '';
     chart = j['chart'] == null ? null : [for (final m in j['chart'] as List) Meal.from(m as Map)];
     chartBy = j['chartBy'] as String? ?? '';
+    chartChanges = [for (final x in (j['chartChanges'] as List? ?? const [])) x as String];
+    chartAt = j['chartAt'] as String? ?? '';
+    cookAt = j['cookAt'] as String? ?? '';
     useChart(chart);
     aiDay = j['aiDay'] as String?;
     aiUsed = Map<String, int>.from(j['aiUsed'] ?? {});
@@ -355,6 +360,9 @@ class Store extends ChangeNotifier {
     'notesSeen': notesSeen,
     if (chart != null) 'chart': [for (final m in chart!) m.toJson()],
     'chartBy': chartBy,
+    'chartChanges': chartChanges,
+    'chartAt': chartAt,
+    'cookAt': cookAt,
     'aiDay': aiDay,
     'aiUsed': aiUsed,
     'aiMeals': {
@@ -1380,11 +1388,34 @@ class Store extends ChangeNotifier {
 
   /// A new diet chart (from the trainer, or back to the plan with null). Meals already logged keep
   /// what was eaten; the choice of option carries over where the chart still has it.
-  void setChart(List<Meal>? c, {String by = ''}) {
+  void setChart(List<Meal>? c, {String by = '', List<String> changes = const [], String at = ''}) {
     if (c != null && c.length != 4) return; // four meals, or nothing
     chart = c;
     chartBy = c == null ? '' : by;
+    chartChanges = changes;
+    if (at.isNotEmpty) chartAt = at;
     useChart(c);
+    _save();
+  }
+
+  /// What a helper picked to cook today ({meal id: option}); meals already eaten keep theirs.
+  /// Returns what changed, in words, for the "Ma is cooking…" message.
+  List<String> applyCook(Map<String, int> picks, {required String at}) {
+    cookAt = at;
+    final said = <String>[];
+    for (final m in meals) {
+      final i = picks[m.id];
+      if (i == null || i < 0 || i >= m.options.length || done.containsKey(m.id)) continue;
+      if (option[m.id] != i) said.add('${m.name}: ${m.options[i].name}');
+      option[m.id] = i;
+    }
+    _save();
+    return said;
+  }
+
+  /// After an Undo restored an older state: the chart or picks at [at] stay seen, not re-applied.
+  void markPlanSeen(String kind, String at) {
+    kind == 'diet' ? chartAt = at : cookAt = at;
     _save();
   }
 
@@ -1417,10 +1448,16 @@ class Store extends ChangeNotifier {
               ? 'next'
               : 'todo',
           'food': done.containsKey(m.id) ? mealLabel(m) : chosen(m).name,
+          'option': m.options.indexOf(chosen(m)),
+          'items': chosen(m).items,
           'kcal': mealKcal(m),
           'time': done[m.id],
         },
     ],
+    'chart': [for (final m in meals) m.toJson()],
+    'chartBy': chartBy,
+    'chartChanges': chartChanges,
+    'chartAt': chartAt,
     'extras': [
       for (final e in extras) {'name': e.name, 'kcal': e.totalKcal},
     ],

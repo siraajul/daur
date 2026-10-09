@@ -36,13 +36,9 @@ class Meal {
     'o': [for (final o in options) o.toJson()],
     if (note.isNotEmpty) 'note': note,
   };
-  static Meal from(Map j) => Meal(
-    j['id'] as String,
-    j['n'] as String,
-    j['w'] as String,
-    [for (final o in j['o'] as List) MealOption.from(o as Map)],
-    j['note'] as String? ?? '',
-  );
+  static Meal from(Map j) => Meal(j['id'] as String, j['n'] as String, j['w'] as String, [
+    for (final o in j['o'] as List) MealOption.from(o as Map),
+  ], j['note'] as String? ?? '');
 }
 
 /// Today's diet chart: the trainer's when there is one (Store.setChart), else the plan below.
