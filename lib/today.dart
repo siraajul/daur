@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'adaptive.dart';
+import 'burn.dart';
 import 'coach.dart';
 import 'fasting.dart';
 import 'meal_sheet.dart';
@@ -173,6 +174,18 @@ class TodayScreen extends StatelessWidget {
                           right: '',
                         );
                       },
+                    ),
+                  // over the day's target: how much is left to burn, and the plainest way to do it
+                  if (s.burnLeft > 0)
+                    InkWell(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BurnScreen(store: s))),
+                      child: _Line(
+                        lead: Icon(Icons.local_fire_department_rounded, color: t.accent),
+                        title: '${thousands(s.kcal - s.kcalGoal)} kcal over',
+                        sub:
+                            'Burn ${thousands(s.burnLeft)} more · ${hoursMinutes(s.minutesFor(s.burnLeft, burnWays.first.$4))} brisk walk',
+                        right: '',
+                      ),
                     ),
                   const SizedBox(height: 24),
                   // water, walk, sleep: three tiles, each opens its screen; water adds a glass in one tap

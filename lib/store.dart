@@ -530,6 +530,31 @@ class Store extends ChangeNotifier {
     return n;
   }
 
+  // ---- calorie balance: eaten against burned ----
+
+  /// What the body burns in a day before exercise: maintenance for this weight and the day job
+  /// (the plan's target is this minus the deficit). Without a profile, the plan's 1,800 + 500.
+  int get bodyBurn => (profile?.tdee(bodyKg) ?? (baseKcal + 500)).round();
+
+  /// Today's steps: from the health store when there is one, typed in otherwise.
+  int get stepsToday => stepsHistory[today] ?? manualSteps ?? 0;
+
+  /// Exercise burned today, above resting (the day job's walking is already in [bodyBurn]):
+  /// steps beyond 3,000 at ≈0.5 kcal per kg per km, treadmill as measured, gym sets at ≈3 min each
+  /// of strength work (5 MET).
+  ({int walk, int treadmill, int gym}) get moved => (
+    walk: ((stepsToday - 3000).clamp(0, 100000) / 1350 * .5 * bodyKg).round(),
+    treadmill: cardio.fold(0.0, (a, c) => a + c.kcal).round(),
+    gym: (setsDoneToday * 3 / 60 * (5 - 1) * bodyKg).round(),
+  );
+  int get movedKcal => moved.walk + moved.treadmill + moved.gym;
+
+  /// Still to burn today to stay on plan: eaten over the target, less what's already been moved.
+  int get burnLeft => (kcal - kcalGoal - movedKcal).clamp(0, 1 << 30);
+
+  /// Minutes of an activity of [met] that burn [kcal] above resting, at this body weight.
+  int minutesFor(int kcal, double met) => (kcal / ((met - 1) * bodyKg / 60)).ceil();
+
   // ---- spending ----
 
   /// Expenses in a month ('yyyy-mm'), newest first.

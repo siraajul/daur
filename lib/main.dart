@@ -10,6 +10,7 @@ import 'package:home_widget/home_widget.dart';
 
 import 'adaptive.dart';
 import 'badges.dart' show checkBadges;
+import 'burn.dart';
 import 'cloud.dart';
 import 'firebase_options.dart';
 import 'family.dart';
@@ -252,6 +253,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
       ],
       [
         (Icons.flag_outlined, 'Your targets', () => TargetsScreen(store: s)),
+        (Icons.local_fire_department_outlined, 'Burn', () => BurnScreen(store: s)),
         (Icons.hourglass_bottom_rounded, 'Fasting', () => FastingScreen(store: s)),
         (Icons.account_balance_wallet_outlined, 'Spending', () => SpendingScreen(store: s)),
         (Icons.groups_outlined, 'Family', () => FamilyScreen(store: s)),

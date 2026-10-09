@@ -736,4 +736,22 @@ void main() {
     ]);
     expect(check.progress, (2, 4));
   });
+
+  test('burn: what is left to burn after eating over the target, and how long it takes', () async {
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    expect(s.burnLeft, 0); // nothing eaten
+    for (final m in meals) {
+      s.logMeal(m);
+    }
+    s.addExtras([const Eaten('Biryani', 700, 20)]); // on top of the plan's day
+    final over = s.kcal - s.kcalGoal;
+    expect(over, greaterThan(600));
+    expect(s.burnLeft, over); // no exercise yet
+    s.noteSteps(8400); // 5,400 over the 3,000 the day job already counts
+    expect(s.moved.walk, (5400 / 1350 * .5 * s.bodyKg).round());
+    expect(s.burnLeft, over - s.moved.walk);
+    // 109 kg, brisk walk 4.3 MET: about 6 kcal a minute above resting
+    expect(s.minutesFor(360, 4.3), inInclusiveRange(59, 61));
+  });
 }

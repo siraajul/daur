@@ -63,7 +63,7 @@ class WaterScreen extends StatelessWidget {
                         label: '${litres(g)} of ${litres(goal)} litres',
                       ),
                       const SizedBox(height: 20),
-                      _Tiles([
+                      Tiles([
                         (Icons.local_drink_outlined, '$g', 'of $goal glasses'),
                         (Icons.schedule_rounded, '$behind', behind == 0 ? 'on pace' : 'behind pace'),
                         (Icons.event_available_rounded, '$hit of 7', 'days on goal'),
@@ -345,7 +345,7 @@ class _WalkScreenState extends State<WalkScreen> {
                           label: '${thousands(walked)} of ${thousands(target)} steps',
                         ),
                         const SizedBox(height: 20),
-                        _Tiles([
+                        Tiles([
                           (Icons.straighten_rounded, km.toStringAsFixed(1), 'km'),
                           (Icons.local_fire_department_rounded, '${kcal.round()}', 'kcal'),
                           (Icons.timer_outlined, togo == 0 ? '0' : '${(togo / 105).ceil()}', 'min to go'),
@@ -602,8 +602,8 @@ class RingHero extends StatelessWidget {
 }
 
 /// A row of equal tiles: icon, a number, what it is.
-class _Tiles extends StatelessWidget {
-  const _Tiles(this.items);
+class Tiles extends StatelessWidget {
+  const Tiles(this.items, {super.key});
   final List<(IconData, String, String)> items;
 
   @override
