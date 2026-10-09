@@ -788,4 +788,34 @@ void main() {
     ]);
     expect(again.helperOnly && again.onboarded, isTrue);
   });
+
+  test('goal: lose, keep and gain set the target, month targets, burn or eat, and medals', () async {
+    const base = Profile(male: true, age: 30, heightCm: 170);
+    final m = base.tdee(70);
+    expect(base.kcal(70), lessThan(m)); // lose: under maintenance
+    expect((base.copyWith(goal: 1).kcal(70) - m).abs(), lessThan(50)); // keep: maintenance
+    expect(base.copyWith(goal: 2).kcal(70), greaterThan(m + 250)); // gain: about 300 over
+    double mid(String r) => r.split('–').map(double.parse).reduce((a, b) => a + b) / 2;
+    expect(mid(base.targets(70).last.$2), lessThan(70));
+    expect(mid(base.copyWith(goal: 1).targets(70).last.$2), 70);
+    expect(mid(base.copyWith(goal: 2).targets(70).last.$2), greaterThan(70));
+
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    s.setProfile(base.copyWith(goal: 2));
+    expect(s.gaining, isTrue);
+    s.logMeal(meals[0]);
+    expect(s.burnLeft, 0); // a gain never burns off
+    expect(s.eatLeft, s.kcalGoal - s.kcal);
+    for (final x in meals) {
+      s.logMeal(x);
+    }
+    s.addExtras([const Eaten('Kacchi', 900, 30)]);
+    expect(s.eatLeft, 0);
+    expect(s.burnLeft, 0);
+    final ids = medalsFor(s).map((x) => x.id);
+    expect(ids, contains('up-1'));
+    expect(ids, isNot(contains('kg-1')));
+    expect(s.coachSummary()['goal'], 2);
+  });
 }

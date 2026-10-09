@@ -18,6 +18,17 @@ const burnWays = <(IconData, String, String, double)>[
   (Icons.pool_rounded, 'Swimming', 'easy laps', 6.0),
 ];
 
+/// Easy ways to add calories for a Gain goal: everyday foods, kcal each.
+const fuelFoods = <(IconData, String, int)>[
+  (Icons.local_drink_outlined, 'Banana + a glass of milk', 250),
+  (Icons.breakfast_dining_outlined, 'Peanut butter on 2 bread slices', 300),
+  (Icons.egg_alt_outlined, '2 boiled eggs', 155),
+  (Icons.rice_bowl_outlined, 'One more cup of rice', 200),
+  (Icons.spa_outlined, '6 dates (khejur)', 140),
+  (Icons.icecream_outlined, 'Mishti doi, a cup', 150),
+  (Icons.grain_outlined, 'A handful of nuts (badam)', 170),
+];
+
 String hoursMinutes(int min) => min < 60 ? '${min}m' : '${min ~/ 60}h ${(min % 60).toString().padLeft(2, '0')}m';
 
 /// Drawer → Burn (and Today when over): eaten against burned today, what's left to burn to stay
@@ -32,6 +43,7 @@ class BurnScreen extends StatelessWidget {
     return ListenableBuilder(
       listenable: store,
       builder: (context, _) {
+        if (store.gaining) return _Fuel(store: store);
         final s = store, left = s.burnLeft, m = s.moved, moved = s.movedKcal;
         final ahead = [
           for (final m in meals)
@@ -136,6 +148,69 @@ class BurnScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Burn for a Gain goal: what's still to eat today (exercise adds to it), and easy foods to get there.
+class _Fuel extends StatelessWidget {
+  const _Fuel({required this.store});
+  final Store store;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Daur.of(context);
+    final s = store, left = s.eatLeft, moved = s.movedKcal, need = s.kcalGoal + moved;
+    return Scaffold(
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          children: [
+            const PageHeader('Fuel', sub: 'Gaining · eat enough to grow'),
+            const SizedBox(height: 16),
+            RingHero(
+              frac: s.kcal / need,
+              big: left > 0 ? thousands(left) : 'Done',
+              small: left > 0 ? 'kcal still to eat' : 'today\'s target eaten',
+              pill: moved > 0 ? '+${thousands(moved)} for what you moved' : '${s.protein} g protein so far',
+              done: left == 0,
+              label: left > 0 ? '$left kilocalories still to eat' : 'Target eaten',
+            ),
+            const SizedBox(height: 20),
+            Tiles([
+              (Icons.restaurant_rounded, thousands(s.kcal), 'eaten'),
+              (Icons.flag_outlined, thousands(s.kcalGoal), 'target'),
+              (Icons.local_fire_department_rounded, thousands(moved), 'moved'),
+            ]),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(child: Text(left > 0 ? 'Add it with' : 'For tomorrow', style: t.meta())),
+                Text('easy, between meals', style: t.meta(t.ink)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            for (final (icon, name, kcal) in fuelFoods)
+              Container(
+                constraints: const BoxConstraints(minHeight: 56),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: t.rule, width: .5)),
+                ),
+                child: Row(
+                  children: [
+                    IconDisc(icon, size: 40),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(name, style: t.body())),
+                    Text('$kcal kcal', style: t.x(15)),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 16),
+            const Tip(Icons.fitness_center_rounded, 'Train 3–5 times a week so the gain is muscle'),
+            const Tip(Icons.egg_alt_outlined, 'Protein at every meal'),
+          ],
+        ),
+      ),
     );
   }
 }

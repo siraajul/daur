@@ -372,29 +372,52 @@ class TargetChips extends StatelessWidget {
   }
 }
 
-/// Weekly loss on a bar: slow, on pace (0.6–0.9 kg a week), fast. The dot is this week.
+/// This week's weight change on a bar, against the goal's pace: Lose 0.6–0.9 kg down a week,
+/// Gain 0.2–0.4 kg up, Keep within 0.2 kg either way. The dot is this week.
 class PaceGauge extends StatelessWidget {
-  const PaceGauge({super.key, required this.perWeek, this.kcal, this.stalled = false});
-  final double? perWeek; // kg lost per week; null = not enough weigh-ins
+  const PaceGauge({super.key, required this.change, this.goal = 0, this.kcal, this.stalled = false});
+  final double? change; // kg a week, negative = down; null = not enough weigh-ins
+  final int goal; // 0 lose, 1 keep, 2 gain
   final int? kcal; // the day's goal, for "stay at"
   final bool stalled;
+
+  /// Each goal's scale: shown range, on-pace band, labels, in kg toward the goal a week.
+  static const scales = {
+    0: (lo: -.25, hi: 1.5, band: (.6, .9), labels: [('slow', .15), ('0.6–0.9', .75), ('fast', 1.3)]),
+    1: (lo: -.6, hi: .6, band: (-.2, .2), labels: [('down', -.45), ('steady', 0.0), ('up', .45)]),
+    2: (lo: -.25, hi: .8, band: (.2, .4), labels: [('slow', 0.0), ('0.2–0.4', .3), ('fast', .65)]),
+  };
 
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
-    final v = perWeek;
+    final c = change;
+    final v = c == null ? null : (goal == 0 ? -c : c); // toward the goal: down for Lose, up otherwise
+    final sc = scales[goal]!;
     final kcalS = kcal == null ? '' : ' · stay at ${kcal! ~/ 1000},${(kcal! % 1000).toString().padLeft(3, '0')} kcal';
+    final onPace = v != null && v >= sc.band.$1 && v <= sc.band.$2 && !stalled;
     final (icon, verdict) = stalled
         ? (Icons.trending_flat_rounded, 'Stalled · −150 kcal or +2,000 steps')
         : v == null
         ? (Icons.monitor_weight_outlined, 'Weigh 3–7 mornings, before breakfast · tap +')
-        : v < .4
-        ? (Icons.trending_flat_rounded, 'Slow · give it one more week')
-        : v <= 1
-        ? (Icons.check_circle_outline_rounded, 'On pace$kcalS')
-        : (Icons.speed_rounded, 'Fast · eat a bit more if tired');
+        : onPace
+        ? (Icons.check_circle_outline_rounded, '${goal == 1 ? 'Steady' : 'On pace'}$kcalS')
+        : switch (goal) {
+            1 =>
+              v < 0
+                  ? (Icons.trending_down_rounded, 'Dropping · eat a bit more')
+                  : (Icons.trending_up_rounded, 'Rising · eat a bit less'),
+            2 =>
+              v < sc.band.$1
+                  ? (Icons.trending_flat_rounded, 'Slow · add a snack, about 200 kcal')
+                  : (Icons.speed_rounded, 'Fast · trim the extra a little'),
+            _ =>
+              v < .6
+                  ? (Icons.trending_flat_rounded, 'Slow · give it one more week')
+                  : (Icons.speed_rounded, 'Fast · eat a bit more if tired'),
+          };
     return Semantics(
-      label: v == null ? verdict : '${v.toStringAsFixed(1)} kilos a week. $verdict',
+      label: c == null ? verdict : '${c.toStringAsFixed(1)} kilos a week. $verdict',
       excludeSemantics: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -402,12 +425,12 @@ class PaceGauge extends StatelessWidget {
           SizedBox(
             height: 56,
             width: double.infinity,
-            child: CustomPaint(painter: _PacePainter(t, v)),
+            child: CustomPaint(painter: _PacePainter(t, v, c, goal)),
           ),
           const SizedBox(height: 4),
           Row(
             children: [
-              Icon(icon, size: 20, color: v != null && v >= .6 && v <= 1 && !stalled ? t.accent : t.ink),
+              Icon(icon, size: 20, color: onPace ? t.accent : t.ink),
               const SizedBox(width: 8),
               Expanded(child: Text(verdict, style: t.body())),
             ],
@@ -419,42 +442,39 @@ class PaceGauge extends StatelessWidget {
 }
 
 class _PacePainter extends CustomPainter {
-  _PacePainter(this.t, this.v);
+  _PacePainter(this.t, this.v, this.change, this.goal);
   final Daur t;
-  final double? v;
-  static const lo = -.25, hi = 1.5; // kg a week shown
+  final double? v, change; // v: toward the goal; change: signed, for the label
+  final int goal;
 
   @override
   void paint(Canvas canvas, Size size) {
-    double x(double kg) => (kg - lo) / (hi - lo) * size.width;
+    final sc = PaceGauge.scales[goal]!;
+    double x(double kg) => (kg - sc.lo) / (sc.hi - sc.lo) * size.width;
     const y = 30.0;
     final base = Paint()
       ..strokeWidth = 6
       ..strokeCap = StrokeCap.round
       ..color = t.lane;
-    canvas.drawLine(Offset(x(lo), y), Offset(x(hi), y), base);
+    canvas.drawLine(Offset(x(sc.lo), y), Offset(x(sc.hi), y), base);
     // the on-pace band
     canvas.drawLine(
-      Offset(x(.6), y),
-      Offset(x(.9), y),
+      Offset(x(sc.band.$1), y),
+      Offset(x(sc.band.$2), y),
       base
         ..color = t.ink
         ..strokeWidth = 10,
     );
-    void label(String s, double kg) {
+    for (final (s, kg) in sc.labels) {
       final tp = TextPainter(
         text: TextSpan(text: s, style: t.meta()),
         textDirection: TextDirection.ltr,
       )..layout();
       tp.paint(canvas, Offset((x(kg) - tp.width / 2).clamp(0, size.width - tp.width), y + 9));
     }
-
-    label('slow', .15);
-    label('0.6–0.9', .75);
-    label('fast', 1.3);
-    final value = v;
-    if (value == null) return;
-    final p = Offset(x(value.clamp(lo, hi)), y);
+    final value = v, c = change;
+    if (value == null || c == null) return;
+    final p = Offset(x(value.clamp(sc.lo, sc.hi)), y);
     canvas.drawCircle(p, 9, Paint()..color = t.accent);
     canvas.drawCircle(
       p,
@@ -465,14 +485,14 @@ class _PacePainter extends CustomPainter {
         ..color = t.ground,
     );
     final tp = TextPainter(
-      text: TextSpan(text: '${value >= 0 ? '−' : '+'}${value.abs().toStringAsFixed(1)} kg/wk', style: t.sec(t.ink)),
+      text: TextSpan(text: '${c <= 0 ? '−' : '+'}${c.abs().toStringAsFixed(1)} kg/wk', style: t.sec(t.ink)),
       textDirection: TextDirection.ltr,
     )..layout();
     tp.paint(canvas, Offset((p.dx - tp.width / 2).clamp(0, size.width - tp.width), 0));
   }
 
   @override
-  bool shouldRepaint(_PacePainter o) => o.v != v || o.t != t;
+  bool shouldRepaint(_PacePainter o) => o.v != v || o.t != t || o.goal != goal;
 }
 
 /// The one header for every screen you open: back (or a down chevron for a session you close),

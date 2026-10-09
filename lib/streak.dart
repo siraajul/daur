@@ -111,7 +111,7 @@ class StreakScreen extends StatelessWidget {
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
               childAspectRatio: .82,
-              children: [for (final m in medals) _Medal(m: m, earned: s.seenHints.contains('badge:${m.id}'))],
+              children: [for (final m in medalsFor(s)) _Medal(m: m, earned: s.seenHints.contains('badge:${m.id}'))],
             ),
           ],
         ),

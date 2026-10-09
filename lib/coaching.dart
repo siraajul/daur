@@ -15,6 +15,8 @@ import 'water_walk.dart' show RingHero, Tiles, litres;
 // Helpers follow someone's plan: a diet helper (a mother) and a trainer. The owner invites with a
 // code per role; helpers see a live summary (cloud.dart coachSummary) and leave notes both ways.
 
+const goalWords = ['losing', 'keeping', 'gaining'];
+
 const roleNames = {'diet': 'Diet helper', 'trainer': 'Trainer', 'owner': 'You'};
 
 String ago(DateTime? t) {
@@ -456,7 +458,11 @@ class HelperView extends StatelessWidget {
                     frac: n('kcal') / math.max(1, n('kcalGoal')),
                     big: thousands(n('kcal')),
                     small: 'of ${thousands(n('kcalGoal'))} kcal',
-                    pill: n('burnLeft') > 0 ? '${thousands(n('burnLeft'))} kcal over' : '${n('protein')} g protein',
+                    pill: n('burnLeft') > 0
+                        ? '${thousands(n('burnLeft'))} kcal over'
+                        : n('eatLeft') > 0
+                        ? '${thousands(n('eatLeft'))} kcal still to eat'
+                        : '${goalWords[n('goal')]} · ${n('protein')} g protein',
                     done: false,
                     label: '${n('kcal')} of ${n('kcalGoal')} kilocalories',
                   ),
@@ -798,12 +804,16 @@ class _Helped extends StatelessWidget {
         final status = snap.data == null
             ? 'Waiting for their first update'
             : [
+                goalWords[n('goal')],
                 today ? '${thousands(n('kcal'))}/${thousands(n('kcalGoal'))} kcal' : 'Not opened today',
                 if (h['role'] == 'trainer') 'gym ${n('gymThisWeek')}/wk',
                 if (now != null && start != null)
                   '${now <= start ? '−' : '+'}${(now - start).abs().toStringAsFixed(1)} kg',
               ].join(' · ');
-        final flag = snap.data != null && (!today || n('burnLeft') > 0);
+        // needs a look: not opened today; over target (losing, keeping); short in the evening (gaining)
+        final flag =
+            snap.data != null &&
+            (!today || n('burnLeft') > 0 || (n('goal') == 2 && n('eatLeft') > 0 && DateTime.now().hour >= 18));
         return InkWell(
           onTap: () => Navigator.push(
             context,

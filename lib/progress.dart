@@ -81,8 +81,8 @@ class ProgressScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          // the rule (0.6–0.9 kg a week, hold; slow 2–3 weeks, trim; fast, don't cut) as a gauge
-          PaceGauge(perWeek: change == null ? null : -change, kcal: s.kcalGoal, stalled: s.stalled),
+          // this week's change against the goal's pace (Lose 0.6–0.9 down, Gain 0.2–0.4 up, Keep steady)
+          PaceGauge(change: change, goal: s.goal, kcal: s.kcalGoal, stalled: s.stalled),
           const SizedBox(height: 28),
           Row(
             children: [

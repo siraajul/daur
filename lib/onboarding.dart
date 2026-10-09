@@ -301,7 +301,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     children: [
       Text('About you', style: t.title()),
       const SizedBox(height: 8),
-      Text('Sets your targets · about 0.5 kg a week', style: t.sec()),
+      Text('Sets your targets · ${_profile.paceText}', style: t.sec()),
       const SizedBox(height: 20),
       ProfileFields(value: _profile, onChanged: (p) => setState(() => _profile = p)),
       const SizedBox(height: 24),

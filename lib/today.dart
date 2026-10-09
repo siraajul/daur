@@ -313,13 +313,16 @@ class _BurnPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context), s = store, left = s.burnLeft;
-    final over = left > 0;
-    final text = over
+    // Gain: what's still to eat, in yellow from 18:00 when the day is running out
+    final over = s.gaining ? s.eatLeft > 0 && DateTime.now().hour >= 18 : left > 0;
+    final text = s.gaining
+        ? (s.eatLeft > 0 ? '${thousands(s.eatLeft)} kcal still to eat' : 'Today\'s target eaten')
+        : over
         ? '${thousands(left)} to burn · ${hoursMinutes(s.minutesFor(left, burnWays.first.$4))} walk'
         : '${thousands((s.kcalGoal - s.kcal).clamp(0, 1 << 30))} kcal left today';
     return Semantics(
       button: true,
-      label: over ? '$left kilocalories to burn. Opens Burn' : text,
+      label: '$text. Opens ${s.gaining ? 'Fuel' : 'Burn'}',
       excludeSemantics: true,
       child: Material(
         color: over ? t.accent : t.infield,

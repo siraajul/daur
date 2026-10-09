@@ -562,8 +562,16 @@ class Store extends ChangeNotifier {
   );
   int get movedKcal => moved.walk + moved.treadmill + moved.gym;
 
+  /// 0 lose, 1 keep, 2 gain (the original plan, without a profile, is a loss plan).
+  int get goal => profile?.goal ?? 0;
+  bool get gaining => goal == 2;
+
   /// Still to burn today to stay on plan: eaten over the target, less what's already been moved.
-  int get burnLeft => (kcal - kcalGoal - movedKcal).clamp(0, 1 << 30);
+  /// Not for a gain: going over is the point.
+  int get burnLeft => gaining ? 0 : (kcal - kcalGoal - movedKcal).clamp(0, 1 << 30);
+
+  /// Gain: still to eat today to reach the target, plus whatever exercise burned on top.
+  int get eatLeft => gaining ? (kcalGoal + movedKcal - kcal).clamp(0, 1 << 30) : 0;
 
   /// Minutes of an activity of [met] that burn [kcal] above resting, at this body weight.
   int minutesFor(int kcal, double met) => (kcal / ((met - 1) * bodyKg / 60)).ceil();
@@ -1224,7 +1232,7 @@ class Store extends ChangeNotifier {
   }
 
   /// Under 0.4 kg a week for two weeks, after the first three (water weight) and not in a break.
-  bool get stalled => lap >= 21 && !inMaintenance && (twoWeekDrop ?? 1) < .8;
+  bool get stalled => goal == 0 && lap >= 21 && !inMaintenance && (twoWeekDrop ?? 1) < .8;
 
   /// Average kcal and protein over the last 7 finished days that have food logged.
   ({int kcal, int protein, int days}) get weekFood {
@@ -1389,7 +1397,9 @@ class Store extends ChangeNotifier {
     'kcalGoal': kcalGoal,
     'protein': protein,
     'proteinRange': [proteinRange.$1, proteinRange.$2],
+    'goal': goal,
     'burnLeft': burnLeft,
+    'eatLeft': eatLeft,
     'water': water,
     'waterGoal': waterGoal,
     'steps': stepsToday,
