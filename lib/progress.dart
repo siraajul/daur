@@ -47,7 +47,7 @@ class ProgressScreen extends StatelessWidget {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Odometer(
-                text: now == null ? '0.0' : _signed(now - s.startKg),
+                text: now == null ? s.startKg.toStringAsFixed(1) : _signed(now - s.startKg),
                 style: t.x(64, weight: FontWeight.w900),
               ),
               const SizedBox(width: 8),
@@ -56,7 +56,7 @@ class ProgressScreen extends StatelessWidget {
           ),
           Text(
             now == null
-                ? 'Weigh in to start the chart'
+                ? 'Starting weight · weigh in to start the chart'
                 : '${now.toStringAsFixed(1)} kg now${s.trendKg != null ? ' · 7-day average' : ''} · started ${s.startKg.toStringAsFixed(1)}',
             style: t.sec(),
           ),
@@ -467,20 +467,7 @@ class ProgressScreen extends StatelessWidget {
 
   /// Also opened from the weigh-in reminder and the welcome-back sheet.
   static Future<void> logWeight(BuildContext context, Store store) async {
-    final c = TextEditingController();
-    final v = await showDialog<double>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Weight this morning'),
-        content: TextField(
-          controller: c,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(suffixText: 'kg'),
-        ),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx, double.tryParse(c.text)), child: const Text('Save'))],
-      ),
-    );
+    final v = await askNumber(context, 'Weight this morning', suffix: 'kg', decimal: true);
     if (v != null && v > 20 && v < 300) {
       store.logWeight(v);
       if (context.mounted) await checkBadges(context, store); // first weigh-in, kg milestones, month targets

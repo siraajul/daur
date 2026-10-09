@@ -14,19 +14,8 @@ class DataScreen extends StatelessWidget {
   const DataScreen({super.key, required this.store});
   final Store store;
 
-  Future<bool> _confirm(BuildContext context, String title, String body, String action) async =>
-      await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(title),
-          content: Text(body),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(action)),
-          ],
-        ),
-      ) ??
-      false;
+  Future<bool> _confirm(BuildContext context, String title, String body, String action) =>
+      confirmPop(context, title, body, action);
 
   void _say(BuildContext context, String msg) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(behavior: SnackBarBehavior.floating, content: Text(msg)));

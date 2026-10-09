@@ -14,20 +14,28 @@ import 'visuals.dart';
 String litres(int glasses) => glasses % 4 == 0 ? '${glasses ~/ 4}' : '${glasses / 4}'; // 0, 0.25, 1.75, 2
 const _dayLetters = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-/// Water: 14 glasses of 250 ml. Tap a glass to set the count, or drink one from the button.
+/// Water: a ring to today's goal, the glasses to tap, how far behind the day's pace you are.
 class WaterScreen extends StatelessWidget {
   const WaterScreen({super.key, required this.store});
   final Store store;
 
   @override
   Widget build(BuildContext context) {
-    final t = Daur.of(context);
     return ListenableBuilder(
       listenable: store,
       builder: (context, _) {
         final s = store, g = s.water, goal = s.waterGoal;
         final days = s.lastDays(7);
         final full = g >= goal;
+        final values = [for (final d in days) d == s.today ? g : s.waterHistory[d] ?? 0];
+        final drank = values.where((v) => v > 0).toList();
+        final avg = drank.isEmpty ? 0 : drank.reduce((a, b) => a + b) / drank.length;
+        final hit = values.where((v) => v >= goal).length;
+        // pace: the goal spread evenly over 07:00–21:00
+        final now = DateTime.now();
+        final due = (goal * ((now.hour + now.minute / 60 - 7) / 14).clamp(0.0, 1.0)).floor();
+        final behind = (due - g).clamp(0, goal);
+        final perRow = (goal / 2).ceil();
         return Scaffold(
           body: SafeArea(
             child: Column(
@@ -38,55 +46,65 @@ class WaterScreen extends StatelessWidget {
                     children: [
                       _Header(
                         title: 'Water',
-                        sub: '${niceDate(DateTime.now())} · each glass is 250 ml',
+                        sub: '${niceDate(now)} · each glass is 250 ml',
                         menu: [
                           ('Undo last glass', g > 0 ? () => s.setWater(g - 1) : null),
                           ('Reset today', g > 0 ? () => s.setWater(0) : null),
                         ],
                       ),
+                      const SizedBox(height: 16),
+                      RingHero(
+                        frac: g / goal,
+                        big: '${litres(g)} L',
+                        small: 'of ${litres(goal)} L',
+                        pill: full ? 'Goal done' : '${goal - g} ${goal - g == 1 ? 'glass' : 'glasses'} to go',
+                        done: full,
+                        label: '${litres(g)} of ${litres(goal)} litres',
+                      ),
+                      const SizedBox(height: 20),
+                      _Tiles([
+                        (Icons.local_drink_outlined, '$g', 'of $goal glasses'),
+                        (Icons.schedule_rounded, '$behind', behind == 0 ? 'on pace' : 'behind pace'),
+                        (Icons.event_available_rounded, '$hit of 7', 'days on goal'),
+                      ]),
                       const SizedBox(height: 24),
-                      _Hero(big: litres(g), small: 'of ${litres(goal)} L'),
-                      const SizedBox(height: 24),
+                      _Head('Tap a glass', '${g * 250} ml'),
+                      const SizedBox(height: 10),
                       GridView.count(
                         clipBehavior: Clip.none, // droplets fly above the glasses
-                        crossAxisCount: 7,
+                        crossAxisCount: perRow,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 10,
-                        childAspectRatio: .6,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 8,
+                        childAspectRatio: .7,
                         children: [
                           for (var i = 0; i < goal; i++)
                             Semantics(
                               button: true,
-                              label: 'Glass ${i + 1}${i < g ? ', drunk' : ''}',
-                              child: Semantics(
-                                button: true,
-                                label: 'Glass ${i + 1}, ${i < g ? 'drunk' : 'not yet'}',
-                                child: GestureDetector(
-                                  // tap glass n to set the count to n; tap the last full glass to empty it
-                                  onTap: () {
-                                    HapticFeedback.selectionClick();
-                                    s.setWater(g == i + 1 ? i : i + 1);
-                                  },
-                                  child: WaterGlass(full: i < g, next: i == g, wave: g >= goal, index: i),
-                                ),
+                              label: 'Glass ${i + 1}, ${i < g ? 'drunk' : 'not yet'}',
+                              child: GestureDetector(
+                                // tap glass n to set the count to n; tap the last full glass to empty it
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  s.setWater(g == i + 1 ? i : i + 1);
+                                },
+                                child: WaterGlass(full: i < g, next: i == g, wave: full, index: i),
                               ),
                             ),
                         ],
                       ),
-                      const SizedBox(height: 28),
-                      Text('This week', style: t.meta()),
-                      const SizedBox(height: 10),
-                      WeekBars(
-                        days: days,
-                        values: [for (final d in days) d == s.today ? g : s.waterHistory[d] ?? 0],
-                        target: goal,
-                        max: goal + 3, // headroom so the goal line shows
-                      ),
                       const SizedBox(height: 24),
-                      const Tip(Icons.fitness_center_rounded, 'Gym day or hot day: drink more'),
-                      const Tip(Icons.medical_services_outlined, 'A doctor limits your fluids? Follow that'),
+                      _Head('This week', 'avg ${litres((avg).round())} L a day'),
+                      const SizedBox(height: 10),
+                      WeekBars(days: days, values: values, target: goal, max: goal + 3),
+                      const SizedBox(height: 24),
+                      const _TipChips([
+                        (Icons.fitness_center_rounded, 'Gym day: drink more'),
+                        (Icons.wb_sunny_outlined, 'Hot day: drink more'),
+                        (Icons.local_cafe_outlined, 'Plain tea counts'),
+                        (Icons.medical_services_outlined, 'Doctor limits fluids? Follow that'),
+                      ]),
                     ],
                   ),
                 ),
@@ -103,6 +121,124 @@ class WaterScreen extends StatelessWidget {
                           },
                         ),
                 ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Sleep: last night's hours against 7–8, set with − / + or read from Health, and the week.
+class SleepScreen extends StatelessWidget {
+  const SleepScreen({super.key, required this.store});
+  final Store store;
+
+  static String hours(int min) => (min / 60).toStringAsFixed(min % 60 == 0 ? 0 : 1);
+
+  Future<void> _fromHealth(BuildContext context) async {
+    final min = await Steps.sleepLastNight(ask: true);
+    if (min != null) {
+      store.setSleep(min);
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('No sleep in Health yet · a watch or sleep app adds it'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Daur.of(context);
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) {
+        final s = store, m = s.sleepMin;
+        const goal = 420; // 7 h, the low end of 7–8
+        final days = s.lastDays(7);
+        final values = [for (final d in days) s.sleepHistory[d] ?? 0];
+        final slept = values.where((v) => v > 0).toList();
+        final avg = slept.isEmpty ? 0 : slept.reduce((a, b) => a + b) ~/ slept.length;
+        final hit = values.where((v) => v >= goal).length;
+        void nudge(int by) {
+          HapticFeedback.selectionClick();
+          s.setSleep(((m ?? goal) + (m == null ? 0 : by)).clamp(60, 16 * 60));
+        }
+
+        Widget round(IconData icon, String tip, VoidCallback f) => IconButton.filled(
+          tooltip: tip,
+          onPressed: f,
+          style: IconButton.styleFrom(
+            backgroundColor: t.infield,
+            foregroundColor: t.ink,
+            fixedSize: const Size(48, 48),
+          ),
+          icon: Icon(icon),
+        );
+
+        return Scaffold(
+          body: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    children: [
+                      _Header(
+                        title: 'Sleep',
+                        sub: 'Last night · aim for 7–8 hours',
+                        menu: [('Clear last night', m != null ? () => s.setSleep(null) : null)],
+                      ),
+                      const SizedBox(height: 16),
+                      RingHero(
+                        frac: (m ?? 0) / goal,
+                        big: m == null ? '–' : '${hours(m)} h',
+                        small: 'of 7–8 hours',
+                        pill: m == null
+                            ? 'Not added yet'
+                            : m >= goal
+                            ? 'Enough sleep'
+                            : '${hours(goal - m)} h short',
+                        done: m != null && m >= goal,
+                        label: m == null ? 'Sleep not added' : '${hours(m)} hours slept',
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text('Hours slept', style: t.body(weight: FontWeight.w400)),
+                          ),
+                          round(Icons.remove, 'Half an hour less', () => nudge(-30)),
+                          SizedBox(
+                            width: 84,
+                            child: Text(m == null ? '–' : hours(m), textAlign: TextAlign.center, style: t.x(24)),
+                          ),
+                          round(Icons.add, 'Half an hour more', () => nudge(30)),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _Head('This week', slept.isEmpty ? 'nothing yet' : 'avg ${hours(avg)} h · $hit of 7 enough'),
+                      const SizedBox(height: 10),
+                      WeekBars(days: days, values: values, target: goal, max: 600),
+                      const SizedBox(height: 24),
+                      const _TipChips([
+                        (Icons.restaurant_rounded, 'Short sleep = more hunger'),
+                        (Icons.schedule_rounded, 'Same bedtime every night'),
+                        (Icons.local_cafe_outlined, 'No tea after 17:00'),
+                        (Icons.phone_android_rounded, 'Phone away in bed'),
+                      ]),
+                    ],
+                  ),
+                ),
+                if (Steps.supported)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                    child: Cta(label: 'Get from Health', muted: m != null, onTap: () => _fromHealth(context)),
+                  ),
               ],
             ),
           ),
@@ -151,21 +287,13 @@ class _WalkScreenState extends State<WalkScreen> {
   }
 
   Future<void> _enter() async {
-    final c = TextEditingController(text: s.manualSteps?.toString() ?? '');
-    final v = await showDialog<int>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Steps today'),
-        content: TextField(
-          controller: c,
-          keyboardType: TextInputType.number,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'From your phone\'s step counter'),
-        ),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx, int.tryParse(c.text)), child: const Text('Save'))],
-      ),
+    final v = await askNumber(
+      context,
+      'Steps today',
+      initial: s.manualSteps?.toString(),
+      hint: 'From your phone\'s step counter',
     );
-    if (v != null) s.setManualSteps(v);
+    if (v != null) s.setManualSteps(v.round());
   }
 
   @override
@@ -205,81 +333,23 @@ class _WalkScreenState extends State<WalkScreen> {
                       children: [
                         _Header(title: 'Walk', sub: 'Week $week · target ${thousands(target)} steps'),
                         const SizedBox(height: 16),
-                        // the hero: a ring that fills to today's target, the runner at its tip
-                        Center(
-                          child: Semantics(
-                            label: '${thousands(walked)} of ${thousands(target)} steps',
-                            excludeSemantics: true,
-                            child: SizedBox.square(
-                              dimension: 220,
-                              child: CustomPaint(
-                                painter: _StepRing(walked / target, t),
-                                child: Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      FittedBox(
-                                        child: Text(thousands(walked), style: t.x(44, weight: FontWeight.w900)),
-                                      ),
-                                      Text('of ${thousands(target)} steps', style: t.sec()),
-                                      const SizedBox(height: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                                        decoration: BoxDecoration(
-                                          color: togo == 0 ? t.accent : t.infield,
-                                          borderRadius: BorderRadius.circular(20),
-                                        ),
-                                        child: Text(
-                                          togo == 0 ? 'Target done' : '${thousands(togo)} to go',
-                                          style: t.meta(togo == 0 ? t.onAccent : t.ink),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                        RingHero(
+                          frac: walked / target,
+                          big: thousands(walked),
+                          small: 'of ${thousands(target)} steps',
+                          pill: togo == 0 ? 'Target done' : '${thousands(togo)} to go',
+                          done: togo == 0,
+                          label: '${thousands(walked)} of ${thousands(target)} steps',
                         ),
                         const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            for (final (i, (icon, value, label)) in [
-                              (Icons.straighten_rounded, km.toStringAsFixed(1), 'km'),
-                              (Icons.local_fire_department_rounded, '${kcal.round()}', 'kcal'),
-                              (Icons.timer_outlined, togo == 0 ? '0' : '${(togo / 105).ceil()}', 'min to go'),
-                            ].indexed) ...[
-                              if (i > 0) const SizedBox(width: 8),
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                                  decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(16)),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Icon(icon, size: 18, color: t.ink),
-                                      const SizedBox(height: 6),
-                                      FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(value, style: t.x(22)),
-                                      ),
-                                      Text(label, style: t.meta()),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
+                        _Tiles([
+                          (Icons.straighten_rounded, km.toStringAsFixed(1), 'km'),
+                          (Icons.local_fire_department_rounded, '${kcal.round()}', 'kcal'),
+                          (Icons.timer_outlined, togo == 0 ? '0' : '${(togo / 105).ceil()}', 'min to go'),
+                        ]),
                         if (_hours != null && _hours!.any((h) => h > 0)) ...[
                           const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Expanded(child: Text('Today by the hour', style: t.meta())),
-                              Text('most at ${_peak(_hours!)}:00', style: t.meta(t.ink)),
-                            ],
-                          ),
+                          _Head('Today by the hour', 'most at ${_peak(_hours!)}:00'),
                           const SizedBox(height: 10),
                           SizedBox(
                             height: 84,
@@ -287,12 +357,7 @@ class _WalkScreenState extends State<WalkScreen> {
                           ),
                         ],
                         const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            Expanded(child: Text('This week', style: t.meta())),
-                            Text('avg ${thousands(avg)} · $hit of 7 on target', style: t.meta(t.ink)),
-                          ],
-                        ),
+                        _Head('This week', 'avg ${thousands(avg)} · $hit of 7 on target'),
                         const SizedBox(height: 10),
                         WeekBars(days: days, values: weekValues, target: target, max: 12000),
                         const SizedBox(height: 24),
@@ -332,25 +397,12 @@ class _WalkScreenState extends State<WalkScreen> {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final (icon, text) in const [
-                              (Icons.wb_sunny_outlined, '15–20 min after lunch'),
-                              (Icons.bedtime_outlined, '15–20 min after dinner'),
-                              (Icons.directions_run_rounded, 'Treadmill counts'),
-                              (Icons.healing_outlined, 'Sore? Hold a week'),
-                            ])
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: ShapeDecoration(
-                                  shape: StadiumBorder(side: BorderSide(color: t.lane, width: 1.5)),
-                                ),
-                                child: Stat(icon, text, color: t.ink, size: 13),
-                              ),
-                          ],
-                        ),
+                        const _TipChips([
+                          (Icons.wb_sunny_outlined, '15–20 min after lunch'),
+                          (Icons.bedtime_outlined, '15–20 min after dinner'),
+                          (Icons.directions_run_rounded, 'Treadmill counts'),
+                          (Icons.healing_outlined, 'Sore? Hold a week'),
+                        ]),
                         const SizedBox(height: 16),
                         Text(
                           fromHealth
@@ -391,8 +443,8 @@ class _WalkScreenState extends State<WalkScreen> {
 }
 
 /// The day's steps as a ring: lane track, ink arc (yellow once the target is done), runner dot.
-class _StepRing extends CustomPainter {
-  _StepRing(this.frac, this.t);
+class _Ring extends CustomPainter {
+  _Ring(this.frac, this.t);
   final double frac;
   final Daur t;
 
@@ -435,7 +487,7 @@ class _StepRing extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_StepRing o) => o.frac != frac || o.t != t;
+  bool shouldRepaint(_Ring o) => o.frac != frac || o.t != t;
 }
 
 /// Steps per hour from 5:00 to now; the busiest hour in yellow.
@@ -507,25 +559,136 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _Hero extends StatelessWidget {
-  const _Hero({required this.big, required this.small});
-  final String big, small;
+/// A ring that fills to today's target, a yellow dot at its tip; the number inside, a pill under it.
+class RingHero extends StatelessWidget {
+  const RingHero({
+    super.key,
+    required this.frac,
+    required this.big,
+    required this.small,
+    required this.pill,
+    required this.done,
+    required this.label,
+  });
+  final double frac;
+  final String big, small, pill, label;
+  final bool done;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Daur.of(context);
+    return Center(
+      child: Semantics(
+        label: label,
+        excludeSemantics: true,
+        child: SizedBox.square(
+          dimension: 220,
+          child: CustomPaint(
+            painter: _Ring(frac, t),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 30),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FittedBox(
+                      child: Text(big, style: t.x(44, weight: FontWeight.w900)),
+                    ),
+                    Text(small, style: t.sec()),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: done ? t.accent : t.infield,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(pill, style: t.meta(done ? t.onAccent : t.ink)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A row of equal tiles: icon, a number, what it is.
+class _Tiles extends StatelessWidget {
+  const _Tiles(this.items);
+  final List<(IconData, String, String)> items;
 
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
       children: [
-        Flexible(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(big, style: t.x(68, weight: FontWeight.w900)),
+        for (final (i, (icon, value, label)) in items.indexed) ...[
+          if (i > 0) const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(16)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(icon, size: 18, color: t.ink),
+                  const SizedBox(height: 6),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(value, style: t.x(22)),
+                  ),
+                  Text(label, style: t.meta(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
           ),
-        ),
-        const SizedBox(width: 10),
-        Text(small, style: t.x(24)),
+        ],
+      ],
+    );
+  }
+}
+
+/// A section label on the left, its one-line summary on the right.
+class _Head extends StatelessWidget {
+  const _Head(this.left, this.right);
+  final String left, right;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Daur.of(context);
+    return Row(
+      children: [
+        Expanded(child: Text(left, style: t.meta())),
+        Text(right, style: t.meta(t.ink)),
+      ],
+    );
+  }
+}
+
+/// Tips as outlined chips, one icon and a few words each.
+class _TipChips extends StatelessWidget {
+  const _TipChips(this.tips);
+  final List<(IconData, String)> tips;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Daur.of(context);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final (icon, text) in tips)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: ShapeDecoration(
+              shape: StadiumBorder(side: BorderSide(color: t.lane, width: 1.5)),
+            ),
+            child: Stat(icon, text, color: t.ink, size: 13),
+          ),
       ],
     );
   }

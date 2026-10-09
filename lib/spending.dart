@@ -224,25 +224,15 @@ class _SpendingScreenState extends State<SpendingScreen> {
   }
 
   Future<void> _editBudget(BuildContext context, Store s) async {
-    final c = TextEditingController(text: s.monthBudget?.toString() ?? '');
-    final v = await showDialog<int>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Monthly budget'),
-        content: TextField(
-          controller: c,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: const InputDecoration(prefixText: '৳ ', hintText: 'e.g. 15000'),
-        ),
-        actions: [
-          if (s.monthBudget != null) TextButton(onPressed: () => Navigator.pop(ctx, 0), child: const Text('Remove')),
-          TextButton(onPressed: () => Navigator.pop(ctx, int.tryParse(c.text)), child: const Text('Save')),
-        ],
-      ),
+    final v = await askNumber(
+      context,
+      'Monthly budget',
+      initial: s.monthBudget?.toString(),
+      prefix: '৳ ',
+      hint: 'e.g. 15000',
+      side: s.monthBudget != null ? ('Remove budget', () => s.setBudget(0)) : null,
     );
-    if (v != null) s.setBudget(v);
+    if (v != null) s.setBudget(v.round());
   }
 }
 

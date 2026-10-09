@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'plan.dart';
 import 'store.dart';
@@ -6,148 +7,182 @@ import 'theme.dart';
 import 'today.dart' show junkStatus;
 import 'visuals.dart';
 
-/// The food guide and the 10 non-negotiables, word for word from the old app.
-class FoodScreen extends StatelessWidget {
+/// The food guide in three tabs: what goes on the plate, the 10 rules, and junk food.
+class FoodScreen extends StatefulWidget {
   const FoodScreen({super.key, required this.store});
   final Store store;
+  @override
+  State<FoodScreen> createState() => _FoodScreenState();
+}
+
+class _FoodScreenState extends State<FoodScreen> {
+  var _tab = 'Plate';
 
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
-    Widget chip(String s, {bool sometimes = false}) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: ShapeDecoration(
-        shape: StadiumBorder(side: BorderSide(color: t.lane, width: 1.5)),
-      ),
-      child: Text(sometimes ? '$s · sometimes' : s, style: t.sec(sometimes ? t.ink2 : t.ink)),
-    );
-    Widget h(String s) => Padding(
-      padding: const EdgeInsets.only(top: 32, bottom: 10),
-      child: Text(s, style: t.title()),
-    );
-    Widget label(String s) => Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 10),
-      child: Text(s, style: t.meta()),
-    );
-
-    return _Page(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-        children: [
-          const PageHeader('Food guide', sub: 'What goes on the plate'),
-          h('Rice is not banned.'),
-          for (final (n, what, sub) in const [
-            ('1', 'cup at lunch', 'cooked rice'),
-            ('½', 'cup at dinner', 'only if you want it, instead of roti'),
-          ])
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: SizedBox(width: 44, child: Text(n, style: t.x(28))),
-              title: Text(what, style: t.body()),
-              subtitle: Text(sub, style: t.meta()),
+    return Scaffold(
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          children: [
+            const PageHeader('Food guide'),
+            const SizedBox(height: 14),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'Plate', icon: Icon(Icons.rice_bowl_outlined), label: Text('Plate')),
+                ButtonSegment(value: 'Rules', icon: Icon(Icons.checklist_rounded), label: Text('Rules')),
+                ButtonSegment(value: 'Junk', icon: Icon(Icons.fastfood_outlined), label: Text('Junk')),
+              ],
+              selected: {_tab},
+              showSelectedIcon: false,
+              onSelectionChanged: (v) {
+                HapticFeedback.selectionClick();
+                setState(() => _tab = v.first);
+              },
+              style: SegmentedButton.styleFrom(
+                foregroundColor: t.ink,
+                selectedForegroundColor: t.onAccent,
+                selectedBackgroundColor: t.accent,
+                side: BorderSide(color: t.lane),
+              ),
             ),
-          const Tip(Icons.block_rounded, 'No second serving'),
-          label('Fish'),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [for (final f in fish) chip(f), for (final f in fishSometimes) chip(f, sometimes: true)],
+            const SizedBox(height: 24),
+            ...switch (_tab) {
+              'Plate' => _plate(t),
+              'Rules' => _rules(t),
+              _ => _junk(t),
+            },
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _chip(Daur t, String s, {bool sometimes = false}) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+    decoration: ShapeDecoration(
+      shape: StadiumBorder(side: BorderSide(color: t.lane, width: 1.5)),
+    ),
+    child: Text(sometimes ? '$s · sometimes' : s, style: t.sec(sometimes ? t.ink2 : t.ink)),
+  );
+
+  Widget _label(Daur t, String s, IconData icon) => Padding(
+    padding: const EdgeInsets.only(top: 24, bottom: 10),
+    child: Row(
+      children: [
+        Icon(icon, size: 18, color: t.ink),
+        const SizedBox(width: 8),
+        Text(s, style: t.meta()),
+      ],
+    ),
+  );
+
+  /// Big number tiles side by side: "1 cup at lunch", "½ cup at dinner".
+  Widget _tiles(Daur t, List<(String, String, String)> items) => Row(
+    children: [
+      for (final (i, (n, what, sub)) in items.indexed) ...[
+        if (i > 0) const SizedBox(width: 8),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(18)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(n, style: t.x(32, weight: FontWeight.w900)),
+                const SizedBox(height: 6),
+                Text(what, style: t.body()),
+                Text(sub, style: t.meta(), maxLines: 2),
+              ],
+            ),
           ),
-          label('Vegetables'),
-          Wrap(spacing: 8, runSpacing: 8, children: [for (final v in vegetables) chip(v)]),
-          const SizedBox(height: 20),
-          const Tip(Icons.soup_kitchen_outlined, 'Dal: ½ cup'),
-          const Tip(Icons.opacity_rounded, 'Oil: measure it · the biggest hidden calories'),
-          h('Junk food: keep it rare'),
-          for (final e in keepRare.entries) ...[
-            Padding(
-              padding: const EdgeInsets.only(top: 14, bottom: 8),
-              child: Row(
+        ),
+      ],
+    ],
+  );
+
+  List<Widget> _plate(Daur t) => [
+    _label(t, 'Rice is not banned', Icons.rice_bowl_outlined),
+    _tiles(t, [('1', 'cup at lunch', 'cooked rice'), ('½', 'cup at dinner', 'or roti instead')]),
+    const SizedBox(height: 8),
+    _tiles(t, [('½', 'cup of dal', 'per meal'), ('1', 'serving', 'no second plate')]),
+    const SizedBox(height: 4),
+    const Tip(Icons.opacity_rounded, 'Measure the oil: the biggest hidden calories'),
+    _label(t, 'Fish', Icons.set_meal_outlined),
+    Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [for (final f in fish) _chip(t, f), for (final f in fishSometimes) _chip(t, f, sometimes: true)],
+    ),
+    _label(t, 'Vegetables', Icons.eco_outlined),
+    Wrap(spacing: 8, runSpacing: 8, children: [for (final v in vegetables) _chip(t, v)]),
+  ];
+
+  List<Widget> _rules(Daur t) => [
+    for (final (i, r) in rules.indexed)
+      Container(
+        constraints: const BoxConstraints(minHeight: 52),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: t.rule, width: .5)),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 44,
+              child: Text('${i + 1}', style: t.x(20, color: t.ink2)),
+            ),
+            Expanded(child: Text(r, style: t.body())),
+          ],
+        ),
+      ),
+    const SizedBox(height: 16),
+    const Tip(Icons.calendar_month_outlined, 'Twelve weeks of these, not one perfect day'),
+    const Tip(Icons.egg_alt_outlined, 'Enough protein, real food'),
+    const Tip(Icons.no_food_outlined, 'Not as little as possible'),
+  ];
+
+  List<Widget> _junk(Daur t) {
+    final s = widget.store;
+    final (title, sub) = junkStatus(s);
+    return [
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(18)),
+        child: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: t.ink, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    switch (e.key) {
-                      'Fried' => Icons.local_fire_department_outlined,
-                      'Fast food' => Icons.fastfood_outlined,
-                      'Heavy Bengali' => Icons.rice_bowl_outlined,
-                      'Drinks' => Icons.local_drink_outlined,
-                      _ => Icons.cookie_outlined,
-                    },
-                    size: 20,
-                    color: t.ink,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(e.key, style: t.meta()),
+                  Text(title, style: t.body()),
+                  Text('Week ${s.cutWeek} · $sub', style: t.meta()),
                 ],
               ),
             ),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [for (final f in e.value.split(', ')) chip(f[0].toUpperCase() + f.substring(1))],
-            ),
           ],
-          h('The junk-food rule'),
-          Builder(
-            builder: (_) {
-              final (title, sub) = junkStatus(store);
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: t.body()),
-                    Text('Week ${store.cutWeek} · $sub', style: t.meta()),
-                  ],
-                ),
-              );
-            },
-          ),
-          const Tip(Icons.calendar_month_outlined, 'Month 1: keep it to a minimum'),
-          const Tip(Icons.lunch_dining_outlined, 'Then 1 a week: 1 burger, 2 pizza slices or a small biryani'),
-          const Tip(Icons.do_not_disturb_on_outlined, 'Never a whole cheat day'),
-        ],
+        ),
       ),
-    );
+      const SizedBox(height: 8),
+      const Tip(Icons.calendar_month_outlined, 'Month 1: keep it to a minimum'),
+      const Tip(Icons.lunch_dining_outlined, 'Then 1 a week: a burger, 2 pizza slices or a small biryani'),
+      const Tip(Icons.do_not_disturb_on_outlined, 'Never a whole cheat day'),
+      for (final e in keepRare.entries) ...[
+        _label(t, e.key, switch (e.key) {
+          'Fried' => Icons.local_fire_department_outlined,
+          'Fast food' => Icons.fastfood_outlined,
+          'Heavy Bengali' => Icons.rice_bowl_outlined,
+          'Drinks' => Icons.local_drink_outlined,
+          _ => Icons.cookie_outlined,
+        }),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [for (final f in e.value.split(', ')) _chip(t, f[0].toUpperCase() + f.substring(1))],
+        ),
+      ],
+    ];
   }
-}
-
-/// The plan's 10 non-negotiables, opened from the drawer.
-class RulesScreen extends StatelessWidget {
-  const RulesScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Daur.of(context);
-    return _Page(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-        children: [
-          const PageHeader('The 10 rules', sub: 'Twelve weeks of these, not one perfect day'),
-          const SizedBox(height: 12),
-          for (final (i, r) in rules.indexed)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: SizedBox(
-                width: 44,
-                child: Text('${i + 1}', style: t.x(22, color: t.ink2)),
-              ),
-              title: Text(r, style: t.body()),
-            ),
-          const SizedBox(height: 8),
-          const Tip(Icons.egg_alt_outlined, 'Enough protein, real food'),
-          const Tip(Icons.no_food_outlined, 'Not as little as possible'),
-          const Tip(Icons.bedtime_outlined, 'Short sleep = more hunger'),
-        ],
-      ),
-    );
-  }
-}
-
-/// A page opened from the drawer: own scaffold, back arrow top-left.
-class _Page extends StatelessWidget {
-  const _Page({required this.child});
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Scaffold(body: SafeArea(child: child));
 }

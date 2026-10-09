@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'theme.dart';
 
@@ -506,4 +507,114 @@ class PageHeader extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Pop-ups in the app's look: a deep-red card, the question in the display font, one yellow pill
+/// for the main action and plain ink text for the rest. Every pop-up in the app goes through here.
+Widget _popCard(BuildContext context, String title, List<Widget> children) {
+  final t = Daur.of(context);
+  return Dialog(
+    backgroundColor: t.infield,
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: t.x(22)),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _popMain(Daur t, String label, VoidCallback onTap) => FilledButton(
+  onPressed: onTap,
+  style: FilledButton.styleFrom(
+    backgroundColor: t.accent,
+    foregroundColor: t.onAccent,
+    minimumSize: const Size.fromHeight(52),
+    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+  ),
+  child: Text(label),
+);
+
+Widget _popSide(Daur t, String label, VoidCallback onTap) => TextButton(
+  onPressed: onTap,
+  style: TextButton.styleFrom(
+    foregroundColor: t.ink,
+    minimumSize: const Size.fromHeight(48),
+    textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+  ),
+  child: Text(label),
+);
+
+/// "Are you sure?": the action as the yellow pill, Cancel under it.
+Future<bool> confirmPop(BuildContext context, String title, String body, String action) async =>
+    await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final t = Daur.of(ctx);
+        return _popCard(ctx, title, [
+          Text(body, style: t.sec()),
+          const SizedBox(height: 20),
+          _popMain(t, action, () => Navigator.pop(ctx, true)),
+          _popSide(t, 'Cancel', () => Navigator.pop(ctx, false)),
+        ]);
+      },
+    ) ??
+    false;
+
+/// Asks for one number, typed big. [side] is an optional second action (closes first, then runs).
+Future<double?> askNumber(
+  BuildContext context,
+  String title, {
+  String? initial,
+  String? hint,
+  String? prefix,
+  String? suffix,
+  bool decimal = false,
+  (String, VoidCallback)? side,
+}) {
+  final c = TextEditingController(text: initial ?? '');
+  return showDialog<double>(
+    context: context,
+    builder: (ctx) {
+      final t = Daur.of(ctx);
+      void save() => Navigator.pop(ctx, double.tryParse(c.text.trim()));
+      UnderlineInputBorder line(Color color) => UnderlineInputBorder(borderSide: BorderSide(color: color, width: 2));
+      return _popCard(ctx, title, [
+        TextField(
+          controller: c,
+          autofocus: true,
+          keyboardType: TextInputType.numberWithOptions(decimal: decimal),
+          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(decimal ? r'[0-9.]' : r'[0-9]'))],
+          onSubmitted: (_) => save(),
+          style: t.x(36),
+          cursorColor: t.accent,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: t.sec(t.ink2),
+            prefixText: prefix,
+            suffixText: suffix,
+            prefixStyle: t.x(20),
+            suffixStyle: t.x(18, color: t.ink2),
+            enabledBorder: line(t.lane),
+            focusedBorder: line(t.accent),
+          ),
+        ),
+        const SizedBox(height: 20),
+        _popMain(t, 'Save', save),
+        if (side != null)
+          _popSide(t, side.$1, () {
+            Navigator.pop(ctx);
+            side.$2();
+          }),
+      ]);
+    },
+  );
 }

@@ -158,7 +158,8 @@ class _Day extends StatelessWidget {
     final t = Daur.of(context);
     final isToday = key == store.today;
     final n = isToday ? store.legsDone : store.lapHistory[key] ?? 0;
-    final future = day.isAfter(DateTime.now());
+    // days after today, and days before the plan started, are drawn faint
+    final future = day.isAfter(DateTime.now()) || key.compareTo(store.startDay) < 0;
     final perfect = !future && store.perfect(key);
     if (store.frozenDays.contains(key)) {
       return Container(

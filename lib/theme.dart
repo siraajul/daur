@@ -91,6 +91,19 @@ ThemeData buildTheme(Brightness b) {
       labelTextStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: t.ink)),
       iconTheme: WidgetStatePropertyAll(IconThemeData(color: t.ink)),
     ),
+    // ⋯ menus: deep red like the pop-ups, not Material's default white
+    popupMenuTheme: PopupMenuThemeData(
+      color: t.infield,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      labelTextStyle: WidgetStateProperty.resolveWith(
+        (s) => TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: s.contains(WidgetState.disabled) ? t.faint : t.ink,
+        ),
+      ),
+    ),
     bottomSheetTheme: BottomSheetThemeData(backgroundColor: t.sheet, showDragHandle: true),
     // Android's predictive back: the swipe previews the screen underneath; iOS keeps its own slide
     pageTransitionsTheme: const PageTransitionsTheme(

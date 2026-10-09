@@ -62,6 +62,8 @@ class RemindersScreen extends StatelessWidget {
                 activeThumbColor: t.ground,
                 activeTrackColor: t.ink,
                 inactiveTrackColor: t.ink.withValues(alpha: .22),
+                inactiveThumbColor: t.ink,
+                trackOutlineColor: WidgetStatePropertyAll(t.lane),
                 title: Text(title, style: t.body(color: enabled ? t.ink : t.ink2)),
                 subtitle: Text(sub, style: t.meta()),
               ),

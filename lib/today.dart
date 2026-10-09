@@ -261,73 +261,27 @@ class TodayScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _enterSleep(BuildContext context) async {
-    final m = store.sleepMin;
-    final c = TextEditingController(text: m == null ? '' : (m / 60).toStringAsFixed(1));
-    final v = await showDialog<double>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hours slept last night'),
-        content: TextField(
-          controller: c,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'e.g. 7.5'),
-        ),
-        actions: [
-          if (Steps.supported)
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(ctx);
-                final min = await Steps.sleepLastNight(ask: true);
-                if (min != null) {
-                  store.setSleep(min);
-                } else if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      behavior: SnackBarBehavior.floating,
-                      content: Text('No sleep in Health yet · a watch or sleep app adds it'),
-                    ),
-                  );
-                }
-              },
-              child: const Text('From Health'),
-            ),
-          TextButton(onPressed: () => Navigator.pop(ctx, double.tryParse(c.text)), child: const Text('Save')),
-        ],
-      ),
-    );
-    if (v != null && v > 0 && v < 20) store.setSleep((v * 60).round());
-  }
+  void _enterSleep(BuildContext context) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => SleepScreen(store: store)));
 
   Future<void> _enterSteps(BuildContext context) async {
-    final c = TextEditingController(text: store.manualSteps?.toString() ?? '');
-    final v = await showDialog<int>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Steps today'),
-        content: TextField(
-          controller: c,
-          keyboardType: TextInputType.number,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'From your step counter'),
-        ),
-        actions: [
-          if (Steps.supported)
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(ctx);
+    final v = await askNumber(
+      context,
+      'Steps today',
+      initial: store.manualSteps?.toString(),
+      hint: 'From your step counter',
+      side: Steps.supported
+          ? (
+              'Connect Health',
+              () async {
                 // Health Connect missing (Android 9–13): open its store page; otherwise ask for access
                 await Steps.available() ? await Steps.today(ask: true) : await Steps.installHealthConnect();
                 await onRefreshSteps();
               },
-              child: const Text('Connect Health'),
-            ),
-          TextButton(onPressed: () => Navigator.pop(ctx, int.tryParse(c.text)), child: const Text('Save')),
-        ],
-      ),
+            )
+          : null,
     );
-    if (v != null) store.setManualSteps(v);
+    if (v != null) store.setManualSteps(v.round());
   }
 }
 

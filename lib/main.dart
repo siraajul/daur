@@ -12,7 +12,7 @@ import 'cloud.dart';
 import 'firebase_options.dart';
 import 'family.dart';
 import 'fasting.dart' show FastingScreen;
-import 'food.dart' show FoodScreen, RulesScreen;
+import 'food.dart' show FoodScreen;
 import 'food_db.dart';
 import 'gym.dart';
 import 'onboarding.dart';
@@ -229,7 +229,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// Drawer: what isn't on the bottom bar or Today. Food, rules, targets, reminders, widget, start date.
+  /// Drawer: what isn't on the bottom bar or Today. Food, targets, reminders, widget, start date.
   Widget _drawer(BuildContext context) {
     final t = Daur.of(context), s = widget.store;
     void push(Widget w, {bool full = false}) =>
@@ -242,12 +242,11 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
         push(switch (i) {
           0 => FoodScreen(store: s),
           1 => FoodDbScreen(store: s),
-          2 => const RulesScreen(),
-          3 => TargetsScreen(store: s),
-          4 => FastingScreen(store: s),
-          5 => SpendingScreen(store: s),
-          6 => FamilyScreen(store: s),
-          7 => DataScreen(store: s),
+          2 => TargetsScreen(store: s),
+          3 => FastingScreen(store: s),
+          4 => SpendingScreen(store: s),
+          5 => FamilyScreen(store: s),
+          6 => DataScreen(store: s),
           _ => RemindersScreen(store: s),
         });
       },
@@ -266,7 +265,6 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
         const _AccountTile(),
         const NavigationDrawerDestination(icon: Icon(Icons.restaurant_outlined), label: Text('Food guide')),
         const NavigationDrawerDestination(icon: Icon(Icons.menu_book_outlined), label: Text('Food database')),
-        const NavigationDrawerDestination(icon: Icon(Icons.rule), label: Text('The 10 rules')),
         const Divider(indent: 28, endIndent: 28),
         const NavigationDrawerDestination(icon: Icon(Icons.flag_outlined), label: Text('Your targets')),
         const NavigationDrawerDestination(icon: Icon(Icons.hourglass_bottom_rounded), label: Text('Fasting')),
@@ -485,17 +483,7 @@ class _AccountTile extends StatelessWidget {
   }
 
   Future<void> _signOut(BuildContext context) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Sign out?'),
-        content: const Text('Your data stays here and in the cloud.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Sign out')),
-        ],
-      ),
-    );
-    if (ok == true) await Cloud.instance.signOut();
+    final ok = await confirmPop(context, 'Sign out?', 'Your data stays here and in the cloud.', 'Sign out');
+    if (ok) await Cloud.instance.signOut();
   }
 }

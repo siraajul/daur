@@ -112,36 +112,85 @@ class FastingScreen extends StatelessWidget {
                 const PageHeader('Fasting', sub: 'Eat inside a window, fast the rest'),
                 const SizedBox(height: 20),
 
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    groundChip(context, 'Off', !on, () => s.setFast(null)),
-                    for (final p in plans) groundChip(context, p, s.fastPlan == p, () => s.setFast(p)),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                AspectRatio(
-                  aspectRatio: 1.6,
-                  child: Semantics(
-                    label: on
-                        ? 'Eating window ${_hh(s.eatStart)} to ${_hh(s.eatEnd)}, ${s.fastHours} hour fast'
-                        : 'Fasting off',
-                    excludeSemantics: true,
-                    child: CustomPaint(
-                      painter: _Clock(t, on ? s.eatStart : null, on ? s.eatEnd : null, DateTime.now()),
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(on ? '${s.fastHours}h' : 'Off', style: t.x(44, weight: FontWeight.w900)),
-                            Text(on ? 'fast' : 'eat on the plan\'s times', style: t.meta()),
-                          ],
+                if (!on) ...[
+                  // off: the three plans as cards; tap one to start
+                  for (final (p, eat, how) in const [
+                    ('14:10', '10', 'Easy start'),
+                    ('16:8', '8', 'The usual one'),
+                    ('18:6', '6', 'Hard'),
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Material(
+                        color: t.infield,
+                        borderRadius: BorderRadius.circular(20),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            s.setFast(p);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 96,
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(p, style: t.x(26, weight: FontWeight.w900)),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(how, style: t.body()),
+                                      Text('eat $eat hours · fast ${24 - int.parse(eat)}', style: t.meta()),
+                                    ],
+                                  ),
+                                ),
+                                Icon(Icons.chevron_right_rounded, color: t.ink2),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  const Tip(Icons.restaurant_rounded, 'Same food for the day, eaten in fewer hours'),
+                ] else ...[
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      groundChip(context, 'Off', false, () => s.setFast(null)),
+                      for (final p in plans) groundChip(context, p, s.fastPlan == p, () => s.setFast(p)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  AspectRatio(
+                    aspectRatio: 1.6,
+                    child: Semantics(
+                      label: 'Eating window ${_hh(s.eatStart)} to ${_hh(s.eatEnd)}, ${s.fastHours} hour fast',
+                      excludeSemantics: true,
+                      child: CustomPaint(
+                        painter: _Clock(t, s.eatStart, s.eatEnd, DateTime.now()),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('${s.fastHours}h', style: t.x(44, weight: FontWeight.w900)),
+                              Text('fast', style: t.meta()),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
+                ],
                 if (on) ...[
                   const SizedBox(height: 16),
                   Row(
