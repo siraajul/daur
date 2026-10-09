@@ -8,7 +8,7 @@ import 'adaptive.dart';
 import 'cloud.dart';
 import 'store.dart';
 import 'theme.dart';
-import 'today.dart' show Cta, MenuButton, thousands;
+import 'today.dart' show Cta, MenuButton, niceDate, thousands;
 import 'visuals.dart';
 import 'water_walk.dart' show RingHero, Tiles, litres;
 
@@ -352,7 +352,11 @@ class _NotesThreadState extends State<NotesThread> {
                 style: t.body(weight: FontWeight.w400),
                 cursorColor: t.accent,
                 decoration: InputDecoration(
-                  hintText: widget.role == 'owner' ? 'Write to your helpers' : 'e.g. Less rice tonight',
+                  hintText: switch (widget.role) {
+                    'owner' => 'Write to your helpers',
+                    'trainer' => 'e.g. Bench 50 kg next push day',
+                    _ => 'e.g. Less rice tonight',
+                  },
                   hintStyle: t.sec(),
                   counterText: '',
                 ),
@@ -640,7 +644,7 @@ class _Gym extends StatelessWidget {
                 Expanded(
                   child: Text('${x[1] ?? 'Gym'} day', style: t.body(weight: FontWeight.w500)),
                 ),
-                Text('${x[0]} · ${x[2]} done', style: t.meta()),
+                Text('${niceDate(DateTime.parse(x[0] as String))} · ${x[2]} done', style: t.meta()),
               ],
             ),
           ),
@@ -679,9 +683,11 @@ class _Line extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final lo = pts.reduce(math.min), hi = pts.reduce(math.max), span = math.max(.5, hi - lo);
+    const r = 6.0; // room for the end dot
+    final w = size.width - r, h = size.height - 2 * r;
     final path = Path();
     for (final (i, v) in pts.indexed) {
-      final p = Offset(size.width * i / (pts.length - 1), size.height * (1 - (v - lo) / span));
+      final p = Offset(w * i / (pts.length - 1), r + h * (1 - (v - lo) / span));
       i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
     }
     canvas.drawPath(
@@ -692,8 +698,8 @@ class _Line extends CustomPainter {
         ..strokeCap = StrokeCap.round
         ..color = t.ink,
     );
-    final last = Offset(size.width, size.height * (1 - (pts.last - lo) / span));
-    canvas.drawCircle(last, 6, Paint()..color = t.accent);
+    final last = Offset(w, r + h * (1 - (pts.last - lo) / span));
+    canvas.drawCircle(last, r, Paint()..color = t.accent);
   }
 
   @override
