@@ -1,0 +1,79 @@
+# Every merge to main: test, build a signed release APK, send it to the Family testers in
+# Firebase App Tester. Release notes come from the merged commit.
+#
+# Secrets (Settings → Secrets and variables → Actions):
+#   FIREBASE_SERVICE_ACCOUNT  JSON key of github-release@daurfit (role: Firebase App Distribution Admin only)
+#   APPCHECK_DEBUG_TOKEN      App Check token, so the AI meal estimate works in these builds
+#   ANDROID_SIGNING_KEYSTORE  base64 of the signing keystore; installed builds only update with the same key
+name: Release to App Tester
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # or run it by hand from the Actions tab
+
+concurrency:
+  group: release
+  cancel-in-progress: false # never drop a release half-way
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the build number counts commits
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.6
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter test
+
+      - name: Signing key (the same one the installed builds use)
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_SIGNING_KEYSTORE }}
+        run: |
+          mkdir -p ~/.android
+          echo "$KEYSTORE" | base64 -d > ~/.android/debug.keystore
+
+      - name: Build the release APK
+        env:
+          TOKEN: ${{ secrets.APPCHECK_DEBUG_TOKEN }}
+        run: |
+          printf '{"APPCHECK_DEBUG_TOKEN": "%s"}' "$TOKEN" > dart_defines.json
+          # 100 + commits on main: always higher than the last build, the same rule as release.sh
+          BUILD=$((100 + $(git rev-list --count HEAD)))
+          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+          flutter build apk --release --build-number="$BUILD" --dart-define-from-file=dart_defines.json
+
+      - name: Release notes from the merged commit
+        run: |
+          {
+            git log -1 --pretty=%B | sed '/^Merge pull request/d; /^Co-Authored-By/d; /^$/d' | head -6
+            echo
+            echo "Build $BUILD · ${GITHUB_SHA::7}"
+          } > release-notes.txt
+          cat release-notes.txt
+
+      - name: Send to App Tester (Family)
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          echo "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" npx -y firebase-tools@latest \
+            appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
+            --app 1:179925532044:android:6756796d5a2804a454aaa9 \
+            --groups family \
+            --release-notes-file release-notes.txt \
+            --project daurfit
+          rm -f "$RUNNER_TEMP/sa.json"
