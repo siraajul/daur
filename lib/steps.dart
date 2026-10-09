@@ -57,6 +57,19 @@ class Steps {
     return out;
   }
 
+  /// Today's steps hour by hour (index = hour, up to now), or null without a health store.
+  static Future<List<int>?> hourly() async {
+    if (await today() == null) return null; // configured and allowed, or nothing
+    final now = DateTime.now();
+    final out = <int>[];
+    for (var h = 0; h <= now.hour; h++) {
+      final from = DateTime(now.year, now.month, now.day, h);
+      final to = h == now.hour ? now : from.add(const Duration(hours: 1));
+      out.add(await _health.getTotalStepsInInterval(from, to) ?? 0);
+    }
+    return out;
+  }
+
   static List<HealthDataType> get _sleepTypes => [
     defaultTargetPlatform == TargetPlatform.iOS ? HealthDataType.SLEEP_ASLEEP : HealthDataType.SLEEP_SESSION,
   ];

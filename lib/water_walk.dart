@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -122,6 +124,7 @@ class WalkScreen extends StatefulWidget {
 
 class _WalkScreenState extends State<WalkScreen> {
   Map<String, int>? _week; // from the health store
+  List<int>? _hours; // today, hour by hour (health store only)
   late int? _steps = widget.steps;
   bool _loading = false;
 
@@ -137,9 +140,11 @@ class _WalkScreenState extends State<WalkScreen> {
     setState(() => _loading = true);
     await widget.onRefresh();
     final w = await Steps.week(s.lastDays(7));
+    final h = await Steps.hourly();
     if (!mounted) return;
     setState(() {
       _week = w;
+      _hours = h;
       if (w != null) _steps = w[s.today];
       _loading = false;
     });
@@ -178,6 +183,16 @@ class _WalkScreenState extends State<WalkScreen> {
         final week = (s.lap - 1) ~/ 7 + 1;
         final days = s.lastDays(7);
 
+        final weekValues = [for (final d in days) d == s.today ? walked : _week?[d] ?? s.stepsHistory[d] ?? 0];
+        final logged = weekValues.where((v) => v > 0).toList();
+        final avg = logged.isEmpty ? 0 : logged.reduce((a, b) => a + b) ~/ logged.length;
+        final hit = [for (final (i, d) in days.indexed) weekValues[i] >= s.stepTargetOn(d)].where((x) => x).length;
+        final stage = s.lap <= 14
+            ? 0
+            : s.lap <= 28
+            ? 1
+            : 2;
+
         return Scaffold(
           body: SafeArea(
             child: Column(
@@ -189,57 +204,154 @@ class _WalkScreenState extends State<WalkScreen> {
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                       children: [
                         _Header(title: 'Walk', sub: 'Week $week · target ${thousands(target)} steps'),
-                        const SizedBox(height: 24),
-                        _Hero(big: thousands(walked), small: 'steps'),
                         const SizedBox(height: 16),
-                        SizedBox(
-                          height: 48,
-                          child: CustomPaint(painter: _LanePainter(walked, target, t), size: Size.infinite),
-                        ),
-                        const SizedBox(height: 12),
-                        Text.rich(
-                          TextSpan(
-                            style: t.sec(),
-                            children: togo == 0
-                                ? [
-                                    TextSpan(
-                                      text: 'Target done. ',
-                                      style: t.sec(t.ink).copyWith(fontWeight: FontWeight.w600),
-                                    ),
-                                    const TextSpan(text: 'Anything more is a bonus.'),
-                                  ]
-                                : [
-                                    TextSpan(
-                                      text: '${thousands(togo)} to go, ',
-                                      style: t.sec(t.ink).copyWith(fontWeight: FontWeight.w600),
-                                    ),
-                                    TextSpan(text: 'about ${(togo / 105).ceil()} minutes of brisk walking.'),
-                                  ],
+                        // the hero: a ring that fills to today's target, the runner at its tip
+                        Center(
+                          child: Semantics(
+                            label: '${thousands(walked)} of ${thousands(target)} steps',
+                            excludeSemantics: true,
+                            child: SizedBox.square(
+                              dimension: 220,
+                              child: CustomPaint(
+                                painter: _StepRing(walked / target, t),
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      FittedBox(
+                                        child: Text(thousands(walked), style: t.x(44, weight: FontWeight.w900)),
+                                      ),
+                                      Text('of ${thousands(target)} steps', style: t.sec()),
+                                      const SizedBox(height: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: togo == 0 ? t.accent : t.infield,
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          togo == 0 ? 'Target done' : '${thousands(togo)} to go',
+                                          style: t.meta(togo == 0 ? t.onAccent : t.ink),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                        Text('${km.toStringAsFixed(1)} km so far · ≈ ${kcal.round()} kcal', style: t.sec()),
                         const SizedBox(height: 20),
-                        for (final (label, steps, sub, active) in [
-                          ('Weeks 1–2', '7,000', 'about 5 km a day', s.lap <= 14),
-                          ('Weeks 3–4', '8,000', 'about 6 km a day', s.lap > 14 && s.lap <= 28),
-                          ('Weeks 5–12', '10,000', '9,000–10,000, about 7 km', s.lap > 28),
-                        ])
-                          _Rung(label: active ? '$label · now' : label, steps: steps, sub: sub, active: active),
-                        const SizedBox(height: 24),
-                        Text('This week', style: t.meta()),
-                        const SizedBox(height: 10),
-                        WeekBars(
-                          days: days,
-                          values: [for (final d in days) d == s.today ? walked : _week?[d] ?? s.stepsHistory[d] ?? 0],
-                          target: target,
-                          max: 12000,
+                        Row(
+                          children: [
+                            for (final (i, (icon, value, label)) in [
+                              (Icons.straighten_rounded, km.toStringAsFixed(1), 'km'),
+                              (Icons.local_fire_department_rounded, '${kcal.round()}', 'kcal'),
+                              (Icons.timer_outlined, togo == 0 ? '0' : '${(togo / 105).ceil()}', 'min to go'),
+                            ].indexed) ...[
+                              if (i > 0) const SizedBox(width: 8),
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                                  decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(16)),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(icon, size: 18, color: t.ink),
+                                      const SizedBox(height: 6),
+                                      FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(value, style: t.x(22)),
+                                      ),
+                                      Text(label, style: t.meta()),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
-                        const SizedBox(height: 20),
-                        const Tip(Icons.wb_sunny_outlined, '15–20 min after lunch'),
-                        const Tip(Icons.bedtime_outlined, '15–20 min after dinner'),
-                        const Tip(Icons.directions_run_rounded, 'Treadmill steps count'),
-                        const Tip(Icons.healing_outlined, 'Knees or feet hurt? Hold the step count a week'),
-                        const SizedBox(height: 12),
+                        if (_hours != null && _hours!.any((h) => h > 0)) ...[
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Expanded(child: Text('Today by the hour', style: t.meta())),
+                              Text('most at ${_peak(_hours!)}:00', style: t.meta(t.ink)),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            height: 84,
+                            child: CustomPaint(painter: _HourBars(_hours!, t), size: Size.infinite),
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(child: Text('This week', style: t.meta())),
+                            Text('avg ${thousands(avg)} · $hit of 7 on target', style: t.meta(t.ink)),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        WeekBars(days: days, values: weekValues, target: target, max: 12000),
+                        const SizedBox(height: 24),
+                        Text('The build-up', style: t.meta()),
+                        const SizedBox(height: 10),
+                        // three steps of the plan; the yellow one is where you are
+                        Row(
+                          children: [
+                            for (final (i, (weeks, steps)) in const [
+                              ('Weeks 1–2', '7k'),
+                              ('Weeks 3–4', '8k'),
+                              ('Weeks 5–12', '10k'),
+                            ].indexed) ...[
+                              if (i > 0) const SizedBox(width: 6),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: i == stage
+                                            ? t.accent
+                                            : i < stage
+                                            ? t.ink
+                                            : t.lane.withValues(alpha: .35),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(steps, style: t.x(18, color: i == stage ? t.ink : t.ink2)),
+                                    Text(i == stage ? '$weeks · now' : weeks, style: t.meta(i == stage ? t.ink : null)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final (icon, text) in const [
+                              (Icons.wb_sunny_outlined, '15–20 min after lunch'),
+                              (Icons.bedtime_outlined, '15–20 min after dinner'),
+                              (Icons.directions_run_rounded, 'Treadmill counts'),
+                              (Icons.healing_outlined, 'Sore? Hold a week'),
+                            ])
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: ShapeDecoration(
+                                  shape: StadiumBorder(side: BorderSide(color: t.lane, width: 1.5)),
+                                ),
+                                child: Stat(icon, text, color: t.ink, size: 13),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
                         Text(
                           fromHealth
                               ? 'From ${Theme.of(context).platform == TargetPlatform.iOS ? 'Apple Health' : 'Health Connect'}'
@@ -268,6 +380,105 @@ class _WalkScreenState extends State<WalkScreen> {
       },
     );
   }
+
+  static int _peak(List<int> h) {
+    var best = 0;
+    for (var i = 1; i < h.length; i++) {
+      if (h[i] > h[best]) best = i;
+    }
+    return best;
+  }
+}
+
+/// The day's steps as a ring: lane track, ink arc (yellow once the target is done), runner dot.
+class _StepRing extends CustomPainter {
+  _StepRing(this.frac, this.t);
+  final double frac;
+  final Daur t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const stroke = 16.0;
+    final c = size.center(Offset.zero), r = size.shortestSide / 2 - stroke / 2 - 4;
+    final f = frac.clamp(0.0, 1.0);
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..color = t.ink.withValues(alpha: .12),
+    );
+    if (f <= 0) return;
+    canvas.drawArc(
+      Rect.fromCircle(center: c, radius: r),
+      -1.5708,
+      f * 6.2832,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.round
+        ..color = f >= 1 ? t.accent : t.ink,
+    );
+    final a = -1.5708 + f * 6.2832;
+    final p = c + Offset(r * math.cos(a), r * math.sin(a));
+    canvas.drawCircle(p, 11, Paint()..color = t.accent);
+    canvas.drawCircle(
+      p,
+      11,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = t.ground,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_StepRing o) => o.frac != frac || o.t != t;
+}
+
+/// Steps per hour from 5:00 to now; the busiest hour in yellow.
+class _HourBars extends CustomPainter {
+  _HourBars(this.h, this.t);
+  final List<int> h;
+  final Daur t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const first = 5, last = 23;
+    final top = h.fold(1, (a, b) => b > a ? b : a);
+    final peak = h.indexOf(top);
+    const labelH = 16.0;
+    final slot = size.width / (last - first + 1);
+    for (var hr = first; hr <= last; hr++) {
+      final v = hr < h.length ? h[hr] : 0;
+      final x = (hr - first) * slot;
+      final barH = v == 0 ? 2.0 : (size.height - labelH) * v / top;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x + slot * .18, size.height - labelH - barH, slot * .64, barH),
+          const Radius.circular(3),
+        ),
+        Paint()
+          ..color = hr == peak
+              ? t.accent
+              : hr < h.length
+              ? t.ink
+              : t.lane.withValues(alpha: .3),
+      );
+      if (hr % 6 == 0) {
+        final tp = TextPainter(
+          text: TextSpan(text: '$hr', style: t.meta()),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        tp.paint(canvas, Offset(x + slot / 2 - tp.width / 2, size.height - tp.height));
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_HourBars o) => o.h != h || o.t != t;
 }
 
 class _Header extends StatelessWidget {
@@ -316,41 +527,6 @@ class _Hero extends StatelessWidget {
         const SizedBox(width: 10),
         Text(small, style: t.x(24)),
       ],
-    );
-  }
-}
-
-class _Rung extends StatelessWidget {
-  const _Rung({required this.label, required this.steps, required this.sub, required this.active});
-  final String label, steps, sub;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Daur.of(context);
-    return Container(
-      constraints: const BoxConstraints(minHeight: 50),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: t.rule, width: .5)),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 132,
-            child: Text(steps, style: t.x(22, color: active ? t.accent : t.ink2)),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(label, style: t.body(color: active ? t.ink : t.ink2)),
-                Text(sub, style: t.meta()),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -425,44 +601,4 @@ class _Dash extends CustomPainter {
 
   @override
   bool shouldRepaint(_Dash o) => o.c != c;
-}
-
-/// A straight lane from 0 to the day's target, a mark every 1,000 steps, the runner at today's steps.
-class _LanePainter extends CustomPainter {
-  _LanePainter(this.steps, this.target, this.t);
-  final int steps, target;
-  final Daur t;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width, h = size.height, mid = h / 2;
-    final lane = Paint()
-      ..color = t.lane
-      ..strokeWidth = 1.5;
-    canvas.drawLine(Offset(0, 2), Offset(w, 2), lane);
-    canvas.drawLine(Offset(0, h - 2), Offset(w, h - 2), lane);
-    double x(num v) => 12 + (v / target).clamp(0, 1) * (w - 24);
-    for (var k = 1000; k <= target; k += 1000) {
-      canvas.drawLine(
-        Offset(x(k), 6),
-        Offset(x(k), k % 4000 == 0 || k == target ? h - 6 : 16),
-        Paint()
-          ..color = k <= steps ? t.ink : t.faint
-          ..strokeWidth = 2,
-      );
-    }
-    canvas.drawLine(
-      Offset(x(0), mid),
-      Offset(x(steps), mid),
-      Paint()
-        ..color = t.ink
-        ..strokeWidth = 5
-        ..strokeCap = StrokeCap.round,
-    );
-    canvas.drawCircle(Offset(x(steps), mid), 11.75, Paint()..color = t.ground);
-    canvas.drawCircle(Offset(x(steps), mid), 10, Paint()..color = t.accent);
-  }
-
-  @override
-  bool shouldRepaint(_LanePainter o) => o.steps != steps || o.target != target || o.t != t;
 }
