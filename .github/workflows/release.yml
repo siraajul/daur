@@ -4,7 +4,11 @@
 # Secrets (Settings → Secrets and variables → Actions):
 #   FIREBASE_SERVICE_ACCOUNT  JSON key of github-release@daurfit (role: Firebase App Distribution Admin only)
 #   APPCHECK_DEBUG_TOKEN      App Check token, so the AI meal estimate works in these builds
-#   ANDROID_SIGNING_KEYSTORE  base64 of the signing keystore; installed builds only update with the same key
+#   ANDROID_SIGNING_KEYSTORE  base64 of the Mac's ~/.android/debug.keystore (SHA-1 73:b4:b3:…:91:5a). Must be
+#                             that key: Google sign-in only works for keys registered in Firebase, and
+#                             an installed build only updates with the same key (a different one makes
+#                             App Tester uninstall first, wiping the app's data). Check a build with
+#                             apksigner verify --print-certs app-release.apk
 name: Release to App Tester
 
 on:
