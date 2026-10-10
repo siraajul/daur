@@ -12,7 +12,8 @@ import 'today.dart' show thousands;
 // floats z's, the scale's needle swings, the dumbbell lifts, the flame flickers, a heart bursts.
 // Every one plays once (or a few loops) and then rests; with reduced motion it is simply there.
 
-/// Plays 0 → 1 once, after [delay], the first time it shows; 1 straight away with reduced motion.
+/// Plays 0 → 1 after [delay] when it shows (again each time its tab comes back); 1 straight away
+/// with reduced motion.
 class Play extends StatefulWidget {
   const Play({
     super.key,
@@ -33,20 +34,26 @@ class Play extends StatefulWidget {
 
 class _PlayState extends State<Play> with SingleTickerProviderStateMixin {
   late final _c = AnimationController(vsync: this, duration: widget.duration);
-  bool _started = false;
+  bool _shown = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_started) return;
-    _started = true;
+    // a tab built while hidden waits until it's shown, and plays again each time it comes back
+    if (!Visibility.of(context)) {
+      _shown = false;
+      return;
+    }
+    if (_shown) return;
+    _shown = true;
     if (reduceMotion(context)) {
       _c.value = 1;
-    } else {
-      Future.delayed(widget.delay, () {
-        if (mounted) _c.forward();
-      });
+      return;
     }
+    _c.value = 0;
+    Future.delayed(widget.delay, () {
+      if (mounted) _c.forward();
+    });
   }
 
   @override

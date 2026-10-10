@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
 
+import 'activity_anim.dart';
 import 'adaptive.dart';
 import 'live.dart';
 import 'motion.dart';
@@ -177,14 +178,24 @@ class _GymScreenState extends State<GymScreen> {
                   onChanged: s.pickGymDay,
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text('$done', style: t.x(68, weight: FontWeight.w900)),
-                    const SizedBox(width: 10),
-                    Text('of ${list.length}', style: t.x(28)),
-                  ],
+                // the count rolls; finishing the session throws confetti
+                Confetti(
+                  burst: list.isNotEmpty && done == list.length,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Pop(
+                        trigger: done,
+                        child: Odometer(
+                          text: '$done',
+                          style: t.x(68, weight: FontWeight.w900),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text('of ${list.length}', style: t.x(28)),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
@@ -193,7 +204,16 @@ class _GymScreenState extends State<GymScreen> {
                 ),
                 const SizedBox(height: 12),
                 for (final (i, ex) in list.indexed)
-                  _ExerciseRow(store: s, ex: ex, index: i, onLogNext: () => _logNext(ex)),
+                  Play(
+                    key: ValueKey('$day$ex'), // a new day slides its list in again
+                    delay: Duration(milliseconds: 120 + 60 * i),
+                    duration: const Duration(milliseconds: 480),
+                    builder: (context, v, child) => Opacity(
+                      opacity: v,
+                      child: Transform.translate(offset: Offset(28 * (1 - v), 0), child: child),
+                    ),
+                    child: _ExerciseRow(store: s, ex: ex, index: i, onLogNext: () => _logNext(ex)),
+                  ),
                 _Row(
                   leading: Icon(Icons.directions_walk, color: t.ink),
                   title: 'Treadmill',
@@ -233,22 +253,25 @@ class _ExerciseRow extends StatelessWidget {
     final done = store.exerciseDone(ex);
     final inProgress = logged.isNotEmpty && !done;
     return _Row(
-      leading: Container(
-        width: 26,
-        height: 26,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: done ? t.ink : null,
-          border: Border.all(
-            color: done
-                ? t.ink
-                : inProgress
-                ? t.accent
-                : t.lane,
-            width: inProgress ? 2.5 : 1.5,
+      leading: Stamp(
+        on: done,
+        child: Container(
+          width: 26,
+          height: 26,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: done ? t.ink : null,
+            border: Border.all(
+              color: done
+                  ? t.ink
+                  : inProgress
+                  ? t.accent
+                  : t.lane,
+              width: inProgress ? 2.5 : 1.5,
+            ),
           ),
+          child: done ? Icon(Icons.check, size: 16, color: t.ground) : null,
         ),
-        child: done ? Icon(Icons.check, size: 16, color: t.ground) : null,
       ),
       title: ex,
       titleColor: done ? t.ink2 : t.ink,
@@ -310,29 +333,33 @@ class _SetDot extends StatelessWidget {
           width: 40,
           height: 44,
           child: Center(
-            child: Container(
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: fill,
-                border: Border.all(color: border, width: state == _Dot.next ? 2.5 : 1.5),
-              ),
-              child: state == _Dot.skipped
-                  ? Icon(Icons.remove_rounded, size: 16, color: t.ink2)
-                  : Text(
-                      label,
-                      // small text: ink, not yellow (yellow on red is only legible large); the ring says "next"
-                      style: t.x(
-                        12,
-                        color: state == _Dot.done
-                            ? t.ground
-                            : state == _Dot.next
-                            ? t.ink
-                            : t.ink2,
+            // a logged set stamps down
+            child: Stamp(
+              on: state == _Dot.done,
+              child: Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: fill,
+                  border: Border.all(color: border, width: state == _Dot.next ? 2.5 : 1.5),
+                ),
+                child: state == _Dot.skipped
+                    ? Icon(Icons.remove_rounded, size: 16, color: t.ink2)
+                    : Text(
+                        label,
+                        // small text: ink, not yellow (yellow on red is only legible large); the ring says "next"
+                        style: t.x(
+                          12,
+                          color: state == _Dot.done
+                              ? t.ground
+                              : state == _Dot.next
+                              ? t.ink
+                              : t.ink2,
+                        ),
                       ),
-                    ),
+              ),
             ),
           ),
         ),
