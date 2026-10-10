@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'activity_anim.dart';
 import 'dau.dart';
 import 'badges.dart';
 import 'motion.dart';
@@ -71,7 +72,15 @@ class ProgressScreen extends StatelessWidget {
               height: 200,
               child: Stack(
                 children: [
-                  Positioned.fill(child: CustomPaint(painter: _WeightChart(t, s))),
+                  // the line draws itself from day 1 to today
+                  Positioned.fill(
+                    child: Play(
+                      delay: const Duration(milliseconds: 150),
+                      duration: const Duration(milliseconds: 1500),
+                      curve: Curves.easeInOutCubic,
+                      builder: (context, v, _) => CustomPaint(painter: _WeightChart(t, s, v)),
+                    ),
+                  ),
                   // no weigh-ins yet: Dau waits on the empty chart
                   if (s.weights.isEmpty) const Center(child: Dau(mood: DauMood.waiting, size: 110)),
                 ],
@@ -231,11 +240,15 @@ class ProgressScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: frac.clamp(0, 1).toDouble(),
-                    minHeight: 6,
-                    color: frac >= 1 && label != 'Calories' ? t.accent : t.ink,
-                    backgroundColor: t.lane.withValues(alpha: .35),
+                  child: Play(
+                    delay: const Duration(milliseconds: 250),
+                    duration: const Duration(milliseconds: 900),
+                    builder: (context, v, _) => LinearProgressIndicator(
+                      value: (frac.clamp(0, 1) * v).toDouble(),
+                      minHeight: 6,
+                      color: frac >= 1 && label != 'Calories' ? t.accent : t.ink,
+                      backgroundColor: t.lane.withValues(alpha: .35),
+                    ),
                   ),
                 ),
               ],
@@ -342,8 +355,12 @@ class ProgressScreen extends StatelessWidget {
             excludeSemantics: true,
             child: SizedBox.square(
               dimension: 164,
-              child: CustomPaint(
-                painter: _Rings(t, [for (final a in order) sum.areas[a]]),
+              child: Play(
+                delay: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 1600),
+                curve: Curves.linear,
+                builder: (context, v, child) =>
+                    CustomPaint(painter: _Rings(t, [for (final a in order) sum.areas[a]], v), child: child),
                 child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -491,21 +508,30 @@ class _Season extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     final start = DateTime.parse(store.startDay);
-    return GridView.count(
-      crossAxisCount: 12,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.6,
-      children: [
-        // column = week, row = weekday, like the design
-        for (var i = 0; i < laps; i++)
-          () {
-            final day = (i % 12) * 7 + i ~/ 12; // row-major grid → week columns
-            final key = dayKey(start.add(Duration(days: day)));
-            final isToday = key == store.today;
-            return CustomPaint(painter: _Oval(t, (isToday ? store.legsDone : store.lapHistory[key] ?? 0) / 4, isToday));
-          }(),
-      ],
+    // the season's laps fill in a wave, week by week
+    return Play(
+      delay: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 1400),
+      curve: Curves.linear,
+      builder: (context, v, _) => GridView.count(
+        crossAxisCount: 12,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        childAspectRatio: 1.6,
+        children: [
+          // column = week, row = weekday, like the design
+          for (var i = 0; i < laps; i++)
+            () {
+              final day = (i % 12) * 7 + i ~/ 12; // row-major grid → week columns
+              final key = dayKey(start.add(Duration(days: day)));
+              final isToday = key == store.today;
+              final k = Curves.easeOut.transform((v * 1.8 - day / laps * .8).clamp(0, 1));
+              return CustomPaint(
+                painter: _Oval(t, (isToday ? store.legsDone : store.lapHistory[key] ?? 0) / 4 * k, isToday),
+              );
+            }(),
+        ],
+      ),
     );
   }
 }
@@ -548,9 +574,10 @@ class _Oval extends CustomPainter {
 /// Weight over the 84 days: weigh-ins as dots, the 7-day average as the line, month targets as
 /// yellow bands at their day, today as a faint line. Day 1 on the left.
 class _WeightChart extends CustomPainter {
-  _WeightChart(this.t, this.s);
+  _WeightChart(this.t, this.s, [this.draw = 1]);
   final Daur t;
   final Store s;
+  final double draw; // 0..1: how far along the line has drawn
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -604,8 +631,10 @@ class _WeightChart extends CustomPainter {
     );
 
     if (pts.isEmpty) return;
-    // weigh-ins
+    // weigh-ins: each dot appears as the line passes it
+    final reach = left + (x(pts.last.$1) - left) * draw;
     for (final (d, kg) in pts) {
+      if (x(d) > reach + .5) continue;
       canvas.drawCircle(Offset(x(d), y(kg)), 2.6, Paint()..color = t.ink2);
     }
     // 7-day average at each weigh-in day
@@ -617,8 +646,9 @@ class _WeightChart extends CustomPainter {
         }(),
     ];
     if (avg.length > 1) {
+      final m = (Path()..addPolygon(avg, false)).computeMetrics().first;
       canvas.drawPath(
-        Path()..addPolygon(avg, false),
+        m.extractPath(0, m.length * draw),
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 3
@@ -627,10 +657,13 @@ class _WeightChart extends CustomPainter {
           ..color = t.ink,
       );
     }
-    canvas.drawCircle(avg.last, 6, Paint()..color = t.accent);
+    // today's mark pops in when the line arrives
+    final pop = Curves.elasticOut.transform(((draw - .85) / .15).clamp(0, 1));
+    if (pop <= 0) return;
+    canvas.drawCircle(avg.last, 6 * pop, Paint()..color = t.accent);
     canvas.drawCircle(
       avg.last,
-      6,
+      6 * pop,
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5
@@ -639,7 +672,7 @@ class _WeightChart extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_WeightChart o) => true; // cheap; the store changes rarely here
+  bool shouldRepaint(_WeightChart o) => true; // cheap; redrawn while it draws in
 }
 
 /// A tiny trend line of an exercise's best set per session; the last point marked.
@@ -675,9 +708,10 @@ class _Spark extends CustomPainter {
 /// Concentric rings, outermost first: each fills with its area's gain, a full ring at +50%.
 /// An area without two sessions yet shows only its track; a loss shows a short faint arc.
 class _Rings extends CustomPainter {
-  _Rings(this.t, this.gains);
+  _Rings(this.t, this.gains, [this.grow = 1]);
   final Daur t;
   final List<double?> gains;
+  final double grow; // 0..1: the rings fill one after another, outside in
 
   /// Yellow outside (the headline area), then ink getting lighter inward: one accent, one role.
   static Color shade(Daur t, int i) => i == 0 ? t.accent : t.ink.withValues(alpha: const [1.0, 1.0, .82, .64][i]);
@@ -698,7 +732,9 @@ class _Rings extends CustomPainter {
           ..color = t.ink.withValues(alpha: .12),
       );
       if (g == null) continue;
-      final frac = (g / .5).clamp(0.03, 1.0); // a sliver even for a loss, so the ring reads as measured
+      final k = Curves.easeOutCubic.transform(((grow - i * .15) / .55).clamp(0, 1));
+      if (k <= 0) continue;
+      final frac = (g / .5).clamp(0.03, 1.0) * k; // a sliver even for a loss, so the ring reads as measured
       canvas.drawArc(
         rect,
         -1.5708,
@@ -714,5 +750,5 @@ class _Rings extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_Rings o) => o.gains != gains || o.t != t;
+  bool shouldRepaint(_Rings o) => o.gains != gains || o.t != t || o.grow != grow;
 }

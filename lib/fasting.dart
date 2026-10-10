@@ -1,12 +1,11 @@
 import 'dart:async';
-
-import 'package:flutter_timezone/flutter_timezone.dart';
-
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 
+import 'activity_anim.dart';
 import 'plan.dart';
 import 'ramadan.dart';
 import 'store.dart';
@@ -637,61 +636,65 @@ class _StageRingState extends State<_StageRing> with SingleTickerProviderStateMi
       label: f.eating ? 'Eating window, ${_dur(f.left)} left' : 'Fasting ${_dur(d)} of ${widget.goal} hours, ${st!.$2}',
       excludeSemantics: true,
       child: Center(
-        child: SizedBox.square(
-          dimension: 248,
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: f.frac.clamp(0.0, 1.0)),
-            duration: const Duration(milliseconds: 1100),
-            curve: Curves.easeOutCubic,
-            builder: (context, frac, child) => AnimatedBuilder(
-              animation: _pulse,
-              builder: (context, child) =>
-                  CustomPaint(painter: _StagePainter(frac, widget.goal, f.eating, _pulse.value, t), child: child),
-              child: child,
-            ),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 600),
-                    transitionBuilder: (c, a) => ScaleTransition(
-                      scale: CurvedAnimation(parent: a, curve: Curves.elasticOut),
-                      child: FadeTransition(opacity: a, child: c),
-                    ),
-                    child: Icon(icon, key: ValueKey(icon), size: 30, color: f.eating ? t.ink : t.accent),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(
-                        '${d.inHours}:${(d.inMinutes % 60).toString().padLeft(2, '0')}',
-                        style: t.x(44, weight: FontWeight.w900),
+        // a finished fast throws confetti
+        child: Confetti(
+          burst: done,
+          child: SizedBox.square(
+            dimension: 248,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: f.frac.clamp(0.0, 1.0)),
+              duration: const Duration(milliseconds: 1100),
+              curve: Curves.easeOutCubic,
+              builder: (context, frac, child) => AnimatedBuilder(
+                animation: _pulse,
+                builder: (context, child) =>
+                    CustomPaint(painter: _StagePainter(frac, widget.goal, f.eating, _pulse.value, t), child: child),
+                child: child,
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 600),
+                      transitionBuilder: (c, a) => ScaleTransition(
+                        scale: CurvedAnimation(parent: a, curve: Curves.elasticOut),
+                        child: FadeTransition(opacity: a, child: c),
                       ),
-                      Text(':${(d.inSeconds % 60).toString().padLeft(2, '0')}', style: t.x(16, color: t.ink2)),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 400),
-                    child: Text(name, key: ValueKey(name), style: t.body()),
-                  ),
-                  Text(
-                    f.eating
-                        ? widget.ramadan
-                              ? 'sehri ends in ${_dur(f.left)}'
-                              : '${_dur(f.left)} left to eat'
-                        : widget.ramadan
-                        ? 'iftar in ${_dur(f.left)}'
-                        : done
-                        ? 'Goal done · ${widget.goal}h'
-                        : 'of ${widget.goal}h',
-                    style: t.meta(done ? t.accent : null),
-                  ),
-                ],
+                      child: Icon(icon, key: ValueKey(icon), size: 30, color: f.eating ? t.ink : t.accent),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          '${d.inHours}:${(d.inMinutes % 60).toString().padLeft(2, '0')}',
+                          style: t.x(44, weight: FontWeight.w900),
+                        ),
+                        Text(':${(d.inSeconds % 60).toString().padLeft(2, '0')}', style: t.x(16, color: t.ink2)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 400),
+                      child: Text(name, key: ValueKey(name), style: t.body()),
+                    ),
+                    Text(
+                      f.eating
+                          ? widget.ramadan
+                                ? 'sehri ends in ${_dur(f.left)}'
+                                : '${_dur(f.left)} left to eat'
+                          : widget.ramadan
+                          ? 'iftar in ${_dur(f.left)}'
+                          : done
+                          ? 'Goal done · ${widget.goal}h'
+                          : 'of ${widget.goal}h',
+                      style: t.meta(done ? t.accent : null),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

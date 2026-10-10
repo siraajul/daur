@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'activity_anim.dart';
 import 'cloud.dart';
 import 'store.dart';
 import 'theme.dart';
@@ -127,7 +128,13 @@ class _FamilyScreenState extends State<FamilyScreen> {
                       if (snap.hasError) return Text('Couldn\'t load the board.', style: t.sec());
                       if (!snap.hasData) return const Center(child: CircularProgressIndicator.adaptive());
                       return Column(
-                        children: [for (final r in rows) _Member(row: r, legs: legs(r), me: r['uid'] == c.user?.uid)],
+                        children: [
+                          for (final (i, r) in rows.indexed)
+                            SlideIn(
+                              i: i,
+                              child: _Member(row: r, legs: legs(r), me: r['uid'] == c.user?.uid),
+                            ),
+                        ],
                       );
                     },
                   ),

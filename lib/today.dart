@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'dau.dart';
+import 'activity_anim.dart';
 import 'adaptive.dart';
 import 'burn.dart';
 import 'coach.dart';
@@ -134,11 +135,23 @@ class TodayScreen extends StatelessWidget {
                         ? 'Done for today\n${thousands(s.kcal)} kcal · ${s.protein} g protein'
                         : '${thousands(s.kcal)} of ${thousands(s.kcalGoal)} kcal\n${s.protein} of ${s.proteinText} g protein',
                   ),
-                  if (s.kcal > 0) Center(child: _BurnPill(store: s)),
+                  if (s.kcal > 0)
+                    Center(
+                      child: Pop(
+                        trigger: s.kcal,
+                        amount: .12,
+                        child: _BurnPill(store: s),
+                      ),
+                    ),
                   // the lap is run: Dau cheers (decoration; the caption already says it)
                   if (s.legsDone == 4) const Center(child: Dau(mood: DauMood.cheer, size: 96)),
                   const SizedBox(height: 8),
-                  for (final (i, m) in meals.indexed) _Leg(store: s, meal: m, n: (i + 1) * 100, isNext: m == next),
+                  // the day's legs slide in one after another when Today opens
+                  for (final (i, m) in meals.indexed)
+                    SlideIn(
+                      i: i,
+                      child: _Leg(store: s, meal: m, n: (i + 1) * 100, isNext: m == next),
+                    ),
                   for (final (i, e) in s.extras.indexed)
                     _Line(
                       lead: IconDisc(foodIcon(e.name, e.cat), size: 36, rare: e.rare),
@@ -206,6 +219,7 @@ class TodayScreen extends StatelessWidget {
                             value: '${litres(s.water)} L',
                             sub: 'of ${litres(s.waterGoal)} L',
                             frac: s.water / s.waterGoal,
+                            back: Liquid(frac: s.water / s.waterGoal),
                             onOpen: () =>
                                 Navigator.push(context, MaterialPageRoute(builder: (_) => WaterScreen(store: s))),
                             action: s.water >= s.waterGoal
@@ -226,6 +240,7 @@ class TodayScreen extends StatelessWidget {
                             value: thousands(walked),
                             sub: 'of ${thousands(stepTarget)}',
                             frac: walked / stepTarget,
+                            back: Footprints(frac: walked / stepTarget, delay: const Duration(milliseconds: 400)),
                             action: steps != null ? onRefreshSteps : () => _enterSteps(context),
                             actionIcon: steps != null ? Icons.refresh_rounded : Icons.edit_rounded,
                             actionLabel: steps != null ? 'Refresh steps' : 'Enter steps',
@@ -249,6 +264,7 @@ class TodayScreen extends StatelessWidget {
                                 : '${s.sleepMin! ~/ 60}h ${(s.sleepMin! % 60).toString().padLeft(2, '0')}',
                             sub: 'of 7–8 h',
                             frac: (s.sleepMin ?? 0) / 450,
+                            back: s.sleepMin == null ? null : const Zzz(at: Offset(44, 20)),
                             action: () => _enterSleep(context),
                             actionIcon: Icons.edit_rounded,
                             actionLabel: 'Enter sleep',
@@ -397,28 +413,32 @@ class _Leg extends StatelessWidget {
                       : isNext
                       ? 'next'
                       : 'not logged yet',
-                  child: Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: eaten != null ? t.ink : null,
-                      border: Border.all(
-                        color: eaten != null
-                            ? t.ink
-                            : isNext
-                            ? t.accent
-                            : t.lane,
-                        width: isNext ? 2.5 : 1.5,
+                  // logging a meal stamps its tick down
+                  child: Stamp(
+                    on: eaten != null || skipped,
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: eaten != null ? t.ink : null,
+                        border: Border.all(
+                          color: eaten != null
+                              ? t.ink
+                              : isNext
+                              ? t.accent
+                              : t.lane,
+                          width: isNext ? 2.5 : 1.5,
+                        ),
                       ),
+                      child: eaten != null
+                          ? Icon(Icons.check_rounded, size: 18, color: t.ground)
+                          : fasting
+                          ? Icon(Icons.hourglass_bottom_rounded, size: 16, color: t.ink2)
+                          : skipped
+                          ? Icon(Icons.remove_rounded, size: 18, color: t.ink2)
+                          : null,
                     ),
-                    child: eaten != null
-                        ? Icon(Icons.check_rounded, size: 18, color: t.ground)
-                        : fasting
-                        ? Icon(Icons.hourglass_bottom_rounded, size: 16, color: t.ink2)
-                        : skipped
-                        ? Icon(Icons.remove_rounded, size: 18, color: t.ink2)
-                        : null,
                   ),
                 ),
               ),
@@ -526,7 +546,9 @@ class _Tile extends StatelessWidget {
     required this.action,
     required this.actionIcon,
     required this.actionLabel,
+    this.back,
   });
+  final Widget? back; // alive behind the numbers: water sloshing, footprints, z's
   final IconData icon, actionIcon;
   final String label, value, sub, actionLabel;
   final double frac;
@@ -539,61 +561,67 @@ class _Tile extends StatelessWidget {
     return Material(
       color: t.infield,
       borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: onOpen,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 8, 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        child: Stack(
+          children: [
+            if (back != null) Positioned.fill(child: back!),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 8, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(icon, size: 18, color: t.ink),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(label, style: t.sec(t.ink), overflow: TextOverflow.ellipsis),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(value, style: t.x(22)),
-              ),
-              Text(sub, style: t.meta(), maxLines: 1, overflow: TextOverflow.ellipsis),
-              const Spacer(),
-              Row(
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(3),
-                      child: LinearProgressIndicator(
-                        value: frac.clamp(0, 1).toDouble(),
-                        minHeight: 6,
-                        color: frac >= 1 ? t.accent : t.ink,
-                        backgroundColor: t.lane.withValues(alpha: .35),
+                  Row(
+                    children: [
+                      Icon(icon, size: 18, color: t.ink),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(label, style: t.sec(t.ink), overflow: TextOverflow.ellipsis),
                       ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  IconButton.filled(
-                    onPressed: action,
-                    tooltip: actionLabel,
-                    icon: Icon(actionIcon, size: 16, color: action == null ? t.ink2 : t.onAccent),
-                    style: IconButton.styleFrom(
-                      backgroundColor: t.accent,
-                      disabledBackgroundColor: t.lane.withValues(alpha: .25),
-                      minimumSize: const Size(32, 32),
-                      fixedSize: const Size(32, 32),
-                      padding: EdgeInsets.zero,
-                    ),
+                  const SizedBox(height: 8),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(value, style: t.x(22)),
+                  ),
+                  Text(sub, style: t.meta(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const Spacer(),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(3),
+                          child: LinearProgressIndicator(
+                            value: frac.clamp(0, 1).toDouble(),
+                            minHeight: 6,
+                            color: frac >= 1 ? t.accent : t.ink,
+                            backgroundColor: t.lane.withValues(alpha: .35),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      IconButton.filled(
+                        onPressed: action,
+                        tooltip: actionLabel,
+                        icon: Icon(actionIcon, size: 16, color: action == null ? t.ink2 : t.onAccent),
+                        style: IconButton.styleFrom(
+                          backgroundColor: t.accent,
+                          disabledBackgroundColor: t.lane.withValues(alpha: .25),
+                          minimumSize: const Size(32, 32),
+                          fixedSize: const Size(32, 32),
+                          padding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
