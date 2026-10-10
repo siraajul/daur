@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'activity_anim.dart';
 import 'dau.dart';
 import 'store.dart';
 import 'theme.dart';
@@ -146,7 +147,7 @@ class _SpendingScreenState extends State<SpendingScreen> {
                       ),
                       if (cats.isNotEmpty) ...[
                         const SizedBox(height: 24),
-                        for (final c in cats)
+                        for (final (i, c) in cats.indexed)
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 6),
                             child: Row(
@@ -157,11 +158,17 @@ class _SpendingScreenState extends State<SpendingScreen> {
                                 Expanded(
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(4),
-                                    child: LinearProgressIndicator(
-                                      value: c.value / top,
-                                      minHeight: 10,
-                                      color: t.ink,
-                                      backgroundColor: Colors.transparent,
+                                    // the categories' bars grow out one after another
+                                    child: Play(
+                                      delay: Duration(milliseconds: 150 + 80 * i),
+                                      duration: const Duration(milliseconds: 800),
+                                      curve: Curves.easeOutBack,
+                                      builder: (context, v, _) => LinearProgressIndicator(
+                                        value: (c.value / top * v).clamp(0, 1).toDouble(),
+                                        minHeight: 10,
+                                        color: t.ink,
+                                        backgroundColor: Colors.transparent,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -174,39 +181,42 @@ class _SpendingScreenState extends State<SpendingScreen> {
                       if (list.isEmpty) const Center(child: Dau(mood: DauMood.waiting, size: 130)),
                       if (list.isNotEmpty) ...[
                         const SizedBox(height: 24),
-                        for (final e in list)
-                          Container(
-                            constraints: const BoxConstraints(minHeight: 52),
-                            decoration: BoxDecoration(
-                              border: Border(top: BorderSide(color: t.rule, width: .5)),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(spendCat(e.cat).$3, size: 20, color: t.ink2),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        e.note.isEmpty ? spendCat(e.cat).$2 : e.note,
-                                        style: t.body(weight: FontWeight.w400),
-                                      ),
-                                      Text(niceDate(DateTime.parse(e.day)), style: t.meta()),
-                                    ],
+                        for (final (i, e) in list.indexed)
+                          SlideIn(
+                            i: i,
+                            child: Container(
+                              constraints: const BoxConstraints(minHeight: 52),
+                              decoration: BoxDecoration(
+                                border: Border(top: BorderSide(color: t.rule, width: .5)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(spendCat(e.cat).$3, size: 20, color: t.ink2),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          e.note.isEmpty ? spendCat(e.cat).$2 : e.note,
+                                          style: t.body(weight: FontWeight.w400),
+                                        ),
+                                        Text(niceDate(DateTime.parse(e.day)), style: t.meta()),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                Text(taka(e.taka), style: t.x(15)),
-                                IconButton(
-                                  tooltip: 'Delete',
-                                  icon: Icon(Icons.close_rounded, size: 20, color: t.ink2),
-                                  onPressed: () {
-                                    final snap = s.snapshot();
-                                    s.removeExpense(e);
-                                    undoToast(context, '${taka(e.taka)} deleted', () => s.restore(snap));
-                                  },
-                                ),
-                              ],
+                                  Text(taka(e.taka), style: t.x(15)),
+                                  IconButton(
+                                    tooltip: 'Delete',
+                                    icon: Icon(Icons.close_rounded, size: 20, color: t.ink2),
+                                    onPressed: () {
+                                      final snap = s.snapshot();
+                                      s.removeExpense(e);
+                                      undoToast(context, '${taka(e.taka)} deleted', () => s.restore(snap));
+                                    },
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                       ],

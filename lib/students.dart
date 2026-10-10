@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'activity_anim.dart';
 import 'dau.dart';
 import 'cloud.dart';
 import 'coaching.dart';
@@ -162,13 +163,21 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       ],
                     ),
                   const SizedBox(height: 8),
-                  for (final r in needing) _StudentRow(h: r.h, p: r.p, flags: r.flags, store: s),
+                  for (final (i, r) in needing.indexed)
+                    SlideIn(
+                      i: i,
+                      child: _StudentRow(h: r.h, p: r.p, flags: r.flags, store: s),
+                    ),
                   if (needing.isNotEmpty && fine.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 18, bottom: 4),
                       child: Text('On track', style: t.meta()),
                     ),
-                  for (final r in fine) _StudentRow(h: r.h, p: r.p, flags: r.flags, store: s),
+                  for (final (i, r) in fine.indexed)
+                    SlideIn(
+                      i: needing.length + i,
+                      child: _StudentRow(h: r.h, p: r.p, flags: r.flags, store: s),
+                    ),
                   if (shown.isEmpty && rows.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16),

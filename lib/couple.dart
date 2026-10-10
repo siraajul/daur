@@ -281,37 +281,42 @@ class SideBySide extends StatelessWidget {
         const SizedBox(height: 24),
         Text('Today', style: t.meta()),
         // two runners on one track: yellow is you on the inside lane, cream is them outside
-        TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: 1),
-          duration: quick,
-          curve: Curves.easeOutCubic,
-          builder: (context, k, _) => AspectRatio(
-            aspectRatio: TrackPainter.w / TrackPainter.h,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: CustomPaint(painter: _TwoRunners(mine * 100 * k, linked ? theirs * 100 * k : null, t)),
-                ),
-                Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text('$mine', style: t.x(52, color: t.accent)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: Text('&', style: t.x(22, color: t.ink2)),
-                      ),
-                      Text(linked && them != null ? '$theirs' : '–', style: t.x(52)),
-                    ],
+        // both closed today: confetti, also when the page opens on such a day
+        Confetti(
+          burst: both,
+          onShow: true,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: quick,
+            curve: Curves.easeOutCubic,
+            builder: (context, k, _) => AspectRatio(
+              aspectRatio: TrackPainter.w / TrackPainter.h,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: CustomPaint(painter: _TwoRunners(mine * 100 * k, linked ? theirs * 100 * k : null, t)),
                   ),
-                ),
-                Align(
-                  alignment: const Alignment(0, .42),
-                  child: Text('meals today', style: t.meta()),
-                ),
-              ],
+                  Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text('$mine', style: t.x(52, color: t.accent)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: Text('&', style: t.x(22, color: t.ink2)),
+                        ),
+                        Text(linked && them != null ? '$theirs' : '–', style: t.x(52)),
+                      ],
+                    ),
+                  ),
+                  Align(
+                    alignment: const Alignment(0, .42),
+                    child: Text('meals today', style: t.meta()),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

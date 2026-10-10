@@ -70,6 +70,25 @@ class _PlayState extends State<Play> with SingleTickerProviderStateMixin {
   );
 }
 
+/// Slides a row in from below, a beat after the one before it, when its screen shows.
+class SlideIn extends StatelessWidget {
+  const SlideIn({super.key, required this.i, required this.child, this.after = const Duration(milliseconds: 250)});
+  final int i;
+  final Widget child;
+  final Duration after; // before the first row
+
+  @override
+  Widget build(BuildContext context) => Play(
+    delay: after + Duration(milliseconds: 70 * math.min(i, 8)), // a long list doesn't keep you waiting
+    duration: const Duration(milliseconds: 520),
+    child: child,
+    builder: (context, v, child) => Opacity(
+      opacity: v,
+      child: Transform.translate(offset: Offset(0, 22 * (1 - v)), child: child),
+    ),
+  );
+}
+
 /// A tile in the shape of [Tiles]' (icon, value, label) with something alive behind it.
 class _TileFrame extends StatelessWidget {
   const _TileFrame({required this.icon, required this.value, required this.label, this.back});

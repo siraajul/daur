@@ -148,7 +148,7 @@ class TodayScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   // the day's legs slide in one after another when Today opens
                   for (final (i, m) in meals.indexed)
-                    _SlideIn(
+                    SlideIn(
                       i: i,
                       child: _Leg(store: s, meal: m, n: (i + 1) * 100, isNext: m == next),
                     ),
@@ -626,25 +626,6 @@ class _Tile extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Slides a row in from below, a beat after the one before it, the first time Today shows.
-class _SlideIn extends StatelessWidget {
-  const _SlideIn({required this.i, required this.child});
-  final int i;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Play(
-    delay: Duration(milliseconds: 250 + 70 * i),
-    duration: const Duration(milliseconds: 520),
-    curve: Curves.easeOutCubic,
-    child: child,
-    builder: (context, v, child) => Opacity(
-      opacity: v,
-      child: Transform.translate(offset: Offset(0, 22 * (1 - v)), child: child),
-    ),
-  );
 }
 
 class Cta extends StatelessWidget {

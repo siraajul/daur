@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'activity_anim.dart';
 import 'adaptive.dart';
 import 'cloud.dart';
 import 'diet_chart.dart';
@@ -112,22 +113,25 @@ class _CoachesScreenState extends State<CoachesScreen> {
                         }
                         return Column(
                           children: [
-                            for (final h in rows)
-                              _Person(
-                                name: h['name'] as String? ?? '',
-                                photo: h['photoUrl'] as String?,
-                                sub: roleNames[h['role']] ?? '',
-                                onRemove: () async {
-                                  if (await confirmPop(
-                                    context,
-                                    'Remove ${h['name']}?',
-                                    'They stop seeing your progress.',
-                                    'Remove',
-                                    destructive: true,
-                                  )) {
-                                    await c.removeHelper(h['uid'] as String);
-                                  }
-                                },
+                            for (final (i, h) in rows.indexed)
+                              SlideIn(
+                                i: i,
+                                child: _Person(
+                                  name: h['name'] as String? ?? '',
+                                  photo: h['photoUrl'] as String?,
+                                  sub: roleNames[h['role']] ?? '',
+                                  onRemove: () async {
+                                    if (await confirmPop(
+                                      context,
+                                      'Remove ${h['name']}?',
+                                      'They stop seeing your progress.',
+                                      'Remove',
+                                      destructive: true,
+                                    )) {
+                                      await c.removeHelper(h['uid'] as String);
+                                    }
+                                  },
+                                ),
                               ),
                           ],
                         );
@@ -140,7 +144,11 @@ class _CoachesScreenState extends State<CoachesScreen> {
                   ],
                   const SizedBox(height: 28),
                   Text('Helping someone?', style: t.meta()),
-                  for (final h in s.helping) _Helped(h: h, store: s),
+                  for (final (i, h) in s.helping.indexed)
+                    SlideIn(
+                      i: i,
+                      child: _Helped(h: h, store: s),
+                    ),
                   _JoinRow(busy: _busy, onJoin: (code) => _run(() => c.joinAsHelper(code))),
                 ],
                 if (_error != null) ...[const SizedBox(height: 12), Text(_error!, style: t.body())],
@@ -940,7 +948,11 @@ class PeopleScreen extends StatelessWidget {
                 ] else ...[
                   if (s.helping.isEmpty)
                     const Tip(Icons.vpn_key_outlined, 'Ask for their code: in their Daur, Menu → Coaches → Invite'),
-                  for (final h in s.helping) _Helped(h: h, store: s),
+                  for (final (i, h) in s.helping.indexed)
+                    SlideIn(
+                      i: i,
+                      child: _Helped(h: h, store: s),
+                    ),
                   const SizedBox(height: 16),
                   Text('Add someone', style: t.meta()),
                   JoinByCode(store: s),
