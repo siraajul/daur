@@ -1077,5 +1077,17 @@ void main() {
     s.addExtra(Eaten('Biryani', s.kcalGoal, 30));
     expect(s.weekExtra, s.kcal - s.kcalGoal);
     expect(s.coachSummary()['weekExtra'], s.weekExtra);
+
+    // races count kept meals: a skipped one moves the runner but earns nothing
+    final legs = s.legsDone, kept = s.mealsKept;
+    s.skipMeal(meals[3]);
+    expect(s.legsDone, legs + 1);
+    expect(s.mealsKept, kept);
+    expect(s.recentDays.last[1], kept);
+
+    // steps typed in by hand are marked; Health's reading clears it
+    expect(s.weekStepsTyped, isTrue); // 5200 typed above
+    s.noteSteps(6100);
+    expect(s.weekStepsTyped, isFalse);
   });
 }

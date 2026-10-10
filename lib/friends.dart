@@ -235,6 +235,9 @@ class Leaderboard extends StatelessWidget {
   final String today;
   final String by; // a field of [boards]
 
+  /// Steps typed in by hand this week, on a board where steps count: marked ✎.
+  bool typed(Map r) => (by == 'steps' || by == 'points') && r['typed'] == true && r['week'] == raceWeekStart(today);
+
   /// What counts: this race week's only (a row from last week is 0 until they open Daur).
   int value(Map r) => r['week'] == raceWeekStart(today) ? (r[by] as num? ?? 0).toInt() : 0;
 
@@ -266,6 +269,7 @@ class Leaderboard extends StatelessWidget {
           top3: ranked.take(3).toList(),
           value: value,
           format: format,
+          typed: typed,
           me: me,
           // most extra kcal gets a flame, not a trophy
           crownIcon: by == 'extra' ? Icons.local_fire_department_rounded : Icons.emoji_events_rounded,
@@ -280,6 +284,7 @@ class Leaderboard extends StatelessWidget {
               row: r,
               value: value(r),
               text: format(value(r)),
+              typed: typed(r),
               top: top,
               me: r['uid'] == me,
               today: today,
@@ -287,6 +292,7 @@ class Leaderboard extends StatelessWidget {
           ),
         const SizedBox(height: 12),
         Text(counts, style: t.meta()),
+        if (ranked.any(typed)) Text('✎ some steps typed in by hand, not from Health', style: t.meta()),
       ],
     );
   }
@@ -303,10 +309,18 @@ class Leaderboard extends StatelessWidget {
 /// Second, first, third: the blocks rise from the floor one after another (third, second, then
 /// first), the faces drop onto them, and the winner gets a crown that bounces in last.
 class _Podium extends StatelessWidget {
-  const _Podium({required this.top3, required this.value, required this.format, required this.me, required this.crownIcon});
+  const _Podium({
+    required this.top3,
+    required this.value,
+    required this.format,
+    required this.typed,
+    required this.me,
+    required this.crownIcon,
+  });
   final List<Map<String, dynamic>> top3;
   final int Function(Map) value;
   final String Function(int) format;
+  final bool Function(Map) typed;
   final IconData crownIcon; // over the leader
   final String? me;
 
@@ -369,7 +383,7 @@ class _Podium extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
-                              format((value(r) * rise.clamp(0, 1)).round()),
+                              '${format((value(r) * rise.clamp(0, 1)).round())}${typed(r) ? ' ✎' : ''}',
                               style: t.x(15, color: t.ink2),
                               maxLines: 1,
                             ),
@@ -405,12 +419,14 @@ class _RankRow extends StatelessWidget {
     required this.row,
     required this.value,
     required this.text,
+    required this.typed,
     required this.top,
     required this.me,
     required this.today,
   });
   final int rank, value, top;
   final String text;
+  final bool typed; // steps typed in by hand
   final Map<String, dynamic> row;
   final bool me;
   final String today;
@@ -497,7 +513,7 @@ class _RankRow extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(text, style: t.x(16)),
+              Text(typed ? '$text ✎' : text, style: t.x(16)),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

@@ -82,4 +82,38 @@ void main() {
     expect(find.text('5,400 kg'), findsOneWidget);
     expect(find.text('kg × reps over every set logged this week'), findsOneWidget);
   });
+
+  testWidgets('steps typed in by hand are marked on the steps board', (tester) async {
+    const today = '2026-10-13';
+    Map<String, dynamic> row(String uid, int steps, {bool typed = false}) => {
+      'uid': uid,
+      'name': uid,
+      'steps': steps,
+      'week': '2026-10-10',
+      'streak': 0,
+      'day': today,
+      if (typed) 'typed': true,
+    };
+    await tester.binding.setSurfaceSize(const Size(390, 1400));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildTheme(Brightness.light),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: Leaderboard(
+              me: 'A',
+              today: today,
+              by: 'steps',
+              rows: [row('A', 30000), row('B', 41000, typed: true), row('C', 20000), row('D', 9000, typed: true)],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('41,000 ✎'), findsOneWidget); // on the podium
+    expect(find.text('9,000 ✎'), findsOneWidget); // in the list
+    expect(find.text('30,000'), findsOneWidget);
+    expect(find.text('✎ some steps typed in by hand, not from Health'), findsOneWidget);
+  });
 }

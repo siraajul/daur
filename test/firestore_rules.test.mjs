@@ -144,6 +144,8 @@ await t('a row with the week\'s steps, kg lifted, full days and water', assertSu
 await t('8 full days in a week are refused', assertFails(row(owner, 'owner', { full: 8 })));
 await t('a row with the week\'s extra kcal', assertSucceeds(row(owner, 'owner', { extra: 1240 })));
 await t('negative extra kcal is refused', assertFails(row(owner, 'owner', { extra: -5 })));
+await t('a row marked: steps typed in by hand', assertSucceeds(row(owner, 'owner', { typed: true })));
+await t('the mark is a yes or no', assertFails(row(owner, 'owner', { typed: 'maybe' })));
 await t('a lifted count that isn\'t a whole number is refused', assertFails(row(owner, 'owner', { lifted: 'lots' })));
 await t('nobody writes someone else\'s row', assertFails(row(fr('f1'), 'owner')));
 await t('members read the leaderboard', assertSucceeds(getDocs(collection(fr('f3'), 'families/FFFFFFFF/board'))));

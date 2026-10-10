@@ -265,6 +265,7 @@ class Cloud extends ChangeNotifier {
           'full': s.weekFullDays,
           'water': s.weekWater,
           'extra': s.weekExtra,
+          if (s.weekStepsTyped) 'typed': true,
           'week': raceWeekStart(s.today),
           'updatedAt': FieldValue.serverTimestamp(),
         });

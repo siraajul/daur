@@ -140,6 +140,8 @@ class Store extends ChangeNotifier {
   List<String> exercises = [...gymDefaults];
   List<Weigh> weights = [];
   Map<String, int> lapHistory = {}; // day -> meals eaten (0..4), drawn on Progress
+  Map<String, int> keptHistory = {}; // day -> meals eaten or fasted by plan, not skipped (the races)
+  Set<String> typedStepDays = {}; // days whose steps were typed in by hand, not read from Health
   Map<String, ExPlan> plans = {}; // exercise -> current plan (missing = default)
   Map<String, Map<String, List<SetLog>>> setLog = {}; // exercise -> day -> sets
   Map<String, List<String>> routine = {}; // 'Push' / 'Pull' / 'Legs' → that day's exercises
@@ -235,6 +237,8 @@ class Store extends ChangeNotifier {
     exercises = List<String>.from(j['exercises'] ?? gymDefaults);
     weights = [for (final w in (j['weights'] as List? ?? [])) Weigh(w['d'] as String, (w['v'] as num).toDouble())];
     lapHistory = Map<String, int>.from(j['lapHistory'] ?? {});
+    keptHistory = Map<String, int>.from(j['keptHistory'] ?? {});
+    typedStepDays = {...(j['typedStepDays'] as List? ?? const []).cast<String>()};
     plans = {
       for (final e in (j['plans'] as Map? ?? {}).entries)
         e.key as String: ExPlan(
@@ -361,6 +365,8 @@ class Store extends ChangeNotifier {
       for (final w in weights) {'d': w.day, 'v': w.kg},
     ],
     'lapHistory': lapHistory,
+    'keptHistory': keptHistory,
+    'typedStepDays': typedStepDays.toList(),
     'plans': {
       for (final e in plans.entries) e.key: [e.value.sets, e.value.reps, e.value.kg, e.value.timed],
     },
@@ -463,6 +469,7 @@ class Store extends ChangeNotifier {
     void put(Map<String, int> h, int v) => v == 0 ? h.remove(today) : h[today] = v;
     put(junkHistory, rareToday);
     put(lapHistory, legsDone);
+    put(keptHistory, mealsKept);
     put(kcalHistory, kcal);
     put(proteinHistory, protein);
     put(gymHistory, setsDoneToday + gymTicks.length + cardio.length);
@@ -546,6 +553,13 @@ class Store extends ChangeNotifier {
   int get mealsDone => meals.where((m) => done.containsKey(m.id)).length;
 
   /// Legs of today's lap run: meals logged or deliberately skipped. Honest logging is the habit.
+  /// Meals that count in a race: eaten, or gone without because the fasting plan says so. A meal
+  /// skipped by hand moves the runner on Today but earns nothing against friends.
+  int get mealsKept => meals.where((m) => done.containsKey(m.id) || (fasted(m) && !skipped.contains(m.id))).length;
+
+  /// [mealsKept] on [d]; days from before it was kept fall back to the lap.
+  int keptOn(String d) => d == today ? mealsKept : keptHistory[d] ?? lapHistory[d] ?? 0;
+
   int get legsDone => meals.where((m) => done.containsKey(m.id) || skipped.contains(m.id) || fasted(m)).length;
 
   // ---- targets: the original plan, or computed from [profile] ----
@@ -954,6 +968,7 @@ class Store extends ChangeNotifier {
   void setManualSteps(int? v) {
     manualSteps = v;
     v == null ? stepsHistory.remove(today) : stepsHistory[today] = v;
+    v == null ? typedStepDays.remove(today) : typedStepDays.add(today);
     _save();
   }
 
@@ -1425,8 +1440,9 @@ class Store extends ChangeNotifier {
 
   /// Steps seen today (from Health), kept per day for perfect days and the recap.
   void noteSteps(int v) {
-    if ((stepsHistory[today] ?? -1) == v) return;
+    if ((stepsHistory[today] ?? -1) == v && !typedStepDays.contains(today)) return;
     stepsHistory[today] = v;
+    typedStepDays.remove(today); // read from Health: real steps
     _save();
   }
 
@@ -1734,7 +1750,7 @@ class Store extends ChangeNotifier {
     for (final d in lastDays(7))
       [
         d,
-        d == today ? legsDone : lapHistory[d] ?? 0,
+        keptOn(d),
         d == today ? stepsToday : stepsHistory[d] ?? 0,
         stepTargetOn(d),
         d == today ? water : waterHistory[d] ?? 0,
@@ -1768,8 +1784,11 @@ class Store extends ChangeNotifier {
     return kg.round();
   }
 
-  /// Full days this race week: all four meals logged.
-  int get weekFullDays => raceDays.where((d) => (d == today ? legsDone : lapHistory[d] ?? 0) >= 4).length;
+  /// Full days this race week: all four meals kept (eaten, or fasted by plan).
+  int get weekFullDays => raceDays.where((d) => keptOn(d) >= 4).length;
+
+  /// Any of this race week's steps typed in by hand (the leaderboard marks it).
+  bool get weekStepsTyped => raceDays.any(typedStepDays.contains);
 
   /// kcal eaten over the day's target, added up over this race week (couple, friends, family).
   int get weekExtra =>

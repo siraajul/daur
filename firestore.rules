@@ -42,7 +42,8 @@ rules_version = '2';
 //   - points: int (optional, 0..2100) - this race week's points, for the friends' leaderboard
 //   - steps: int (optional, 0..1000000), lifted: int (optional, kg × reps, 0..2000000),
 //     full: int (optional, 0..7 full days), water: int (optional, 0..300 glasses),
-//     extra: int (optional, 0..100000 kcal eaten over their own target) - that week's
+//     extra: int (optional, 0..100000 kcal eaten over their own target),
+//     typed: bool (optional, some of the week's steps were typed in by hand) - that week's
 //     totals for the leaderboard's categories
 //   - week: string (optional, yyyy-mm-dd) - the Saturday that race week started
 //   - updatedAt: timestamp (required, == request.time on every write)
@@ -292,7 +293,7 @@ service cloud.firestore {
         }
 
         function isValidRow(data) {
-          return hasOnlyAllowedFields(['name', 'photoUrl', 'streak', 'legs', 'day', 'perfect', 'points', 'steps', 'lifted', 'full', 'water', 'extra', 'week', 'updatedAt']) &&
+          return hasOnlyAllowedFields(['name', 'photoUrl', 'streak', 'legs', 'day', 'perfect', 'points', 'steps', 'lifted', 'full', 'water', 'extra', 'typed', 'week', 'updatedAt']) &&
                  hasRequiredFields(['name', 'streak', 'legs', 'day', 'perfect', 'updatedAt']) &&
                  data.name is string && data.name.size() >= 1 && data.name.size() <= 60 &&
                  (!('photoUrl' in data) || isValidUrl(data.photoUrl)) &&
@@ -303,6 +304,7 @@ service cloud.firestore {
                  isCount(data, 'points', 2100) && isCount(data, 'steps', 1000000) &&
                  isCount(data, 'lifted', 2000000) && isCount(data, 'full', 7) && isCount(data, 'water', 300) &&
                  isCount(data, 'extra', 100000) &&
+                 (!('typed' in data) || data.typed is bool) &&
                  (!('week' in data) || (data.week is string && data.week.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'))) &&
                  isNow(data.updatedAt);
         }
