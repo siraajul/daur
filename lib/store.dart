@@ -13,6 +13,30 @@ import 'ramadan.dart';
 /// toISOString(), so in Dhaka (UTC+6) the day flipped at 06:00.
 String dayKey(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
+/// The race week runs Saturday to Friday (Bangladesh's week): the first day of [today]'s week.
+String raceWeekStart(String today) {
+  final d = DateTime.parse(today);
+  return dayKey(d.subtract(Duration(days: (d.weekday + 1) % 7)));
+}
+
+/// Race points from [from] on (couple's race, friends' leaderboard), the way Apple's activity
+/// contests count: each day up to 300, a point for each % of your own meals, water and steps
+/// targets. [d] has a summary's 'waterGoal' and 'days' ([day, meals, steps, step target, water]).
+int racePoints(Map d, String from) {
+  final glasses = math.max(1, (d['waterGoal'] as num?)?.toInt() ?? 0);
+  var p = 0;
+  for (final x in (d['days'] as List? ?? const []).cast<List>()) {
+    if ((x[0] as String).compareTo(from) < 0) continue;
+    final meals = (x[1] as num).toInt(), steps = (x[2] as num).toInt(), target = (x[3] as num).toInt();
+    final water = x.length > 4 ? (x[4] as num).toInt() : 0;
+    p +=
+        math.min<int>(100, meals * 25) +
+        math.min<int>(100, water * 100 ~/ glasses) +
+        math.min<int>(100, steps * 100 ~/ math.max(1, target));
+  }
+  return p;
+}
+
 DateTime _date(String key) {
   final p = key.split('-').map(int.parse).toList();
   return DateTime.utc(p[0], p[1], p[2]); // UTC so day maths ignores DST
@@ -116,6 +140,8 @@ class Store extends ChangeNotifier {
   List<String> exercises = [...gymDefaults];
   List<Weigh> weights = [];
   Map<String, int> lapHistory = {}; // day -> meals eaten (0..4), drawn on Progress
+  Map<String, int> keptHistory = {}; // day -> meals eaten or fasted by plan, not skipped (the races)
+  Set<String> typedStepDays = {}; // days whose steps were typed in by hand, not read from Health
   Map<String, ExPlan> plans = {}; // exercise -> current plan (missing = default)
   Map<String, Map<String, List<SetLog>>> setLog = {}; // exercise -> day -> sets
   Map<String, List<String>> routine = {}; // 'Push' / 'Pull' / 'Legs' → that day's exercises
@@ -154,6 +180,7 @@ class Store extends ChangeNotifier {
   String? freezeEarnedOn; // the day the last one was earned (once per day)
   Set<String> frozenDays = {}; // missed days a freeze covered: the streak passes over them
   String? familyId; // the family board this person is on (cloud.dart)
+  String? friendsId; // the friends' board, with its leaderboard (friends.dart)
   // coaching (cloud.dart): helpers (a mother for the diet, a trainer) follow this plan
   Map<String, String> inviteCodes = {}; // role ('diet' | 'trainer') -> the code this person made
   List<Map<String, String>> helping = []; // people this person helps: {owner, name, role}
@@ -210,6 +237,8 @@ class Store extends ChangeNotifier {
     exercises = List<String>.from(j['exercises'] ?? gymDefaults);
     weights = [for (final w in (j['weights'] as List? ?? [])) Weigh(w['d'] as String, (w['v'] as num).toDouble())];
     lapHistory = Map<String, int>.from(j['lapHistory'] ?? {});
+    keptHistory = Map<String, int>.from(j['keptHistory'] ?? {});
+    typedStepDays = {...(j['typedStepDays'] as List? ?? const []).cast<String>()};
     plans = {
       for (final e in (j['plans'] as Map? ?? {}).entries)
         e.key as String: ExPlan(
@@ -276,6 +305,7 @@ class Store extends ChangeNotifier {
     freezeEarnedOn = j['freezeEarnedOn'] as String?;
     frozenDays = Set<String>.from(j['frozenDays'] ?? []);
     familyId = j['familyId'] as String?;
+    friendsId = j['friendsId'] as String?;
     inviteCodes = Map<String, String>.from(j['inviteCodes'] ?? {});
     helping = [for (final h in (j['helping'] as List? ?? const [])) Map<String, String>.from(h as Map)];
     helperOnly = j['helperOnly'] as bool? ?? false;
@@ -335,6 +365,8 @@ class Store extends ChangeNotifier {
       for (final w in weights) {'d': w.day, 'v': w.kg},
     ],
     'lapHistory': lapHistory,
+    'keptHistory': keptHistory,
+    'typedStepDays': typedStepDays.toList(),
     'plans': {
       for (final e in plans.entries) e.key: [e.value.sets, e.value.reps, e.value.kg, e.value.timed],
     },
@@ -389,6 +421,7 @@ class Store extends ChangeNotifier {
     'freezeEarnedOn': freezeEarnedOn,
     'frozenDays': frozenDays.toList(),
     'familyId': familyId,
+    'friendsId': friendsId,
     'inviteCodes': inviteCodes,
     'helping': helping,
     'helperOnly': helperOnly,
@@ -436,6 +469,7 @@ class Store extends ChangeNotifier {
     void put(Map<String, int> h, int v) => v == 0 ? h.remove(today) : h[today] = v;
     put(junkHistory, rareToday);
     put(lapHistory, legsDone);
+    put(keptHistory, mealsKept);
     put(kcalHistory, kcal);
     put(proteinHistory, protein);
     put(gymHistory, setsDoneToday + gymTicks.length + cardio.length);
@@ -519,6 +553,13 @@ class Store extends ChangeNotifier {
   int get mealsDone => meals.where((m) => done.containsKey(m.id)).length;
 
   /// Legs of today's lap run: meals logged or deliberately skipped. Honest logging is the habit.
+  /// Meals that count in a race: eaten, or gone without because the fasting plan says so. A meal
+  /// skipped by hand moves the runner on Today but earns nothing against friends.
+  int get mealsKept => meals.where((m) => done.containsKey(m.id) || (fasted(m) && !skipped.contains(m.id))).length;
+
+  /// [mealsKept] on [d]; days from before it was kept fall back to the lap.
+  int keptOn(String d) => d == today ? mealsKept : keptHistory[d] ?? lapHistory[d] ?? 0;
+
   int get legsDone => meals.where((m) => done.containsKey(m.id) || skipped.contains(m.id) || fasted(m)).length;
 
   // ---- targets: the original plan, or computed from [profile] ----
@@ -927,6 +968,7 @@ class Store extends ChangeNotifier {
   void setManualSteps(int? v) {
     manualSteps = v;
     v == null ? stepsHistory.remove(today) : stepsHistory[today] = v;
+    v == null ? typedStepDays.remove(today) : typedStepDays.add(today);
     _save();
   }
 
@@ -1398,8 +1440,9 @@ class Store extends ChangeNotifier {
 
   /// Steps seen today (from Health), kept per day for perfect days and the recap.
   void noteSteps(int v) {
-    if ((stepsHistory[today] ?? -1) == v) return;
+    if ((stepsHistory[today] ?? -1) == v && !typedStepDays.contains(today)) return;
     stepsHistory[today] = v;
+    typedStepDays.remove(today); // read from Health: real steps
     _save();
   }
 
@@ -1479,6 +1522,16 @@ class Store extends ChangeNotifier {
     familyId = id;
     _save();
   }
+
+  void setFriends(String? id) {
+    friendsId = id;
+    _save();
+  }
+
+  /// The board of [kind] ('family' or 'friends') this person is on.
+  String? boardId(String kind) => kind == 'friends' ? friendsId : familyId;
+
+  void setBoard(String kind, String? id) => kind == 'friends' ? setFriends(id) : setFamily(id);
 
   // ---- coaching ----
 
@@ -1674,20 +1727,11 @@ class Store extends ChangeNotifier {
       for (final w in weights.length > 60 ? weights.sublist(weights.length - 60) : weights) [w.day, w.kg],
     ],
     'gymThisWeek': gymThisWeek,
+    'weekExtra': weekExtra,
     // the last 7 days, for a trainer's dashboard: weight change (7-day averages) and full days logged
     'kgWeek': week.kgChange,
     'fullDays': week.full,
-    // a partner's week (couple.dart), oldest first: [day, meals done, steps, step target, water]
-    'days': [
-      for (final d in lastDays(7))
-        [
-          d,
-          d == today ? legsDone : lapHistory[d] ?? 0,
-          d == today ? stepsToday : stepsHistory[d] ?? 0,
-          stepTargetOn(d),
-          d == today ? water : waterHistory[d] ?? 0,
-        ],
-    ],
+    'days': recentDays,
     'stake': stake,
     'stakeAt': stakeAt,
     'sessions': [
@@ -1699,6 +1743,59 @@ class Store extends ChangeNotifier {
     'workout': workout,
     'gymBy': gymBy,
   };
+
+  /// The last 7 days, oldest first, for a partner's week and the race: [day, meals done, steps,
+  /// step target, water glasses].
+  List<List<Object>> get recentDays => [
+    for (final d in lastDays(7))
+      [
+        d,
+        keptOn(d),
+        d == today ? stepsToday : stepsHistory[d] ?? 0,
+        stepTargetOn(d),
+        d == today ? water : waterHistory[d] ?? 0,
+      ],
+  ];
+
+  /// This race week's points (friends' leaderboard).
+  int get weekPoints => racePoints({'waterGoal': waterGoal, 'days': recentDays}, raceWeekStart(today));
+
+  /// This race week's days so far (Saturday on), for the friends' leaderboard categories.
+  List<String> get raceDays => [
+    for (final d in lastDays(7))
+      if (d.compareTo(raceWeekStart(today)) >= 0) d,
+  ];
+
+  /// Steps walked this race week.
+  int get weekSteps => raceDays.fold(0, (a, d) => a + (d == today ? stepsToday : stepsHistory[d] ?? 0));
+
+  /// Weight lifted this race week: kg × reps over every logged set (holds count for nothing).
+  int get weekLifted {
+    final days = raceDays.toSet();
+    var kg = 0.0;
+    for (final byDay in setLog.values) {
+      for (final MapEntry(key: d, value: sets) in byDay.entries) {
+        if (!days.contains(d)) continue;
+        for (final x in sets) {
+          kg += x.kg * x.reps;
+        }
+      }
+    }
+    return kg.round();
+  }
+
+  /// Full days this race week: all four meals kept (eaten, or fasted by plan).
+  int get weekFullDays => raceDays.where((d) => keptOn(d) >= 4).length;
+
+  /// Any of this race week's steps typed in by hand (the leaderboard marks it).
+  bool get weekStepsTyped => raceDays.any(typedStepDays.contains);
+
+  /// kcal eaten over the day's target, added up over this race week (couple, friends, family).
+  int get weekExtra =>
+      raceDays.fold(0, (a, d) => a + math.max(0, (d == today ? kcal : kcalHistory[d] ?? 0) - kcalGoal));
+
+  /// Glasses of water this race week.
+  int get weekWater => raceDays.fold(0, (a, d) => a + (d == today ? water : waterHistory[d] ?? 0));
 
   /// What a partner sees (published separately, so what's kept back never leaves the phone): the
   /// helpers' summary without the weight or what was eaten, when those are switched off.

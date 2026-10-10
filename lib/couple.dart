@@ -187,27 +187,6 @@ class SideBySide extends StatelessWidget {
       ),
   };
 
-  /// The race week runs Saturday to Friday (Bangladesh's week): the first day of [today]'s week.
-  static String weekStart(String today) {
-    final d = DateTime.parse(today);
-    return dayKey(d.subtract(Duration(days: (d.weekday + 1) % 7)));
-  }
-
-  /// Race points this week, the way Apple's activity contests count: each day up to 300, a point
-  /// for each % of your own meals, water and steps targets.
-  static int points(Map d, String from) {
-    final glasses = math.max(1, _n(d, 'waterGoal'));
-    var p = 0;
-    for (final MapEntry(key: day, value: (meals, steps, target, water)) in days(d).entries) {
-      if (day.compareTo(from) < 0) continue;
-      p +=
-          math.min<int>(100, meals * 25) +
-          math.min<int>(100, water * 100 ~/ glasses) +
-          math.min<int>(100, steps * 100 ~/ math.max(1, target));
-    }
-    return p;
-  }
-
   static double _of(Map d, String k, String goal) => _n(d, k) / math.max(1, _n(d, goal));
 
   static double _lost(Map d) {
@@ -226,6 +205,13 @@ class SideBySide extends StatelessWidget {
   /// weight lost is measured against whoever has lost more.
   static final rows = <(IconData, String, String Function(Map), double Function(Map, Map))>[
     (Icons.restaurant_outlined, 'Food', (d) => thousands(_n(d, 'kcal')), (d, _) => _of(d, 'kcal', 'kcalGoal')),
+    // kcal over their own target, added up this week: the longer bar ate more extra
+    (
+      Icons.local_fire_department_outlined,
+      'Extra kcal',
+      (d) => '${_n(d, 'weekExtra') > 0 ? '+' : ''}${thousands(_n(d, 'weekExtra'))}',
+      (d, o) => _n(d, 'weekExtra') / math.max(1, math.max(_n(d, 'weekExtra'), _n(o, 'weekExtra'))),
+    ),
     (Icons.water_drop_outlined, 'Water', (d) => '${litres(_n(d, 'water'))} L', (d, _) => _of(d, 'water', 'waterGoal')),
     (Icons.directions_walk_rounded, 'Steps', (d) => thousands(_n(d, 'steps')), (d, _) => _of(d, 'steps', 'stepTarget')),
     (Icons.fitness_center_rounded, 'Gym', (d) => '${_n(d, 'gymThisWeek')} of 3', (d, _) => _n(d, 'gymThisWeek') / 3),
@@ -586,8 +572,8 @@ class _Race extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     final today = me['day'] as String? ?? dayKey(DateTime.now());
-    final from = SideBySide.weekStart(today);
-    final a = SideBySide.points(me, from), b = SideBySide.points(them, from);
+    final from = raceWeekStart(today);
+    final a = racePoints(me, from), b = racePoints(them, from);
     final day = DateTime.parse(today).difference(DateTime.parse(from)).inDays + 1;
     final top = math.max(1, math.max(a, b));
     // the newer stake counts: either of you can change it

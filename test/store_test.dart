@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:daur/badges.dart';
 import 'package:daur/couple.dart' show SideBySide;
@@ -1044,9 +1045,9 @@ void main() {
     expect(SideBySide.legs(p), 1);
 
     // the week starts on Saturday
-    expect(SideBySide.weekStart('2026-10-10'), '2026-10-10'); // a Saturday
-    expect(SideBySide.weekStart('2026-10-16'), '2026-10-10'); // Friday
-    expect(SideBySide.weekStart('2026-10-11'), '2026-10-10');
+    expect(raceWeekStart('2026-10-10'), '2026-10-10'); // a Saturday
+    expect(raceWeekStart('2026-10-16'), '2026-10-10'); // Friday
+    expect(raceWeekStart('2026-10-11'), '2026-10-10');
     // 100 each for meals, water and steps, capped; days before the week don't count
     final d = {
       'waterGoal': 14,
@@ -1056,9 +1057,37 @@ void main() {
         ['2026-10-11', 2, 4000, 8000, 7],
       ],
     };
-    expect(SideBySide.points(d, '2026-10-10'), 300 + (50 + 50 + 50));
+    expect(racePoints(d, '2026-10-10'), 300 + (50 + 50 + 50));
 
     s.setStake('Makes tea');
     expect(s.partnerSummary()['stake'], 'Makes tea');
+
+    // the leaderboard's weekly totals: kg × reps, steps, full days, water
+    final ex = s.exercises.first;
+    s.logSet(ex, 10, 40);
+    s.logSet(ex, 8, 42.5);
+    expect(s.weekLifted, 400 + 340);
+    s.setManualSteps(5200);
+    s.setWater(9);
+    expect(s.weekSteps, 5200);
+    expect(s.weekWater, 9);
+    expect(s.weekFullDays, 0); // one meal logged so far
+    // extra kcal: only what's over the day's target counts
+    expect(s.weekExtra, math.max(0, s.kcal - s.kcalGoal));
+    s.addExtra(Eaten('Biryani', s.kcalGoal, 30));
+    expect(s.weekExtra, s.kcal - s.kcalGoal);
+    expect(s.coachSummary()['weekExtra'], s.weekExtra);
+
+    // races count kept meals: a skipped one moves the runner but earns nothing
+    final legs = s.legsDone, kept = s.mealsKept;
+    s.skipMeal(meals[3]);
+    expect(s.legsDone, legs + 1);
+    expect(s.mealsKept, kept);
+    expect(s.recentDays.last[1], kept);
+
+    // steps typed in by hand are marked; Health's reading clears it
+    expect(s.weekStepsTyped, isTrue); // 5200 typed above
+    s.noteSteps(6100);
+    expect(s.weekStepsTyped, isFalse);
   });
 }

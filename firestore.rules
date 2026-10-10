@@ -22,11 +22,11 @@ rules_version = '2';
 //   - device: string (required, 1..60 chars) - platform that wrote it
 //   - updatedAt: timestamp (required, == request.time on every write)
 //
-// Collection: families  (a family board; joined by knowing its 8-character code)
+// Collection: families  (a family or friends' board; joined by knowing its 8-character code)
 // Document ID: the code, ^[A-HJ-NP-Z2-9]{8}$
 // Fields:
 //   - ownerUid: string (required, == creator's uid, immutable)
-//   - members: list<string> (required, 1..8 uids; each member may add or remove only themselves)
+//   - members: list<string> (required, 1..20 uids; each member may add or remove only themselves)
 //   - createdAt: timestamp (required, == request.time on create, immutable)
 //   - updatedAt: timestamp (required, == request.time on every write)
 //
@@ -39,6 +39,13 @@ rules_version = '2';
 //   - legs: int (required, 0..4) - meals logged or skipped that day
 //   - day: string (required, yyyy-mm-dd) - the day `legs` belongs to
 //   - perfect: bool (required)
+//   - points: int (optional, 0..2100) - this race week's points, for the friends' leaderboard
+//   - steps: int (optional, 0..1000000), lifted: int (optional, kg × reps, 0..2000000),
+//     full: int (optional, 0..7 full days), water: int (optional, 0..300 glasses),
+//     extra: int (optional, 0..100000 kcal eaten over their own target),
+//     typed: bool (optional, some of the week's steps were typed in by hand) - that week's
+//     totals for the leaderboard's categories
+//   - week: string (optional, yyyy-mm-dd) - the Saturday that race week started
 //   - updatedAt: timestamp (required, == request.time on every write)
 //
 // Collection: aiUsage  (the project's free Gemini quota is shared, so the count is too)
@@ -231,7 +238,7 @@ service cloud.firestore {
     }
 
     function isValidMembers(m) {
-      return m is list && m.size() >= 1 && m.size() <= 8;
+      return m is list && m.size() >= 1 && m.size() <= 20;
     }
 
     function isValidFamily(data) {
@@ -280,8 +287,13 @@ service cloud.firestore {
 
       // families/{code}/board/{uid}: one row per member, written only by that member
       match /board/{uid} {
+        // an optional whole number from 0 to [most]
+        function isCount(data, f, most) {
+          return !(f in data) || (data[f] is int && data[f] >= 0 && data[f] <= most);
+        }
+
         function isValidRow(data) {
-          return hasOnlyAllowedFields(['name', 'photoUrl', 'streak', 'legs', 'day', 'perfect', 'updatedAt']) &&
+          return hasOnlyAllowedFields(['name', 'photoUrl', 'streak', 'legs', 'day', 'perfect', 'points', 'steps', 'lifted', 'full', 'water', 'extra', 'typed', 'week', 'updatedAt']) &&
                  hasRequiredFields(['name', 'streak', 'legs', 'day', 'perfect', 'updatedAt']) &&
                  data.name is string && data.name.size() >= 1 && data.name.size() <= 60 &&
                  (!('photoUrl' in data) || isValidUrl(data.photoUrl)) &&
@@ -289,6 +301,11 @@ service cloud.firestore {
                  data.legs is int && data.legs >= 0 && data.legs <= 4 &&
                  data.day is string && data.day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
                  data.perfect is bool &&
+                 isCount(data, 'points', 2100) && isCount(data, 'steps', 1000000) &&
+                 isCount(data, 'lifted', 2000000) && isCount(data, 'full', 7) && isCount(data, 'water', 300) &&
+                 isCount(data, 'extra', 100000) &&
+                 (!('typed' in data) || data.typed is bool) &&
+                 (!('week' in data) || (data.week is string && data.week.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'))) &&
                  isNow(data.updatedAt);
         }
 

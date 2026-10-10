@@ -104,7 +104,9 @@ class Cloud extends ChangeNotifier {
     final u = user, s = _store;
     if (u == null || s == null) return 'Not signed in.';
     _debounce?.cancel();
-    if (s.familyId != null) await leaveFamily();
+    for (final kind in const ['family', 'friends']) {
+      if (s.boardId(kind) != null) await leaveBoard(kind);
+    }
     _deleting = true;
     try {
       await _state(u.uid).delete();
@@ -231,33 +233,50 @@ class Cloud extends ChangeNotifier {
     await pushCoaching();
   }
 
-  // ---- family board ----
+  // ---- boards: family, and friends with a leaderboard ----
+  //
+  // families/{code}           members (uids); the same for a friends' board
+  // families/{code}/board/{uid}  each member's row: streak, today's meals, this race week's points,
+  //                              steps, kg lifted, full days, water and kcal over target
 
   DocumentReference<Map<String, dynamic>> _family(String code) => _db.collection('families').doc(code);
 
-  /// This person's row on their family board: streak, today's meals, a perfect day. No email.
+  /// This person's row on each board they're on: streak, today's meals, a perfect day, this week's
+  /// race points. No email.
   Future<void> pushBoard() async {
-    final u = user, s = _store, code = s?.familyId;
-    if (u == null || s == null || code == null) return;
-    try {
-      await _family(code).collection('board').doc(u.uid).set({
-        'name': (u.displayName ?? '').isEmpty
-            ? 'Family member'
-            : u.displayName!.substring(0, u.displayName!.length.clamp(0, 60)),
-        if ((u.photoURL ?? '').startsWith('https://')) 'photoUrl': u.photoURL!,
-        'streak': s.streak,
-        'legs': s.legsDone,
-        'day': s.today,
-        'perfect': s.perfect(s.today),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      debugPrint('Cloud.pushBoard: $e');
+    final u = user, s = _store;
+    if (u == null || s == null) return;
+    for (final kind in const ['family', 'friends']) {
+      final code = s.boardId(kind);
+      if (code == null) continue;
+      try {
+        await _family(code).collection('board').doc(u.uid).set({
+          'name': (u.displayName ?? '').isEmpty
+              ? (kind == 'friends' ? 'Friend' : 'Family member')
+              : u.displayName!.substring(0, u.displayName!.length.clamp(0, 60)),
+          if ((u.photoURL ?? '').startsWith('https://')) 'photoUrl': u.photoURL!,
+          'streak': s.streak,
+          'legs': s.legsDone,
+          'day': s.today,
+          'perfect': s.perfect(s.today),
+          'points': s.weekPoints,
+          'steps': s.weekSteps,
+          'lifted': s.weekLifted,
+          'full': s.weekFullDays,
+          'water': s.weekWater,
+          'extra': s.weekExtra,
+          if (s.weekStepsTyped) 'typed': true,
+          'week': raceWeekStart(s.today),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        debugPrint('Cloud.pushBoard($kind): $e');
+      }
     }
   }
 
   /// A new board with a random 8-character code to share (no 0/O or 1/I to misread).
-  Future<String?> createFamily() async {
+  Future<String?> createBoard(String kind) async {
     final u = user, s = _store;
     if (u == null || s == null) return 'Sign in first.';
     const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -270,7 +289,7 @@ class Cloud extends ChangeNotifier {
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      s.setFamily(code);
+      s.setBoard(kind, code);
       await pushBoard();
       return null;
     } catch (e) {
@@ -278,26 +297,29 @@ class Cloud extends ChangeNotifier {
     }
   }
 
-  Future<String?> joinFamily(String input) async {
+  Future<String?> joinBoard(String kind, String input) async {
     final u = user, s = _store;
     if (u == null || s == null) return 'Sign in first.';
     final code = input.trim().toUpperCase();
     if (!RegExp(r'^[A-HJ-NP-Z2-9]{8}$').hasMatch(code)) return 'A code is 8 letters and numbers.';
+    if (code == s.boardId(kind == 'friends' ? 'family' : 'friends')) {
+      return 'That\'s your ${kind == 'friends' ? 'family' : 'friends\''} board.';
+    }
     try {
       await _family(code).update({
         'members': FieldValue.arrayUnion([u.uid]),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      s.setFamily(code);
+      s.setBoard(kind, code);
       await pushBoard();
       return null;
     } on FirebaseException catch (e) {
-      return e.code == 'not-found' ? 'No family with that code.' : 'Couldn\'t join (${e.code}). Is the board full (8)?';
+      return e.code == 'not-found' ? 'No board with that code.' : 'Couldn\'t join (${e.code}). Is the board full (20)?';
     }
   }
 
-  Future<void> leaveFamily() async {
-    final u = user, s = _store, code = s?.familyId;
+  Future<void> leaveBoard(String kind) async {
+    final u = user, s = _store, code = s?.boardId(kind);
     if (u == null || s == null || code == null) return;
     try {
       await _family(code).collection('board').doc(u.uid).delete();
@@ -311,10 +333,14 @@ class Cloud extends ChangeNotifier {
         });
       }
     } catch (e) {
-      debugPrint('Cloud.leaveFamily: $e');
+      debugPrint('Cloud.leaveBoard($kind): $e');
     }
-    s.setFamily(null);
+    s.setBoard(kind, null);
   }
+
+  Future<String?> createFamily() => createBoard('family');
+  Future<String?> joinFamily(String input) => joinBoard('family', input);
+  Future<void> leaveFamily() => leaveBoard('family');
 
   // ---- coaching: a mother for the diet, a trainer; they follow this person's plan ----
   //

@@ -5,7 +5,7 @@ import 'activity_anim.dart';
 import 'cloud.dart';
 import 'store.dart';
 import 'theme.dart';
-import 'today.dart' show Cta;
+import 'today.dart' show Cta, thousands;
 import 'visuals.dart';
 
 /// Drawer → Family: who has closed today, everyone's streak. Join with a code, share yours.
@@ -132,7 +132,12 @@ class _FamilyScreenState extends State<FamilyScreen> {
                           for (final (i, r) in rows.indexed)
                             SlideIn(
                               i: i,
-                              child: _Member(row: r, legs: legs(r), me: r['uid'] == c.user?.uid),
+                              child: _Member(
+                                row: r,
+                                legs: legs(r),
+                                me: r['uid'] == c.user?.uid,
+                                week: raceWeekStart(s.today),
+                              ),
                             ),
                         ],
                       );
@@ -155,10 +160,11 @@ class _FamilyScreenState extends State<FamilyScreen> {
 }
 
 class _Member extends StatelessWidget {
-  const _Member({required this.row, required this.legs, required this.me});
+  const _Member({required this.row, required this.legs, required this.me, required this.week});
   final Map<String, dynamic> row;
   final int legs;
   final bool me;
+  final String week; // this race week: older rows' extra kcal don't count
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +172,7 @@ class _Member extends StatelessWidget {
     final name = row['name'] as String? ?? '';
     final photo = row['photoUrl'] as String?;
     final streak = row['streak'] as int? ?? 0;
+    final extra = row['week'] == week ? (row['extra'] as num? ?? 0).toInt() : 0;
     return Container(
       constraints: const BoxConstraints(minHeight: 64),
       decoration: BoxDecoration(
@@ -202,6 +209,19 @@ class _Member extends StatelessWidget {
                     if (row['perfect'] == true && legs == 4) ...[
                       const SizedBox(width: 4),
                       Icon(Icons.star_rounded, size: 16, color: t.accent),
+                    ],
+                    // kcal over their own target this week
+                    if (extra > 0) ...[
+                      const SizedBox(width: 8),
+                      Icon(Icons.local_fire_department_rounded, size: 14, color: t.accent),
+                      Flexible(
+                        child: Text(
+                          '+${thousands(extra)} kcal this week',
+                          style: t.meta(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   ],
                 ),
