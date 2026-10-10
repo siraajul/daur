@@ -65,11 +65,10 @@ class _PlayState extends State<Play> with SingleTickerProviderStateMixin {
 
 /// A tile in the shape of [Tiles]' (icon, value, label) with something alive behind it.
 class _TileFrame extends StatelessWidget {
-  const _TileFrame({required this.icon, required this.value, required this.label, this.back, this.iconWrap});
+  const _TileFrame({required this.icon, required this.value, required this.label, this.back});
   final IconData icon;
   final String value, label;
   final Widget? back; // painted behind the text, clipped to the tile
-  final Widget Function(Widget icon)? iconWrap; // moves the icon
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +86,7 @@ class _TileFrame extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  iconWrap?.call(ic) ?? ic,
+                  ic,
                   const SizedBox(height: 6),
                   FittedBox(
                     fit: BoxFit.scaleDown,
@@ -105,33 +104,43 @@ class _TileFrame extends StatelessWidget {
   }
 }
 
-// ---- water: the tile fills to the day's level on a liquid spring, the surface sloshes, settles ----
+// ---- water: liquid fills its box to the level on a liquid spring, sloshes, settles; again on change ----
 
-class WaterTile extends StatefulWidget {
-  const WaterTile({super.key, required this.frac, required this.value, required this.label});
-  final double frac; // of the day's goal
-  final String value, label;
+class Liquid extends StatefulWidget {
+  const Liquid({super.key, required this.frac});
+  final double frac; // 0..1 of the box
   @override
-  State<WaterTile> createState() => _WaterTileState();
+  State<Liquid> createState() => _LiquidState();
 }
 
-class _WaterTileState extends State<WaterTile> with TickerProviderStateMixin {
+class _LiquidState extends State<Liquid> with TickerProviderStateMixin {
   late final _level = AnimationController.unbounded(vsync: this, value: 0);
   late final _wave = AnimationController(vsync: this, duration: const Duration(milliseconds: 5200));
   bool _started = false;
+
+  double get _to => widget.frac.clamp(0, 1).toDouble();
+
+  void _pour() {
+    if (reduceMotion(context)) {
+      _level.value = _to;
+      return;
+    }
+    _level.animateWith(SpringSimulation(Springs.liquid, _level.value, _to, _level.velocity));
+    _wave.forward(from: 0);
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_started) return;
     _started = true;
-    final to = widget.frac.clamp(0, 1).toDouble();
-    if (reduceMotion(context)) {
-      _level.value = to;
-      return;
-    }
-    _level.animateWith(SpringSimulation(Springs.liquid, 0, to, 0));
-    _wave.forward();
+    _pour();
+  }
+
+  @override
+  void didUpdateWidget(Liquid old) {
+    super.didUpdateWidget(old);
+    if (old.frac != widget.frac) _pour();
   }
 
   @override
@@ -144,20 +153,18 @@ class _WaterTileState extends State<WaterTile> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
-    return _TileFrame(
-      icon: Icons.water_drop_outlined,
-      value: widget.value,
-      label: widget.label,
-      back: AnimatedBuilder(
+    return IgnorePointer(
+      child: AnimatedBuilder(
         animation: Listenable.merge([_level, _wave]),
-        builder: (context, _) => CustomPaint(painter: _Liquid(_level.value, _wave.value, t)),
+        builder: (context, _) =>
+            CustomPaint(painter: _LiquidPainter(_level.value, _wave.value, t), size: Size.infinite),
       ),
     );
   }
 }
 
-class _Liquid extends CustomPainter {
-  _Liquid(this.level, this.wave, this.t);
+class _LiquidPainter extends CustomPainter {
+  _LiquidPainter(this.level, this.wave, this.t);
   final double level, wave;
   final Daur t;
 
@@ -179,10 +186,76 @@ class _Liquid extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_Liquid old) => old.level != level || old.wave != wave;
+  bool shouldRepaint(_LiquidPainter old) => old.level != level || old.wave != wave;
 }
 
-// ---- steps: footprints walk across the bottom of the tile as the count runs up ----
+class WaterTile extends StatelessWidget {
+  const WaterTile({super.key, required this.frac, required this.value, required this.label});
+  final double frac; // of the day's goal
+  final String value, label;
+
+  @override
+  Widget build(BuildContext context) => _TileFrame(
+    icon: Icons.water_drop_outlined,
+    value: value,
+    label: label,
+    back: Liquid(frac: frac),
+  );
+}
+
+// ---- steps: footprints walk across the bottom of the box, one per ninth of the target ----
+
+class Footprints extends StatefulWidget {
+  const Footprints({super.key, required this.frac, this.delay = Duration.zero});
+  final double frac; // of the day's target
+  final Duration delay;
+  @override
+  State<Footprints> createState() => _FootprintsState();
+}
+
+class _FootprintsState extends State<Footprints> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600));
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (reduceMotion(context)) {
+      _c.value = 1;
+    } else {
+      Future.delayed(widget.delay, () {
+        if (mounted) _c.forward();
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(Footprints old) {
+    super.didUpdateWidget(old);
+    // more steps: walk the trail again
+    if (widget.frac > old.frac && !reduceMotion(context)) _c.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Daur.of(context);
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) =>
+            CustomPaint(painter: _Prints(_c.value, widget.frac.clamp(0, 1).toDouble(), t), size: Size.infinite),
+      ),
+    );
+  }
+}
 
 class StepsTile extends StatelessWidget {
   const StepsTile({
@@ -198,20 +271,17 @@ class StepsTile extends StatelessWidget {
   final Duration delay;
 
   @override
-  Widget build(BuildContext context) {
-    final t = Daur.of(context);
-    return Play(
-      delay: delay,
-      duration: const Duration(milliseconds: 1600),
-      curve: Curves.linear,
-      builder: (context, v, _) => _TileFrame(
-        icon: Icons.directions_walk_rounded,
-        value: thousands((steps * Curves.easeOutCubic.transform(v)).round()),
-        label: label,
-        back: CustomPaint(painter: _Prints(v, frac.clamp(0, 1).toDouble(), t)),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Play(
+    delay: delay,
+    duration: const Duration(milliseconds: 1600),
+    builder: (context, v, back) => _TileFrame(
+      icon: Icons.directions_walk_rounded,
+      value: thousands((steps * v).round()),
+      label: label,
+      back: back,
+    ),
+    child: Footprints(frac: frac, delay: delay),
+  );
 }
 
 class _Prints extends CustomPainter {
@@ -222,7 +292,7 @@ class _Prints extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // as many prints as the day's share of the target, left foot, right foot
-    final n = math.max(1, (frac * 9).round());
+    final n = (frac * 9).ceil(); // none until there's a step
     for (var i = 0; i < n; i++) {
       final at = (v * (n + 2) - i).clamp(0, 1).toDouble(); // each one lands after the last
       if (at <= 0) break;
@@ -239,19 +309,19 @@ class _Prints extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_Prints old) => old.v != v;
+  bool shouldRepaint(_Prints old) => old.v != v || old.frac != frac;
 }
 
-// ---- sleep: the moon rocks and z's float up out of the tile, three times, then still ----
+// ---- sleep: z's float up out of the box, three times, then still ----
 
-class SleepTile extends StatefulWidget {
-  const SleepTile({super.key, required this.value, required this.label});
-  final String value, label;
+class Zzz extends StatefulWidget {
+  const Zzz({super.key, this.at = const Offset(30, 18)});
+  final Offset at; // where the first z starts
   @override
-  State<SleepTile> createState() => _SleepTileState();
+  State<Zzz> createState() => _ZzzState();
 }
 
-class _SleepTileState extends State<SleepTile> with SingleTickerProviderStateMixin {
+class _ZzzState extends State<Zzz> with SingleTickerProviderStateMixin {
   late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 2400));
   bool _started = false;
 
@@ -272,39 +342,193 @@ class _SleepTileState extends State<SleepTile> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
-    return AnimatedBuilder(
-      animation: _c,
-      builder: (context, _) {
-        final v = _c.value;
-        return _TileFrame(
-          icon: Icons.bedtime_outlined,
-          value: widget.value,
-          label: widget.label,
-          iconWrap: (icon) => Transform.rotate(angle: .25 * math.sin(v * 2 * math.pi), child: icon),
-          back: _c.isAnimating
-              ? Stack(
-                  children: [
-                    for (var i = 0; i < 3; i++)
-                      Builder(
-                        builder: (context) {
-                          final k = ((v - i * .22) % 1 + 1) % 1; // each z a little behind the last
-                          return Positioned(
-                            left: 30 + i * 9 + 6 * math.sin(k * math.pi * 2),
-                            top: 18 - k * 26,
-                            child: Opacity(
-                              opacity: math.sin(k * math.pi).clamp(0, 1).toDouble(),
-                              child: Text('z', style: t.x(9.0 + i * 3, color: t.ink2)),
-                            ),
-                          );
-                        },
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) {
+          if (!_c.isAnimating) return const SizedBox.shrink();
+          final v = _c.value;
+          return Stack(
+            children: [
+              for (var i = 0; i < 3; i++)
+                Builder(
+                  builder: (context) {
+                    final k = ((v - i * .22) % 1 + 1) % 1; // each z a little behind the last
+                    return Positioned(
+                      left: widget.at.dx + i * 9 + 6 * math.sin(k * math.pi * 2),
+                      top: widget.at.dy - k * 26,
+                      child: Opacity(
+                        opacity: math.sin(k * math.pi).clamp(0, 1).toDouble(),
+                        child: Text('z', style: t.x(9.0 + i * 3, color: t.ink2)),
                       ),
-                  ],
-                )
-              : null,
-        );
-      },
+                    );
+                  },
+                ),
+            ],
+          );
+        },
+      ),
     );
   }
+}
+
+class SleepTile extends StatelessWidget {
+  const SleepTile({super.key, required this.value, required this.label});
+  final String value, label;
+
+  @override
+  Widget build(BuildContext context) =>
+      _TileFrame(icon: Icons.bedtime_outlined, value: value, label: label, back: const Zzz());
+}
+
+// ---- a stamp: when something gets done, its mark lands like a rubber stamp ----
+
+class Stamp extends StatefulWidget {
+  const Stamp({super.key, required this.on, required this.child});
+  final bool on;
+  final Widget child;
+  @override
+  State<Stamp> createState() => _StampState();
+}
+
+class _StampState extends State<Stamp> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 650), value: 1);
+
+  @override
+  void didUpdateWidget(Stamp old) {
+    super.didUpdateWidget(old);
+    if (widget.on && !old.on && !reduceMotion(context)) _c.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _c,
+    child: widget.child,
+    builder: (context, child) {
+      final v = _c.value;
+      // comes down big and tilted, lands, squashes a little, settles
+      final scale = v < .3
+          ? 1.6 - .7 * Curves.easeIn.transform(v / .3)
+          : .9 + .1 * Curves.elasticOut.transform((v - .3) / .7);
+      return Transform.rotate(
+        angle: -.35 * (1 - Curves.easeOut.transform(v)),
+        child: Transform.scale(scale: scale, child: child),
+      );
+    },
+  );
+}
+
+// ---- confetti: a burst of the app's colours, drawn in code, when [burst] turns true ----
+
+class Confetti extends StatefulWidget {
+  const Confetti({super.key, required this.burst, required this.child, this.onShow = false});
+  final bool burst;
+  final bool onShow; // also burst the first time it shows, if [burst] is already true
+  final Widget child;
+  @override
+  State<Confetti> createState() => _ConfettiState();
+}
+
+class _ConfettiState extends State<Confetti> with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 2200));
+  bool _started = false;
+  int _seed = 0;
+
+  void _fire() {
+    if (reduceMotion(context)) return;
+    _seed++;
+    HapticFeedback.heavyImpact();
+    _c.forward(from: 0);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (widget.onShow && widget.burst) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (mounted) _fire();
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(Confetti old) {
+    super.didUpdateWidget(old);
+    if (widget.burst && !old.burst) _fire();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Daur.of(context);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        widget.child,
+        Positioned.fill(
+          child: IgnorePointer(
+            child: AnimatedBuilder(
+              animation: _c,
+              builder: (context, _) =>
+                  _c.isAnimating ? CustomPaint(painter: _ConfettiPainter(_c.value, _seed, t)) : const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ConfettiPainter extends CustomPainter {
+  _ConfettiPainter(this.v, this.seed, this.t);
+  final double v;
+  final int seed;
+  final Daur t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = math.Random(seed);
+    final colors = [t.accent, t.ink, t.accent, t.onAccent];
+    final origin = Offset(size.width / 2, size.height * .45);
+    for (var i = 0; i < 46; i++) {
+      // each piece: thrown up and out, falls with gravity, spins, fades at the end
+      final a = -math.pi / 2 + (r.nextDouble() - .5) * 2.4;
+      final speed = 260 + r.nextDouble() * 320;
+      final time = v * 2.2;
+      final p = origin + Offset(math.cos(a) * speed * time * .55, math.sin(a) * speed * time * .55 + 340 * time * time);
+      final spin = r.nextDouble() * 12 * time + r.nextDouble() * math.pi;
+      canvas.save();
+      canvas.translate(p.dx, p.dy);
+      canvas.rotate(spin);
+      final paint = Paint()..color = colors[i % colors.length].withValues(alpha: (1 - v).clamp(0, 1) * .95);
+      i % 3 == 0
+          ? canvas.drawCircle(Offset.zero, 3.2, paint)
+          : canvas.drawRRect(
+              RRect.fromRectAndRadius(
+                Rect.fromCenter(center: Offset.zero, width: 9, height: 4.5),
+                const Radius.circular(1.5),
+              ),
+              paint,
+            );
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ConfettiPainter old) => old.v != v;
 }
 
 // ---- a card: weight on a bathroom-scale dial; gym with a lifting dumbbell and session dots ----
