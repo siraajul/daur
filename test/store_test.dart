@@ -980,7 +980,9 @@ void main() {
     final times = ramadanTimes(day);
     final p = Reminders.plan(s, DateTime.now()).where((x) => x.when.day == day.day).toList();
     expect(p.firstWhere((x) => x.title.startsWith('Iftar')).when, times.iftar.subtract(const Duration(minutes: 10)));
-    expect(p.firstWhere((x) => x.title.startsWith('Sehri')).when, times.sehri.subtract(const Duration(minutes: 45)));
+    // sehri can fall on the phone's day before when the phone's zone isn't the place's (CI runs in UTC)
+    final sehris = Reminders.plan(s, DateTime.now()).where((x) => x.title.startsWith('Sehri')).map((x) => x.when);
+    expect(sehris, contains(times.sehri.subtract(const Duration(minutes: 45))));
     expect(p.where((x) => x.channel == 'water').every((x) => x.when.isAfter(times.iftar)), isTrue);
   });
 

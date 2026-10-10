@@ -217,7 +217,11 @@ class Reminders {
           final last = i == meals.length - 1;
           final (time, title, body) = switch (s.ramadan ? m.id : '') {
             // sehri: 45 minutes before it ends; iftar: 10 minutes before
-            'm1' => (at(p[0], p[1]), 'Sehri ends ${hhmm(rt.sehri)}', '${opt.name} · water too, 2–3 glasses.'),
+            'm1' => (
+              rt.sehri.subtract(const Duration(minutes: 45)),
+              'Sehri ends ${hhmm(rt.sehri)}',
+              '${opt.name} · water too, 2–3 glasses.',
+            ),
             'm2' => (
               rt.iftar.subtract(const Duration(minutes: 10)),
               'Iftar at ${hhmm(rt.iftar)}',
