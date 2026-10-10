@@ -139,6 +139,7 @@ Invite a trainer and a family member with a code each. The trainer follows every
 | **Fasting** | 14:10, 16:8, 18:6 with a movable window · meals outside it become "Fasting" and the rest grow so the day stays the same size · start / end real fasts with a live ring through the stages (digesting → burning fat → deep fast) · a Live Update on Android 16 and a Live Activity on iPhone · window reminders |
 | **Ramadan** | Sehri and iftar times worked out from the sun for any of Bangladesh's 64 districts or 18 cities abroad (Dhaka matches the Islamic Foundation's table; the first place is guessed from the phone's time zone) · the day's meals become Sehri, Iftar, a snack after Maghrib and dinner after Tarawih · the fast counts itself at iftar · "Not fasting today" keeps a list of fasts to make up · sehri and iftar reminders, water reminders only after iftar |
 | **Couple** | Menu → Couple: one shares a code, the other enters it, and it links both ways · a streak you keep together and the week with a heart on days you both closed · a Saturday-to-Friday race (up to 300 points a day for meals, water and steps) with a fun stake for the loser · a team step goal · today as two runners on one track, head to head · one-tap nudges · switches to keep your weight or your food from your partner (they get their own copy of your day without it) · Unlink stops both |
+| **Friends** | Menu → Friends: a group of up to 20 with a code · this week's leaderboards (Saturday to Friday): **Overall** race points (up to 300 a day for meals, water and steps, each against your own targets), **Steps**, **Lifted** (kg × reps), **Consistency** (full days) and **Water** · the top three on a podium, everyone else with a bar against the leader, their streak and today's meals |
 | **Coaching** | Invite a **trainer** and a **family helper** with a code each · they see a live summary of your day, weight and (trainer) gym and strength, never your spending · notes both ways · the trainer writes your **diet chart** and your **workout** (push / pull / legs, sets, reps, kg), and each reaches your phone with Undo · a helper can swap today's meals within the trainer's options |
 | **Trainer** | A **Students** dashboard: who needs you first and why (not opened in days, no gym, weight not moving for their goal, over or short today), filters by goal, one-tap feedback, a Sunday "3 of 8 need you" |
 | **Ma's page** | For the family member who cooks: did he eat (one sentence, four big circles), **what to cook today** with amounts, the whole chart to share or print, water and weight in plain words, one-tap replies · Bangla first, English one tap away |
@@ -376,14 +377,14 @@ erDiagram
     }
 ```
 
-Security rules (`firestore.rules`) keep each person's data private to them, the family board visible only to its members, and every write validated field by field. For coaching, only helpers you invited can read your summary; only you and your trainer can write the diet chart and the workout; a family helper can only pick among the trainer's options for today. A couple links both ways: each joins with the other's partner code, reads only the partner copy of the other's day (never the full summary or the plan) and can't pose as a trainer. `test/firestore_rules.test.mjs` checks all of it (85 cases) against the Firestore emulator.
+Security rules (`firestore.rules`) keep each person's data private to them, the family board visible only to its members, and every write validated field by field. For coaching, only helpers you invited can read your summary; only you and your trainer can write the diet chart and the workout; a family helper can only pick among the trainer's options for today. A couple links both ways: each joins with the other's partner code, reads only the partner copy of the other's day (never the full summary or the plan) and can't pose as a trainer. `test/firestore_rules.test.mjs` checks all of it (96 cases) against the Firestore emulator.
 
 ## Getting started
 
 ```bash
 flutter pub get
 flutter run -d <android-device>        # or: -d chrome, or an iPhone
-flutter test                           # 48 tests: store, search, progression, reminders, goals, coaching, couple
+flutter test                           # 50 tests: store, search, progression, reminders, goals, coaching, couple, friends
 ```
 
 The AI estimate needs an App Check token. Put it in `dart_defines.json` (git-ignored):

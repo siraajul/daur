@@ -187,27 +187,6 @@ class SideBySide extends StatelessWidget {
       ),
   };
 
-  /// The race week runs Saturday to Friday (Bangladesh's week): the first day of [today]'s week.
-  static String weekStart(String today) {
-    final d = DateTime.parse(today);
-    return dayKey(d.subtract(Duration(days: (d.weekday + 1) % 7)));
-  }
-
-  /// Race points this week, the way Apple's activity contests count: each day up to 300, a point
-  /// for each % of your own meals, water and steps targets.
-  static int points(Map d, String from) {
-    final glasses = math.max(1, _n(d, 'waterGoal'));
-    var p = 0;
-    for (final MapEntry(key: day, value: (meals, steps, target, water)) in days(d).entries) {
-      if (day.compareTo(from) < 0) continue;
-      p +=
-          math.min<int>(100, meals * 25) +
-          math.min<int>(100, water * 100 ~/ glasses) +
-          math.min<int>(100, steps * 100 ~/ math.max(1, target));
-    }
-    return p;
-  }
-
   static double _of(Map d, String k, String goal) => _n(d, k) / math.max(1, _n(d, goal));
 
   static double _lost(Map d) {
@@ -586,8 +565,8 @@ class _Race extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     final today = me['day'] as String? ?? dayKey(DateTime.now());
-    final from = SideBySide.weekStart(today);
-    final a = SideBySide.points(me, from), b = SideBySide.points(them, from);
+    final from = raceWeekStart(today);
+    final a = racePoints(me, from), b = racePoints(them, from);
     final day = DateTime.parse(today).difference(DateTime.parse(from)).inDays + 1;
     final top = math.max(1, math.max(a, b));
     // the newer stake counts: either of you can change it

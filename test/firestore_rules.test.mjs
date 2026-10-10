@@ -1,4 +1,5 @@
-// Firestore rules checks for coaching (invites, helpers, partners, summary, notes, diet chart, workout, cooking):
+// Firestore rules checks for boards (family, friends' leaderboard) and coaching (invites, helpers, partners,
+// summary, notes, diet chart, workout, cooking):
 // who may read and write what. Runs against the local emulator, not the live database.
 //
 //   d=$(mktemp -d) && cp test/firestore_rules.test.mjs $d/ && (cd $d && npm i -s @firebase/rules-unit-testing@4 firebase@11)
@@ -7,7 +8,7 @@
 //      --project daur-rules-test "node firestore_rules.test.mjs")
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, setDoc, getDoc, getDocs, collection, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocs, collection, addDoc, deleteDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
 
 const env = await initializeTestEnvironment({
   projectId: 'daur-rules-test',
@@ -126,6 +127,25 @@ await t('a partner cannot change the workout', assertFails(gym(wife, 'wife')));
 await t('owner unlinks: removes wife', assertSucceeds(deleteDoc(doc(owner, 'coaching/owner/helpers/wife'))));
 await t('owner unlinks: leaves wife', assertSucceeds(deleteDoc(doc(owner, 'coaching/wife/helpers/owner'))));
 await t('unlinked, neither sees the other', assertFails(getDoc(doc(wife, 'coaching/owner/share/partner'))));
+
+// boards: a friends' board up to 20, each member writes only their own row, points within a week's range
+const fr = (uid) => env.authenticatedContext(uid).firestore();
+await t('owner starts a friends board', assertSucceeds(setDoc(doc(owner, 'families/FFFFFFFF'), { ownerUid: 'owner', members: ['owner'], createdAt: now, updatedAt: now })));
+let joined = true;
+for (let i = 1; i < 20; i++) {
+  try { await updateDoc(doc(fr(`f${i}`), 'families/FFFFFFFF'), { members: arrayUnion(`f${i}`), updatedAt: now }); } catch { joined = false; }
+}
+await t('19 friends join (20 in all)', joined ? Promise.resolve() : Promise.reject(new Error('a join failed')));
+await t('a 21st is refused', assertFails(updateDoc(doc(fr('f20'), 'families/FFFFFFFF'), { members: arrayUnion('f20'), updatedAt: now })));
+const row = (db, uid, extra = {}) => setDoc(doc(db, `families/FFFFFFFF/board/${uid}`), { name: uid, streak: 3, legs: 2, day: '2026-10-10', perfect: false, points: 420, week: '2026-10-10', updatedAt: now, ...extra });
+await t('a member writes their row with points', assertSucceeds(row(owner, 'owner')));
+await t('points past a week\'s most are refused', assertFails(row(owner, 'owner', { points: 5000 })));
+await t('a row with the week\'s steps, kg lifted, full days and water', assertSucceeds(row(owner, 'owner', { steps: 52310, lifted: 4200, full: 5, water: 70 })));
+await t('8 full days in a week are refused', assertFails(row(owner, 'owner', { full: 8 })));
+await t('a lifted count that isn\'t a whole number is refused', assertFails(row(owner, 'owner', { lifted: 'lots' })));
+await t('nobody writes someone else\'s row', assertFails(row(fr('f1'), 'owner')));
+await t('members read the leaderboard', assertSucceeds(getDocs(collection(fr('f3'), 'families/FFFFFFFF/board'))));
+await t('outsiders can\'t', assertFails(getDocs(collection(stranger, 'families/FFFFFFFF/board'))));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 await env.cleanup();
