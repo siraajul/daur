@@ -21,6 +21,9 @@ String bnNum(Object v, bool bn) =>
 
 const _mealBn = {'m1': 'সকালের নাশতা', 'm2': 'দুপুরের খাবার', 'm3': 'বিকেলের নাস্তা', 'm4': 'রাতের খাবার'};
 
+/// A meal's Bangla name; in Ramadan the first two are Sehri and Iftar.
+String _bn(String id, String name) => const {'Sehri': 'সেহরি', 'Iftar': 'ইফতার'}[name] ?? _mealBn[id]!;
+
 /// One-tap replies a mother sends most: (Bangla, English).
 const _replies = [
   ('খুব ভালো', 'Well done'),
@@ -52,7 +55,7 @@ class _MaPageState extends State<MaPage> {
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
           children: [
             Text(
-              bn ? '${_mealBn[m.id]} · কী রান্না করবেন?' : '${m.name} · what will you cook?',
+              bn ? '${_bn(m.id, m.name)} · কী রান্না করবেন?' : '${m.name} · what will you cook?',
               style: t.x(18, color: t.sheetRed),
             ),
             const SizedBox(height: 8),
@@ -237,7 +240,9 @@ class _MaPageState extends State<MaPage> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    bn ? (_mealBn.values.elementAt(meals.indexOf(m))).split(' ').first : '${m['name']}',
+                                    bn
+                                        ? _bn('m${meals.indexOf(m) + 1}', '${m['name']}').split(' ').first
+                                        : '${m['name']}',
                                     style: t.sec(t.ink),
                                   ),
                                 ],
@@ -258,7 +263,7 @@ class _MaPageState extends State<MaPage> {
                       for (final (i, m) in meals.indexed)
                         if (i < chart.length)
                           _CookCard(
-                            mealName: bn ? _mealBn[chart[i].id]! : chart[i].name,
+                            mealName: bn ? _bn(chart[i].id, chart[i].name) : chart[i].name,
                             window: m['window'] as String? ?? '',
                             meal: chart[i],
                             option: _picked[chart[i].id] ?? (m['option'] as num?)?.toInt() ?? 0,
@@ -473,7 +478,7 @@ class _WholeChart extends StatelessWidget {
     bn ? '$name-এর ডায়েট চার্ট' : '$name\'s diet chart',
     for (final m in chart) ...[
       '',
-      '${bn ? _mealBn[m.id] : m.name} (${m.window})',
+      '${bn ? _bn(m.id, m.name) : m.name} (${m.window})',
       for (final (i, o) in m.options.indexed) ...[
         '${i == 0
             ? ''
@@ -499,7 +504,7 @@ class _WholeChart extends StatelessWidget {
                   PageHeader(bn ? 'পুরো চার্ট' : 'Whole chart', sub: name),
                   for (final m in chart) ...[
                     const SizedBox(height: 20),
-                    Text('${bn ? _mealBn[m.id] : m.name} · ${m.window}', style: t.x(18)),
+                    Text('${bn ? _bn(m.id, m.name) : m.name} · ${m.window}', style: t.x(18)),
                     for (final (i, o) in m.options.indexed)
                       Padding(
                         padding: const EdgeInsets.only(top: 10),

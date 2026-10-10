@@ -10,6 +10,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import 'burn.dart' show burnWays, hoursMinutes;
 import 'plan.dart';
+import 'ramadan.dart';
 import 'store.dart';
 import 'today.dart' show thousands;
 import 'water_walk.dart' show litres;
@@ -205,24 +206,39 @@ class Reminders {
       if (s.reminderOn('weigh') && !(d == 0 && s.weighedToday)) {
         add(1, at(7, 30), 'weigh', 'Weigh-in · day $lap', 'After the bathroom, before breakfast.', 'weigh');
       }
+      // Ramadan's times move a minute a day: each day's meals get that day's
+      final dayMeals = s.ramadan ? withRamadanTimes(meals, day) : meals;
+      final rt = ramadanTimes(day);
       if (s.reminderOn('meals')) {
-        for (final (i, m) in meals.indexed) {
+        for (final (i, m) in dayMeals.indexed) {
           if (s.fasted(m) || (d == 0 && (s.done.containsKey(m.id) || s.skipped.contains(m.id)))) continue;
           final p = m.window.split('–').first.split(':').map(int.parse).toList();
           final opt = s.chosen(m);
           final last = i == meals.length - 1;
-          add(
-            10 + i,
-            at(p[0], p[1]),
-            'meals',
-            '${m.name} · ${m.window.split('–').first}',
-            '${opt.name} · ${s.optKcal(m, opt)} kcal. ${last ? 'The last meal of the day.' : 'Log it in one tap.'}',
-            'meal:${m.id}',
-          );
+          final (time, title, body) = switch (s.ramadan ? m.id : '') {
+            // sehri: 45 minutes before it ends; iftar: 10 minutes before
+            'm1' => (at(p[0], p[1]), 'Sehri ends ${hhmm(rt.sehri)}', '${opt.name} · water too, 2–3 glasses.'),
+            'm2' => (
+              rt.iftar.subtract(const Duration(minutes: 10)),
+              'Iftar at ${hhmm(rt.iftar)}',
+              'Dates and water first, then ${opt.name}.',
+            ),
+            _ => (
+              at(p[0], p[1]),
+              '${m.name} · ${m.window.split('–').first}',
+              '${opt.name} · ${s.optKcal(m, opt)} kcal. ${last ? 'The last meal of the day.' : 'Log it in one tap.'}',
+            ),
+          };
+          add(10 + i, time, 'meals', title, body, 'meal:${m.id}');
         }
       }
       if (s.reminderOn('water')) {
-        for (final (i, (h, mm, of14)) in [(11, 0, 5), (14, 30, 9), (18, 0, 12)].indexed) {
+        // in Ramadan, water is for after iftar: none while fasting
+        final iftarHour = rt.iftar.add(const Duration(minutes: 60));
+        final checks = s.ramadan
+            ? [(iftarHour.hour, iftarHour.minute, 5), (21, 0, 9), (22, 45, 12)]
+            : [(11, 0, 5), (14, 30, 9), (18, 0, 12)];
+        for (final (i, (h, mm, of14)) in checks.indexed) {
           final goal = (of14 * s.waterGoal / 14).round(); // checkpoints scaled to the day's goal
           if (d == 0 && s.water >= goal) continue;
           add(

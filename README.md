@@ -137,6 +137,7 @@ Invite a trainer and a family member with a code each. The trainer follows every
 | **Habits** | Streak with freezes · "streak ends at midnight" reminder · perfect days (meals + water + steps) · medals · Sunday recap · family board |
 | **Body** | Personal targets from sex, age, height (feet and inches) and activity · water goal · steps 7k → 10k · sleep from Health Connect |
 | **Fasting** | 14:10, 16:8, 18:6 with a movable window · meals outside it become "Fasting" and the rest grow so the day stays the same size · start / end real fasts with a live ring through the stages (digesting → burning fat → deep fast) · a Live Update on Android 16 and a Live Activity on iPhone · window reminders |
+| **Ramadan** | Sehri and iftar times worked out from the sun for any of Bangladesh's 64 districts or 18 cities abroad (Dhaka matches the Islamic Foundation's table; the first place is guessed from the phone's time zone) · the day's meals become Sehri, Iftar, a snack after Maghrib and dinner after Tarawih · the fast counts itself at iftar · "Not fasting today" keeps a list of fasts to make up · sehri and iftar reminders, water reminders only after iftar |
 | **Coaching** | Invite a **trainer** and a **family helper** with a code each · they see a live summary of your day, weight and (trainer) gym and strength, never your spending · notes both ways · the trainer writes your **diet chart** and your **workout** (push / pull / legs, sets, reps, kg), and each reaches your phone with Undo · a helper can swap today's meals within the trainer's options |
 | **Trainer** | A **Students** dashboard: who needs you first and why (not opened in days, no gym, weight not moving for their goal, over or short today), filters by goal, one-tap feedback, a Sunday "3 of 8 need you" |
 | **Ma's page** | For the family member who cooks: did he eat (one sentence, four big circles), **what to cook today** with amounts, the whole chart to share or print, water and weight in plain words, one-tap replies · Bangla first, English one tap away |
@@ -381,7 +382,7 @@ Security rules (`firestore.rules`) keep each person's data private to them, the 
 ```bash
 flutter pub get
 flutter run -d <android-device>        # or: -d chrome, or an iPhone
-flutter test                           # 46 tests: store, search, progression, reminders, goals, coaching
+flutter test                           # 47 tests: store, search, progression, reminders, goals, coaching
 ```
 
 The AI estimate needs an App Check token. Put it in `dart_defines.json` (git-ignored):

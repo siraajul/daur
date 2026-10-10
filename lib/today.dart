@@ -122,7 +122,7 @@ class TodayScreen extends StatelessWidget {
                   ),
                   CoachCard(store: s),
                   NoteCard(store: s),
-                  if (s.fastPlan != null) FastBar(store: s),
+                  if (s.fastPlan != null || s.ramadan) FastBar(store: s),
                   const SizedBox(height: 8),
                   Track(
                     impact: _impact,
