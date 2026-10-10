@@ -9,6 +9,7 @@ import 'cloud.dart';
 import 'diet_chart.dart';
 import 'gym.dart' show dayIcon, planText;
 import 'ma_page.dart';
+import 'partner_day.dart';
 import 'students.dart';
 import 'plan.dart' show Meal;
 import 'store.dart';
@@ -23,7 +24,7 @@ import 'workout_editor.dart';
 
 const goalWords = ['losing', 'keeping', 'gaining'];
 
-const roleNames = {'diet': 'Diet helper', 'trainer': 'Trainer', 'owner': 'You'};
+const roleNames = {'diet': 'Diet helper', 'trainer': 'Trainer', 'partner': 'Partner', 'owner': 'You'};
 
 String ago(DateTime? t) {
   if (t == null) return '';
@@ -87,7 +88,7 @@ class _CoachesScreenState extends State<CoachesScreen> {
                     ('diet', Icons.restaurant_rounded, 'Meals, kcal, water, weight'),
                     ('trainer', Icons.fitness_center_rounded, 'All that, plus gym and strength'),
                   ])
-                    _InviteCard(
+                    InviteCard(
                       role: role,
                       icon: icon,
                       sees: sees,
@@ -152,8 +153,9 @@ class _CoachesScreenState extends State<CoachesScreen> {
   }
 }
 
-class _InviteCard extends StatelessWidget {
-  const _InviteCard({
+class InviteCard extends StatelessWidget {
+  const InviteCard({
+    super.key,
     required this.role,
     required this.icon,
     required this.sees,
@@ -201,8 +203,9 @@ class _InviteCard extends StatelessWidget {
               icon: Icon(Icons.ios_share_rounded, color: t.ink),
               onPressed: () => SharePlus.instance.share(
                 ShareParams(
-                  text:
-                      'Follow my diet on Daur as my ${roleNames[role]!.toLowerCase()}: install Daur, choose "Helping someone?" and enter $code',
+                  text: role == 'partner'
+                      ? 'Let\'s see each other\'s progress on Daur: install it, open Menu → Couple and enter $code'
+                      : 'Follow my diet on Daur as my ${roleNames[role]!.toLowerCase()}: install Daur, choose "Helping someone?" and enter $code',
                 ),
               ),
             ),
@@ -361,6 +364,7 @@ class _NotesThreadState extends State<NotesThread> {
                   hintText: switch (widget.role) {
                     'owner' => 'Write to your helpers',
                     'trainer' => 'e.g. Bench 50 kg next push day',
+                    'partner' => 'e.g. Gym together at 7?',
                     _ => 'e.g. Less rice tonight',
                   },
                   hintStyle: t.sec(),
@@ -428,9 +432,11 @@ class _NotesThreadState extends State<NotesThread> {
 
 /// The page for someone this person helps: a diet helper (a mother) gets Ma's page, simple and in
 /// Bangla, with what to cook; a trainer gets the full view with the week, gym and the chart editor.
-Widget helperPage(Map<String, String> h, Store store) => h['role'] == 'diet'
-    ? MaPage(owner: h['owner']!, name: h['name']!, store: store)
-    : HelperView(owner: h['owner']!, name: h['name']!, role: h['role']!, store: store);
+Widget helperPage(Map<String, String> h, Store store) => switch (h['role']) {
+  'diet' => MaPage(owner: h['owner']!, name: h['name']!, store: store),
+  'partner' => PartnerPage(owner: h['owner']!, name: h['name']!, store: store),
+  _ => HelperView(owner: h['owner']!, name: h['name']!, role: h['role']!, store: store),
+};
 
 /// What a helper sees: [owner]'s day, weight, (trainer) gym and strength, and the notes.
 class HelperView extends StatelessWidget {
@@ -494,9 +500,9 @@ class HelperView extends StatelessWidget {
                   ]),
                   const SizedBox(height: 24),
                   Text('Meals', style: t.meta()),
-                  for (final m in (d['meals'] as List? ?? const []).cast<Map>()) _MealRow(m: m),
+                  for (final m in (d['meals'] as List? ?? const []).cast<Map>()) MealRow(m: m),
                   for (final e in (d['extras'] as List? ?? const []).cast<Map>())
-                    _MealRow(m: {'name': 'Extra', 'status': 'extra', 'food': e['name'], 'kcal': e['kcal']}),
+                    MealRow(m: {'name': 'Extra', 'status': 'extra', 'food': e['name'], 'kcal': e['kcal']}),
                   const SizedBox(height: 24),
                   _Weight(d: d),
                   if (role == 'trainer') ...[
@@ -566,8 +572,8 @@ class HelperView extends StatelessWidget {
   }
 }
 
-class _MealRow extends StatelessWidget {
-  const _MealRow({required this.m});
+class MealRow extends StatelessWidget {
+  const MealRow({super.key, required this.m});
   final Map m;
 
   @override
@@ -596,10 +602,13 @@ class _MealRow extends StatelessWidget {
               children: [
                 Text(m['name'] as String? ?? '', style: t.body()),
                 Text(
+                  // a partner may not see the food itself (couple.dart privacy)
                   status == 'done' || status == 'extra'
-                      ? '${m['food']}'
+                      ? '${m['food'] ?? 'Done'}'
                       : status == 'skipped'
                       ? 'Skipped'
+                      : m['food'] == null
+                      ? ''
                       : 'Planned: ${m['food']}',
                   style: t.meta(),
                   maxLines: 1,
@@ -996,7 +1005,7 @@ class _Helped extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     return StreamBuilder(
-      stream: Cloud.instance.progress(h['owner']!),
+      stream: Cloud.instance.progress(h['owner']!, partner: h['role'] == 'partner'),
       builder: (context, snap) {
         final d = snap.data?.data ?? const <String, dynamic>{};
         int n(String k) => (d[k] as num?)?.toInt() ?? 0;
@@ -1007,7 +1016,7 @@ class _Helped extends StatelessWidget {
             : [
                 goalWords[n('goal')],
                 today ? '${thousands(n('kcal'))}/${thousands(n('kcalGoal'))} kcal' : 'Not opened today',
-                if (h['role'] == 'trainer') 'gym ${n('gymThisWeek')}/wk',
+                if (h['role'] != 'diet') 'gym ${n('gymThisWeek')}/wk',
                 if (now != null && start != null)
                   '${now <= start ? '−' : '+'}${(now - start).abs().toStringAsFixed(1)} kg',
               ].join(' · ');

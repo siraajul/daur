@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:daur/badges.dart';
+import 'package:daur/couple.dart' show SideBySide;
 import 'package:daur/diet_chart.dart' show chartChanges;
 import 'package:daur/fasting.dart' show stageAt;
 import 'package:daur/meal_ai.dart';
@@ -1022,5 +1023,42 @@ void main() {
     final gainer = {...onTrack, 'goal': 2, 'kgWeek': -0.1, 'eatLeft': 350};
     expect(studentFlags(gainer, now, now), ['Not gaining this week', '350 kcal short today']);
     expect(studentFlags({'lap': 1}, null, now), ['Never opened Daur']);
+  });
+
+  test('couple: what a partner sees, the race week and its points', () async {
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    s.logMeal(meals[0]);
+    s.logWeight(108.6);
+    final food = s.mealLabel(meals[0]);
+    expect(jsonEncode(s.partnerSummary()), contains('108.6'));
+
+    s.setPartnerHide('weight', true);
+    s.setPartnerHide('meals', true);
+    final p = s.partnerSummary(), json = jsonEncode(p);
+    expect(json.contains('108.6'), isFalse); // no weight anywhere
+    expect(json.contains(food), isFalse); // nor the food
+    expect(((p['meals'] as List).first as Map)['status'], 'done'); // still counts for the race
+    expect(p['hidden'], containsAll(['weight', 'meals']));
+    expect(jsonEncode(s.coachSummary()), contains('108.6')); // the trainer still sees it
+    expect(SideBySide.legs(p), 1);
+
+    // the week starts on Saturday
+    expect(SideBySide.weekStart('2026-10-10'), '2026-10-10'); // a Saturday
+    expect(SideBySide.weekStart('2026-10-16'), '2026-10-10'); // Friday
+    expect(SideBySide.weekStart('2026-10-11'), '2026-10-10');
+    // 100 each for meals, water and steps, capped; days before the week don't count
+    final d = {
+      'waterGoal': 14,
+      'days': [
+        ['2026-10-09', 4, 9000, 8000, 14],
+        ['2026-10-10', 4, 12000, 8000, 20],
+        ['2026-10-11', 2, 4000, 8000, 7],
+      ],
+    };
+    expect(SideBySide.points(d, '2026-10-10'), 300 + (50 + 50 + 50));
+
+    s.setStake('Makes tea');
+    expect(s.partnerSummary()['stake'], 'Makes tea');
   });
 }

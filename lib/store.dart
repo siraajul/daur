@@ -158,6 +158,8 @@ class Store extends ChangeNotifier {
   Map<String, String> inviteCodes = {}; // role ('diet' | 'trainer') -> the code this person made
   List<Map<String, String>> helping = []; // people this person helps: {owner, name, role}
   bool helperOnly = false; // this phone only helps someone; it has no plan of its own
+  Set<String> partnerHides = {}; // kept from a partner (couple.dart): 'weight', 'meals'
+  String? stake, stakeAt; // the couple's weekly race: what the loser does, and when it was set (ISO)
   String? role; // how this person uses Daur: 'me' | 'trainer' | 'family'; null = not asked yet
   String notesSeen = ''; // ISO time of the newest note already shown on Today
   List<Meal>? chart; // the trainer's diet chart (null = the plan in plan.dart)
@@ -277,6 +279,9 @@ class Store extends ChangeNotifier {
     inviteCodes = Map<String, String>.from(j['inviteCodes'] ?? {});
     helping = [for (final h in (j['helping'] as List? ?? const [])) Map<String, String>.from(h as Map)];
     helperOnly = j['helperOnly'] as bool? ?? false;
+    partnerHides = {...(j['partnerHides'] as List? ?? const []).cast<String>()};
+    stake = j['stake'] as String?;
+    stakeAt = j['stakeAt'] as String?;
     role = j['role'] as String?;
     notesSeen = j['notesSeen'] as String? ?? '';
     chart = j['chart'] == null ? null : [for (final m in j['chart'] as List) Meal.from(m as Map)];
@@ -387,6 +392,9 @@ class Store extends ChangeNotifier {
     'inviteCodes': inviteCodes,
     'helping': helping,
     'helperOnly': helperOnly,
+    'partnerHides': partnerHides.toList(),
+    'stake': stake,
+    'stakeAt': stakeAt,
     'role': role,
     'notesSeen': notesSeen,
     if (chart != null) 'chart': [for (final m in chart!) m.toJson()],
@@ -1669,6 +1677,19 @@ class Store extends ChangeNotifier {
     // the last 7 days, for a trainer's dashboard: weight change (7-day averages) and full days logged
     'kgWeek': week.kgChange,
     'fullDays': week.full,
+    // a partner's week (couple.dart), oldest first: [day, meals done, steps, step target, water]
+    'days': [
+      for (final d in lastDays(7))
+        [
+          d,
+          d == today ? legsDone : lapHistory[d] ?? 0,
+          d == today ? stepsToday : stepsHistory[d] ?? 0,
+          stepTargetOn(d),
+          d == today ? water : waterHistory[d] ?? 0,
+        ],
+    ],
+    'stake': stake,
+    'stakeAt': stakeAt,
     'sessions': [
       for (final d in (routineLog.keys.toList()..sort()).reversed.take(8)) [d, routineLog[d], gymHistory[d] ?? 0],
     ],
@@ -1678,6 +1699,43 @@ class Store extends ChangeNotifier {
     'workout': workout,
     'gymBy': gymBy,
   };
+
+  /// What a partner sees (published separately, so what's kept back never leaves the phone): the
+  /// helpers' summary without the weight or what was eaten, when those are switched off.
+  Map<String, Object?> partnerSummary() {
+    final d = coachSummary();
+    if (partnerHides.contains('weight')) {
+      for (final k in const ['startKg', 'nowKg', 'weights', 'kgWeek']) {
+        d.remove(k);
+      }
+    }
+    if (partnerHides.contains('meals')) {
+      d['meals'] = [
+        for (final m in d['meals'] as List)
+          {
+            for (final k in const ['name', 'window', 'status', 'kcal', 'time']) k: (m as Map)[k],
+          },
+      ];
+      d['extras'] = [
+        for (final e in d['extras'] as List) {'name': 'Extra', 'kcal': (e as Map)['kcal']},
+      ];
+      for (final k in const ['chart', 'chartBy', 'chartChanges', 'chartAt']) {
+        d.remove(k);
+      }
+    }
+    return d..['hidden'] = partnerHides.toList();
+  }
+
+  void setPartnerHide(String what, bool hide) {
+    hide ? partnerHides.add(what) : partnerHides.remove(what);
+    _save();
+  }
+
+  void setStake(String? text) {
+    stake = text;
+    stakeAt = DateTime.now().toIso8601String();
+    _save();
+  }
 
   int? get sleepMin => sleepHistory[today];
   void setSleep(int? minutes) {

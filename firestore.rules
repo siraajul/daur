@@ -53,7 +53,7 @@ rules_version = '2';
 // Document ID: the code, ^[A-HJ-NP-Z2-9]{8}$
 // Fields:
 //   - ownerUid: string (required, == creator's uid) - whose plan the helper will follow
-//   - role: string (required, 'diet' | 'trainer')
+//   - role: string (required, 'diet' | 'trainer' | 'partner')
 //   - createdAt: timestamp (required, == request.time on create)
 // Readable (by id only) by anyone signed in who knows the code; no updates; the owner deletes.
 //
@@ -73,7 +73,14 @@ rules_version = '2';
 //   - name: string (required, 1..60), photoUrl: string (optional, https URL)
 //   - role: string (required, == the invite's role)
 //   - code: string (required, an invite whose ownerUid is this owner)
+//   - back: string (optional, partners only: the helper's own partner invite, so the owner can
+//     join them back and both see each other)
 //   - joinedAt: timestamp (required, == request.time)
+//
+// Subcollection: coaching/{owner}/share
+// Document 'partner' (what a partner sees instead of the summary above): same fields as
+//   coaching/{owner}; `data` leaves out the weight or what was eaten when the owner keeps them back.
+//   Only the owner writes it; only the owner and their partner read it.
 //
 // Subcollection: coaching/{owner}/notes
 // Document ID: auto
@@ -92,10 +99,11 @@ rules_version = '2';
 //   - byUid: string (== writer), byName: string (1..60), at: timestamp (== request.time)
 // Document 'gym' (the workout; the owner or their trainer writes it): same fields as 'diet', data
 //   is the push / pull / legs days and each exercise's sets, reps and kg, as JSON
-// Document 'cook' (what's cooked today; the owner or any helper picks):
+// Document 'cook' (what's cooked today; the owner, a diet helper or the trainer picks):
 //   - picks: map (required, keys m1..m4, values int 0..9) - option per meal
 //   - day: string (yyyy-mm-dd), byUid, byName, at as above
 //
+// Partners read only coaching/{owner}/share/partner and notes, never the summary or the plan.
 // Access: users/* are private to their owner. A family document and its board are readable
 // only by its members. The board is listed (one collection read); everything else is gets.
 // ===============================================================
@@ -301,8 +309,17 @@ service cloud.firestore {
       return isAuthenticated() && exists(helperDoc(owner));
     }
 
+    // a trainer or a diet helper: they follow the plan; a partner only sees their own share
+    function isCoach(owner) {
+      return isHelper(owner) && get(helperDoc(owner)).data.role != 'partner';
+    }
+
+    function isPartner(owner) {
+      return isHelper(owner) && get(helperDoc(owner)).data.role == 'partner';
+    }
+
     function isValidRole(r) {
-      return r == 'diet' || r == 'trainer';
+      return r == 'diet' || r == 'trainer' || r == 'partner';
     }
 
     match /invites/{code} {
@@ -331,21 +348,37 @@ service cloud.firestore {
                isNow(data.updatedAt);
       }
 
-      allow get: if isOwner(owner) || isHelper(owner);
+      allow get: if isOwner(owner) || isCoach(owner);
       allow create, update: if isOwner(owner) && isValidSummary(request.resource.data);
       allow delete: if isOwner(owner);
+
+      // coaching/{owner}/share/partner: the partner's copy, without what the owner keeps back
+      match /share/{doc} {
+        allow get: if doc == 'partner' && (isOwner(owner) || isPartner(owner));
+        allow create, update: if doc == 'partner' && isOwner(owner) && isValidSummary(request.resource.data);
+        allow delete: if isOwner(owner);
+      }
 
       // coaching/{owner}/helpers/{uid}: a helper joins with a code the owner made for that role
       match /helpers/{uid} {
         function isValidHelper(data) {
           let invite = get(/databases/$(database)/documents/invites/$(data.code)).data;
-          return hasOnlyAllowedFields(['name', 'photoUrl', 'role', 'code', 'joinedAt']) &&
+          return hasOnlyAllowedFields(['name', 'photoUrl', 'role', 'code', 'back', 'joinedAt']) &&
                  hasRequiredFields(['name', 'role', 'code', 'joinedAt']) &&
                  data.name is string && data.name.size() >= 1 && data.name.size() <= 60 &&
                  (!('photoUrl' in data) || isValidUrl(data.photoUrl)) &&
                  data.code is string && data.code.matches('^[A-HJ-NP-Z2-9]{8}$') &&
                  invite.ownerUid == owner && invite.role == data.role &&
+                 (!('back' in data) || isValidBack(data)) &&
                  isNow(data.joinedAt);
+        }
+
+        // a partner's own partner code: theirs, for the partner role
+        function isValidBack(data) {
+          let back = get(/databases/$(database)/documents/invites/$(data.back)).data;
+          return data.role == 'partner' &&
+                 data.back is string && data.back.matches('^[A-HJ-NP-Z2-9]{8}$') &&
+                 back.ownerUid == uid && back.role == 'partner';
         }
 
         allow read: if isOwner(owner) || isOwner(uid);
@@ -388,10 +421,10 @@ service cloud.firestore {
                  isValidBy(data);
         }
 
-        allow read: if isOwner(owner) || isHelper(owner);
+        allow read: if isOwner(owner) || isCoach(owner);
         allow create, update: if isAuthenticated() &&
                                  ((doc in ['diet', 'gym'] && (isOwner(owner) || isTrainer()) && isValidChart(request.resource.data)) ||
-                                  (doc == 'cook' && (isOwner(owner) || isHelper(owner)) && isValidCook(request.resource.data)));
+                                  (doc == 'cook' && (isOwner(owner) || isCoach(owner)) && isValidCook(request.resource.data)));
         allow delete: if isOwner(owner);
       }
 
