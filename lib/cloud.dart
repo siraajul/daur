@@ -318,10 +318,12 @@ class Cloud extends ChangeNotifier {
 
   // ---- coaching: a mother for the diet, a trainer; they follow this person's plan ----
   //
-  // invites/{code}              who made the code and for which role (diet | trainer)
+  // invites/{code}              who made the code and for which role (diet | trainer | partner)
   // coaching/{owner}            the owner's progress summary, readable by their helpers
-  // coaching/{owner}/helpers/{uid}  one per helper, written by the helper with a valid code
+  // coaching/{owner}/helpers/{uid}  one per helper, written by the helper with a valid code; a
+  //                                  partner adds `back`, their own partner code, so it goes both ways
   // coaching/{owner}/notes/{id}     notes both ways ("less rice tonight")
+  // coaching/{owner}/share/partner  what a partner sees instead: the summary minus what's kept back
 
   DocumentReference<Map<String, dynamic>> _coach(String owner) => _db.collection('coaching').doc(owner);
 
@@ -332,20 +334,24 @@ class Cloud extends ChangeNotifier {
   Future<void> pushCoaching() async {
     final u = user, s = _store;
     if (u == null || s == null || s.inviteCodes.isEmpty || s.helperOnly) return;
+    Map<String, Object> doc(Map<String, Object?> data) => {
+      'ownerUid': u.uid,
+      'name': _name(u, 'Daur'),
+      if ((u.photoURL ?? '').startsWith('https://')) 'photoUrl': u.photoURL!,
+      'data': jsonEncode(data),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
     try {
-      await _coach(u.uid).set({
-        'ownerUid': u.uid,
-        'name': _name(u, 'Daur'),
-        if ((u.photoURL ?? '').startsWith('https://')) 'photoUrl': u.photoURL!,
-        'data': jsonEncode(s.coachSummary()),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await _coach(u.uid).set(doc(s.coachSummary()));
+      if (s.inviteCodes.containsKey('partner')) {
+        await _coach(u.uid).collection('share').doc('partner').set(doc(s.partnerSummary()));
+      }
     } catch (e) {
       debugPrint('Cloud.pushCoaching: $e');
     }
   }
 
-  /// A code for a helper with [role] ('diet' or 'trainer'), reusable until revoked.
+  /// A code for a helper with [role] ('diet', 'trainer' or 'partner'), reusable until revoked.
   Future<String?> createInvite(String role) async {
     final u = user, s = _store;
     if (u == null || s == null) return 'Sign in first.';
@@ -389,11 +395,17 @@ class Cloud extends ChangeNotifier {
       if (inv == null) return 'No invite with that code.';
       final owner = inv['ownerUid'] as String, role = inv['role'] as String;
       if (owner == u.uid) return 'That\'s your own code: share it with your helper.';
+      // a partner sees this person back: hand over our own partner code with the join
+      if (role == 'partner' && s.inviteCodes['partner'] == null) {
+        final e = await createInvite('partner');
+        if (e != null) return e;
+      }
       await _coach(owner).collection('helpers').doc(u.uid).set({
         'name': _name(u, 'Helper'),
         if ((u.photoURL ?? '').startsWith('https://')) 'photoUrl': u.photoURL!,
         'role': role,
         'code': code,
+        if (role == 'partner') 'back': s.inviteCodes['partner']!,
         'joinedAt': FieldValue.serverTimestamp(),
       });
       final name = (await _coach(owner).get()).data()?['name'] as String? ?? 'Your person';
@@ -426,6 +438,13 @@ class Cloud extends ChangeNotifier {
     }
   }
 
+  /// Unlink a partner: neither sees the other any more, and the old code stops working.
+  Future<void> unlinkPartner(String uid) async {
+    await removeHelper(uid);
+    await leaveHelping(uid);
+    await revokeInvite('partner');
+  }
+
   /// This person's helpers, live: name, photo, role.
   Stream<List<Map<String, dynamic>>> helpers() {
     final u = user;
@@ -440,18 +459,21 @@ class Cloud extends ChangeNotifier {
         );
   }
 
-  /// [owner]'s summary as a helper sees it, live (null until they have published one).
-  Stream<({String name, String? photo, Map<String, dynamic> data, DateTime? at})?> progress(String owner) =>
-      _coach(owner).snapshots().map((d) {
-        final x = d.data();
-        if (x == null) return null;
-        return (
-          name: x['name'] as String? ?? '',
-          photo: x['photoUrl'] as String?,
-          data: jsonDecode(x['data'] as String? ?? '{}') as Map<String, dynamic>,
-          at: (x['updatedAt'] as Timestamp?)?.toDate(),
-        );
-      });
+  /// [owner]'s summary as a helper sees it, live (null until they have published one). A partner
+  /// reads their own copy, without what [owner] keeps back.
+  Stream<({String name, String? photo, Map<String, dynamic> data, DateTime? at})?> progress(
+    String owner, {
+    bool partner = false,
+  }) => (partner ? _coach(owner).collection('share').doc('partner') : _coach(owner)).snapshots().map((d) {
+    final x = d.data();
+    if (x == null) return null;
+    return (
+      name: x['name'] as String? ?? '',
+      photo: x['photoUrl'] as String?,
+      data: jsonDecode(x['data'] as String? ?? '{}') as Map<String, dynamic>,
+      at: (x['updatedAt'] as Timestamp?)?.toDate(),
+    );
+  });
 
   /// Notes on [owner]'s plan, newest first.
   Stream<List<Map<String, dynamic>>> notes(String owner) => _coach(owner)
@@ -506,6 +528,8 @@ class Cloud extends ChangeNotifier {
   /// Plan changes applied on this phone: a message to show and the state to restore on Undo.
   final planEvents = ValueNotifier<({String text, String undo, String kind, String at})?>(null);
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _dietSub, _cookSub, _gymSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _partnerSub;
+  Set<String> _partners = {};
 
   static String? _at(Map<String, dynamic> d) => (d['at'] as Timestamp?)?.toDate().toIso8601String();
 
@@ -514,8 +538,23 @@ class Cloud extends ChangeNotifier {
     _dietSub?.cancel();
     _cookSub?.cancel();
     _gymSub?.cancel();
+    _partnerSub?.cancel();
+    _partners = {};
     final u = user, s = _store;
     if (u == null || s == null || s.inviteCodes.isEmpty || s.helperOnly) return;
+    // a partner joined with our code: join them back with theirs; one who left: let go of them too.
+    // ponytail: an unlink while this phone was closed isn't seen; their page just stops updating
+    _partnerSub = _coach(u.uid).collection('helpers').where('role', isEqualTo: 'partner').snapshots().listen((q) async {
+      final now = {for (final d in q.docs) d.id: d.data()['back'] as String?};
+      final gone = _partners.difference(now.keys.toSet());
+      _partners = now.keys.toSet();
+      for (final uid in gone) {
+        await leaveHelping(uid);
+      }
+      for (final MapEntry(key: uid, value: back) in now.entries) {
+        if (back != null && !s.helping.any((h) => h['owner'] == uid)) await joinAsHelper(back);
+      }
+    });
     _dietSub = _plan(u.uid, 'diet').snapshots().listen((snap) {
       final d = snap.data(), at = d == null ? null : _at(d);
       if (d == null || at == null || at.compareTo(s.chartAt) <= 0 || d['byUid'] == u.uid) return;

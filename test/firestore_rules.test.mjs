@@ -1,4 +1,4 @@
-// Firestore rules checks for coaching (invites, helpers, summary, notes, diet chart, workout, cooking):
+// Firestore rules checks for coaching (invites, helpers, partners, summary, notes, diet chart, workout, cooking):
 // who may read and write what. Runs against the local emulator, not the live database.
 //
 //   d=$(mktemp -d) && cp test/firestore_rules.test.mjs $d/ && (cd $d && npm i -s @firebase/rules-unit-testing@4 firebase@11)
@@ -17,6 +17,7 @@ const owner = env.authenticatedContext('owner').firestore();
 const mom = env.authenticatedContext('mom').firestore();
 const trainer = env.authenticatedContext('trainer').firestore();
 const stranger = env.authenticatedContext('stranger').firestore();
+const wife = env.authenticatedContext('wife').firestore();
 const now = serverTimestamp();
 let pass = 0, fail = 0;
 async function t(name, p) { try { await p; pass++; console.log('ok  ', name); } catch (e) { fail++; console.log('FAIL', name, e.message?.slice(0, 120)); } }
@@ -94,6 +95,37 @@ await t('mom leaves herself', assertSucceeds(deleteDoc(doc(mom, 'coaching/owner/
 await t('stranger cannot delete owner\'s code', assertFails(deleteDoc(doc(stranger, 'invites/DDDDDDDD'))));
 await t('owner revokes the code', assertSucceeds(deleteDoc(doc(owner, 'invites/DDDDDDDD'))));
 await t('a revoked code no longer lets anyone join', assertFails(join(mom, 'mom', 'DDDDDDDD', 'diet')));
+
+// couple: each joins the other with a partner code; the joiner hands over their own as `back`
+const pair = (db, owner, uid, code, back) =>
+  setDoc(doc(db, `coaching/${owner}/helpers/${uid}`), { name: uid, role: 'partner', code, ...(back ? { back } : {}), joinedAt: now });
+await t('owner makes a partner code', assertSucceeds(setDoc(doc(owner, 'invites/PPPPPPPP'), { ownerUid: 'owner', role: 'partner', createdAt: now })));
+await t('wife makes hers', assertSucceeds(setDoc(doc(wife, 'invites/WWWWWWWW'), { ownerUid: 'wife', role: 'partner', createdAt: now })));
+await t('a back code that isn\'t the joiner\'s is refused', assertFails(pair(stranger, 'owner', 'stranger', 'PPPPPPPP', 'WWWWWWWW')));
+await t('a back code for another role is refused', assertFails(pair(stranger, 'owner', 'stranger', 'PPPPPPPP', 'XXXXXXXX')));
+await t('back only goes with a partner join', assertFails(setDoc(doc(trainer, 'coaching/owner/helpers/trainer'), { name: 'trainer', role: 'trainer', code: 'TTTTTTTT', back: 'WWWWWWWW', joinedAt: now })));
+await t('wife joins owner with her code as back', assertSucceeds(pair(wife, 'owner', 'wife', 'PPPPPPPP', 'WWWWWWWW')));
+await t('owner reads the back code', assertSucceeds(getDocs(collection(owner, 'coaching/owner/helpers'))));
+await t('owner joins wife back', assertSucceeds(pair(owner, 'wife', 'owner', 'WWWWWWWW', 'PPPPPPPP')));
+await t('wife publishes her summary', assertSucceeds(setDoc(doc(wife, 'coaching/wife'), { ownerUid: 'wife', name: 'Wife', data: '{"kcal":1500}', updatedAt: now })));
+const share = (db, who) => setDoc(doc(db, `coaching/${who}/share/partner`), { ownerUid: who, name: who, data: '{"kcal":1}', updatedAt: now });
+await t('owner publishes the partner copy', assertSucceeds(share(owner, 'owner')));
+await t('wife publishes hers', assertSucceeds(share(wife, 'wife')));
+await t('nobody else writes someone\'s partner copy', assertFails(share(wife, 'owner')));
+await t('owner sees wife\'s day', assertSucceeds(getDoc(doc(owner, 'coaching/wife/share/partner'))));
+await t('wife sees owner\'s day', assertSucceeds(getDoc(doc(wife, 'coaching/owner/share/partner'))));
+await t('a partner can\'t read the full summary (weight kept back)', assertFails(getDoc(doc(wife, 'coaching/owner'))));
+await t('a partner can\'t read the diet chart', assertFails(getDoc(doc(wife, 'coaching/owner/plan/diet'))));
+await t('a partner can\'t pick the cooking', assertFails(cook(wife, 'wife')));
+await t('trainer rejoins', assertSucceeds(join(trainer, 'trainer', 'TTTTTTTT', 'trainer')));
+await t('a trainer can\'t read the partner copy', assertFails(getDoc(doc(trainer, 'coaching/owner/share/partner'))));
+await t('stranger can\'t read the partner copy', assertFails(getDoc(doc(stranger, 'coaching/owner/share/partner'))));
+await t('a partner writes a note as partner', assertSucceeds(note(wife, 'wife', 'partner', 'Gym together at 7?')));
+await t('a partner cannot pose as trainer', assertFails(note(wife, 'wife', 'trainer')));
+await t('a partner cannot change the workout', assertFails(gym(wife, 'wife')));
+await t('owner unlinks: removes wife', assertSucceeds(deleteDoc(doc(owner, 'coaching/owner/helpers/wife'))));
+await t('owner unlinks: leaves wife', assertSucceeds(deleteDoc(doc(owner, 'coaching/wife/helpers/owner'))));
+await t('unlinked, neither sees the other', assertFails(getDoc(doc(wife, 'coaching/owner/share/partner'))));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 await env.cleanup();

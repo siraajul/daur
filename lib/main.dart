@@ -13,6 +13,7 @@ import 'badges.dart' show checkBadges;
 import 'burn.dart';
 import 'cloud.dart';
 import 'coaching.dart';
+import 'couple.dart';
 import 'firebase_options.dart';
 import 'family.dart';
 import 'fasting.dart' show FastingScreen;
@@ -285,6 +286,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
         (Icons.hourglass_bottom_rounded, 'Fasting', () => FastingScreen(store: s)),
         (Icons.account_balance_wallet_outlined, 'Spending', () => SpendingScreen(store: s)),
         (Icons.groups_outlined, 'Family', () => FamilyScreen(store: s)),
+        (Icons.favorite_outline_rounded, 'Couple', () => CoupleScreen(store: s)),
         (Icons.family_restroom_rounded, 'Coaches', () => CoachesScreen(store: s)),
         (Icons.shield_outlined, 'Your data', () => DataScreen(store: s)),
         (Icons.notifications_outlined, 'Reminders', () => RemindersScreen(store: s)),
