@@ -1,4 +1,4 @@
-// Firestore rules checks for coaching (invites, helpers, summary, notes, diet chart, cooking):
+// Firestore rules checks for coaching (invites, helpers, summary, notes, diet chart, workout, cooking):
 // who may read and write what. Runs against the local emulator, not the live database.
 //
 //   d=$(mktemp -d) && cp test/firestore_rules.test.mjs $d/ && (cd $d && npm i -s @firebase/rules-unit-testing@4 firebase@11)
@@ -67,6 +67,14 @@ await t('trainer cannot sign the chart as someone else', assertFails(diet(traine
 await t('a chart with extra fields is refused', assertFails(diet(trainer, 'trainer', { role: 'admin' })));
 await t('mom reads the chart', assertSucceeds(getDoc(doc(mom, 'coaching/owner/plan/diet'))));
 await t('stranger cannot read the chart', assertFails(getDoc(doc(stranger, 'coaching/owner/plan/diet'))));
+const gym = (db, by, extra = {}) => setDoc(doc(db, 'coaching/owner/plan/gym'), { data: '{"Push":[]}', changes: ['Push: Dips added'], byUid: by, byName: by, at: now, ...extra });
+await t('trainer writes the workout', assertSucceeds(gym(trainer, 'trainer')));
+await t('mom cannot write the workout', assertFails(gym(mom, 'mom')));
+await t('owner writes their own workout', assertSucceeds(gym(owner, 'owner')));
+await t('stranger cannot write the workout', assertFails(gym(stranger, 'stranger')));
+await t('a workout with extra fields is refused', assertFails(gym(trainer, 'trainer', { role: 'admin' })));
+await t('stranger cannot read the workout', assertFails(getDoc(doc(stranger, 'coaching/owner/plan/gym'))));
+await t('trainer cannot write an unknown plan doc', assertFails(setDoc(doc(trainer, 'coaching/owner/plan/other'), { data: '{}', changes: [], byUid: 'trainer', byName: 'trainer', at: now })));
 await t('mom picks dinner to cook', assertSucceeds(cook(mom, 'mom')));
 await t('trainer may pick too', assertSucceeds(cook(trainer, 'trainer', { m2: 0 })));
 await t('stranger cannot pick', assertFails(cook(stranger, 'stranger')));

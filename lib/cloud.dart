@@ -497,6 +497,7 @@ class Cloud extends ChangeNotifier {
   //
   // coaching/{owner}/plan/diet  data: the chart as JSON, changes: what changed in words
   // coaching/{owner}/plan/cook  picks: {meal id: option} for one day
+  // coaching/{owner}/plan/gym   data: the workout as JSON (Store.workout), changes: in words
   // The owner's phone applies both as they arrive (with Undo); everyone reads the chart back from
   // the owner's summary, so it always shows what the owner actually has.
 
@@ -504,7 +505,7 @@ class Cloud extends ChangeNotifier {
 
   /// Plan changes applied on this phone: a message to show and the state to restore on Undo.
   final planEvents = ValueNotifier<({String text, String undo, String kind, String at})?>(null);
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _dietSub, _cookSub;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _dietSub, _cookSub, _gymSub;
 
   static String? _at(Map<String, dynamic> d) => (d['at'] as Timestamp?)?.toDate().toIso8601String();
 
@@ -512,6 +513,7 @@ class Cloud extends ChangeNotifier {
   void _watchPlan() {
     _dietSub?.cancel();
     _cookSub?.cancel();
+    _gymSub?.cancel();
     final u = user, s = _store;
     if (u == null || s == null || s.inviteCodes.isEmpty || s.helperOnly) return;
     _dietSub = _plan(u.uid, 'diet').snapshots().listen((snap) {
@@ -525,6 +527,23 @@ class Cloud extends ChangeNotifier {
         planEvents.value = (text: 'New diet chart from $by', undo: undo, kind: 'diet', at: at);
       } catch (e) {
         debugPrint('Cloud.diet: $e');
+      }
+    });
+    _gymSub = _plan(u.uid, 'gym').snapshots().listen((snap) {
+      final d = snap.data(), at = d == null ? null : _at(d);
+      if (d == null || at == null || at.compareTo(s.gymAt) <= 0 || d['byUid'] == u.uid) return;
+      try {
+        final undo = s.snapshot();
+        final by = d['byName'] as String? ?? 'Your trainer';
+        s.setWorkout(
+          jsonDecode(d['data'] as String) as Map,
+          by: by,
+          changes: [for (final c in d['changes'] as List? ?? const []) c as String],
+          at: at,
+        );
+        planEvents.value = (text: 'New workout from $by', undo: undo, kind: 'gym', at: at);
+      } catch (e) {
+        debugPrint('Cloud.gym: $e');
       }
     });
     _cookSub = _plan(u.uid, 'cook').snapshots().listen((snap) {
@@ -551,6 +570,24 @@ class Cloud extends ChangeNotifier {
     try {
       await _plan(owner, 'diet').set({
         'data': jsonEncode([for (final m in chart) m.toJson()]),
+        'changes': [for (final c in changes.take(10)) c.substring(0, c.length.clamp(0, 120))],
+        'byUid': u.uid,
+        'byName': _name(u, 'Your trainer'),
+        'at': FieldValue.serverTimestamp(),
+      });
+      return null;
+    } on FirebaseException catch (e) {
+      return 'Couldn\'t save (${e.code}).';
+    }
+  }
+
+  /// The trainer saves [owner]'s workout ([Store.workout] shape); [changes] says what changed.
+  Future<String?> saveWorkout(String owner, Map<String, List<List<Object>>> workout, List<String> changes) async {
+    final u = user;
+    if (u == null) return 'Sign in first.';
+    try {
+      await _plan(owner, 'gym').set({
+        'data': jsonEncode(workout),
         'changes': [for (final c in changes.take(10)) c.substring(0, c.length.clamp(0, 120))],
         'byUid': u.uid,
         'byName': _name(u, 'Your trainer'),

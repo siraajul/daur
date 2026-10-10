@@ -90,6 +90,8 @@ rules_version = '2';
 //   - data: string (required, 2..100000) - the four meals and their options, as JSON
 //   - changes: list (required, 0..10) - what changed, in words
 //   - byUid: string (== writer), byName: string (1..60), at: timestamp (== request.time)
+// Document 'gym' (the workout; the owner or their trainer writes it): same fields as 'diet', data
+//   is the push / pull / legs days and each exercise's sets, reps and kg, as JSON
 // Document 'cook' (what's cooked today; the owner or any helper picks):
 //   - picks: map (required, keys m1..m4, values int 0..9) - option per meal
 //   - day: string (yyyy-mm-dd), byUid, byName, at as above
@@ -351,7 +353,8 @@ service cloud.firestore {
         allow delete: if isOwner(owner) || isOwner(uid);
       }
 
-      // coaching/{owner}/plan/{doc}: the diet chart (owner or trainer) and today's cooking (anyone helping)
+      // coaching/{owner}/plan/{doc}: the diet chart and the workout (owner or trainer), and today's
+      // cooking (anyone helping)
       match /plan/{doc} {
         function isTrainer() {
           return isHelper(owner) && get(helperDoc(owner)).data.role == 'trainer';
@@ -363,7 +366,7 @@ service cloud.firestore {
                  isNow(data.at);
         }
 
-        function isValidDiet(data) {
+        function isValidChart(data) {
           return hasOnlyAllowedFields(['data', 'changes', 'byUid', 'byName', 'at']) &&
                  hasRequiredFields(['data', 'changes', 'byUid', 'byName', 'at']) &&
                  data.data is string && data.data.size() >= 2 && data.data.size() <= 100000 &&
@@ -387,7 +390,7 @@ service cloud.firestore {
 
         allow read: if isOwner(owner) || isHelper(owner);
         allow create, update: if isAuthenticated() &&
-                                 ((doc == 'diet' && (isOwner(owner) || isTrainer()) && isValidDiet(request.resource.data)) ||
+                                 ((doc in ['diet', 'gym'] && (isOwner(owner) || isTrainer()) && isValidChart(request.resource.data)) ||
                                   (doc == 'cook' && (isOwner(owner) || isHelper(owner)) && isValidCook(request.resource.data)));
         allow delete: if isOwner(owner);
       }
