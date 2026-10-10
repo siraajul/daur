@@ -17,6 +17,11 @@ import 'visuals.dart';
 
 String planText(ExPlan p) =>
     p.timed ? '${p.sets} × ${p.reps} s' : '${p.sets} × ${p.reps}${p.kg > 0 ? ' · ${kgText(p.kg)} kg' : ''}';
+IconData dayIcon(String day) => switch (day) {
+  'Push' => Icons.north_east_rounded,
+  'Pull' => Icons.south_west_rounded,
+  _ => Icons.directions_run_rounded,
+};
 String kgText(double kg) => kg == kg.roundToDouble() ? kg.toInt().toString() : kg.toString();
 
 /// Gym session: each exercise shows its sets as circles; tap the next one to log it at the plan,
@@ -163,21 +168,11 @@ class _GymScreenState extends State<GymScreen> {
                       : '$day day next · ${s.gymThisWeek} of 3–5 sessions this week',
                   style: t.sec(),
                 ),
+                if (s.gymBy.isNotEmpty) Text('Workout from ${s.gymBy}', style: t.meta()),
                 const SizedBox(height: 14),
                 // the split: today's day is picked from the rotation; tap another to switch
                 Segments<String>(
-                  items: [
-                    for (final d in Store.splitDays)
-                      (
-                        d,
-                        d,
-                        switch (d) {
-                          'Push' => Icons.north_east_rounded,
-                          'Pull' => Icons.south_west_rounded,
-                          _ => Icons.directions_run_rounded,
-                        },
-                      ),
-                  ],
+                  items: [for (final d in Store.splitDays) (d, d, dayIcon(d))],
                   value: day,
                   onChanged: s.pickGymDay,
                 ),

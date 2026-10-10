@@ -158,6 +158,8 @@ class Store extends ChangeNotifier {
   String chartBy = ''; // who wrote it (shown with the chart)
   List<String> chartChanges = []; // what the last chart changed, in words ("Lunch: Beef + rice added")
   String chartAt = '', cookAt = ''; // ISO times of the last chart / cooking picks applied from the cloud
+  String gymBy = '', gymAt = ''; // the trainer's workout: who wrote it, when it was applied
+  List<String> gymChanges = []; // what the last workout changed, in words ("Push: Dips added")
   String helperLang = 'bn'; // a diet helper's page: 'bn' Bangla or 'en' English
   Map<String, String> chartSeen = {}; // owner -> the chart time this helper has already looked at
   int studentsNeed = 0, studentsTotal = 0; // a trainer's dashboard, for the Sunday digest
@@ -269,6 +271,9 @@ class Store extends ChangeNotifier {
     chartChanges = [for (final x in (j['chartChanges'] as List? ?? const [])) x as String];
     chartAt = j['chartAt'] as String? ?? '';
     cookAt = j['cookAt'] as String? ?? '';
+    gymBy = j['gymBy'] as String? ?? '';
+    gymAt = j['gymAt'] as String? ?? '';
+    gymChanges = [for (final x in (j['gymChanges'] as List? ?? const [])) x as String];
     helperLang = j['helperLang'] as String? ?? 'bn';
     chartSeen = Map<String, String>.from(j['chartSeen'] ?? {});
     studentsNeed = j['studentsNeed'] as int? ?? 0;
@@ -370,6 +375,9 @@ class Store extends ChangeNotifier {
     'chartChanges': chartChanges,
     'chartAt': chartAt,
     'cookAt': cookAt,
+    'gymBy': gymBy,
+    'gymAt': gymAt,
+    'gymChanges': gymChanges,
     'helperLang': helperLang,
     'chartSeen': chartSeen,
     'studentsNeed': studentsNeed,
@@ -1424,9 +1432,53 @@ class Store extends ChangeNotifier {
     return said;
   }
 
-  /// After an Undo restored an older state: the chart or picks at [at] stay seen, not re-applied.
+  /// The workout as split days of [name, sets, reps, kg, timed]: what the trainer reads and sends.
+  Map<String, List<List<Object>>> get workout => {
+    for (final d in splitDays)
+      d: [
+        for (final e in exercisesOn(d)) [e, plan(e).sets, plan(e).reps, plan(e).kg, plan(e).timed],
+      ],
+  };
+
+  /// A workout from the trainer: these exercises, on these days, at these plans. Logged sets and
+  /// history stay; the plans step up from here as before. An empty workout is ignored.
+  void setWorkout(Map w, {String by = '', List<String> changes = const [], String at = ''}) {
+    final days = {for (final d in splitDays) d: <String>[]};
+    final next = <String, ExPlan>{};
+    for (final d in splitDays) {
+      for (final x in w[d] as List? ?? const []) {
+        final n = (x[0] as String).trim();
+        if (n.isEmpty || next.containsKey(n)) continue;
+        days[d]!.add(n);
+        next[n] = ExPlan(
+          (x[1] as num).toInt().clamp(1, 10),
+          (x[2] as num).toInt().clamp(1, 600),
+          (x[3] as num).toDouble().clamp(0, 500),
+          timed: x[4] == true,
+        );
+      }
+    }
+    if (next.isEmpty) return;
+    exercises = [for (final l in days.values) ...l];
+    routine = days;
+    plans.addAll(next);
+    gymTicks.removeWhere((e) => !exercises.contains(e));
+    gymBy = by;
+    gymChanges = changes;
+    if (at.isNotEmpty) gymAt = at;
+    _save();
+  }
+
+  /// After an Undo restored an older state: the chart, picks or workout at [at] stay seen.
   void markPlanSeen(String kind, String at) {
-    kind == 'diet' ? chartAt = at : cookAt = at;
+    switch (kind) {
+      case 'diet':
+        chartAt = at;
+      case 'gym':
+        gymAt = at;
+      default:
+        cookAt = at;
+    }
     _save();
   }
 
@@ -1517,6 +1569,8 @@ class Store extends ChangeNotifier {
     'strength': [
       for (final x in strength) {'ex': x.ex, 'unit': x.unit, 'start': x.start, 'now': x.now},
     ],
+    'workout': workout,
+    'gymBy': gymBy,
   };
 
   int? get sleepMin => sleepHistory[today];

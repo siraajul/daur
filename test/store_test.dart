@@ -12,6 +12,7 @@ import 'package:daur/students.dart' show studentFlags;
 import 'package:daur/targets.dart';
 import 'package:daur/today.dart' show thousands;
 import 'package:daur/water_walk.dart' show litres;
+import 'package:daur/workout_editor.dart' show workoutChanges, workoutFrom, workoutJson;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -883,6 +884,41 @@ void main() {
       'Dinner: note changed',
     ]);
     expect(chartChanges(defaultMeals, defaultMeals), isEmpty);
+  });
+
+  test('workout: a trainer\'s workout replaces the list and plans, keeps history, round-trips', () async {
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    s.logSet('Lat pulldown', 12, 55);
+    final before = workoutFrom(s.workout);
+    expect(before['Pull']!.map((x) => x.$1), contains('Lat pulldown'));
+
+    final after = workoutFrom(s.workout);
+    after['Push']!.add(('Dips', const ExPlan(3, 8, 0)));
+    after['Pull']!.removeWhere((x) => x.$1 == 'Seated row');
+    after['Legs']![0] = (after['Legs']![0].$1, const ExPlan(4, 10, 130));
+    expect(workoutChanges(before, after), [
+      'Push: Dips added',
+      'Pull: Seated row removed',
+      'Legs: ${after['Legs']![0].$1} 4 × 10 · 130 kg',
+    ]);
+    expect(workoutChanges(before, before), isEmpty);
+
+    // through JSON, as it travels via Firestore
+    s.setWorkout(jsonDecode(jsonEncode(workoutJson(after))) as Map, by: 'Coach Rafi', at: '2026-10-10T12:00:00.000');
+    expect(s.exercisesOn('Push'), contains('Dips'));
+    expect(s.exercises, isNot(contains('Seated row')));
+    expect(s.plan(after['Legs']![0].$1).sets, 4);
+    expect(s.setsToday('Lat pulldown').length, 1); // logged sets stay
+    final again = await Store.load();
+    expect(again.gymBy, 'Coach Rafi');
+    expect(again.plan('Dips').reps, 8);
+    expect(workoutChanges(after, workoutFrom(again.coachSummary()['workout'] as Map)), isEmpty);
+    // an empty workout is ignored, never half-applied
+    again.setWorkout({'Push': [], 'Pull': [], 'Legs': []});
+    expect(again.exercises, contains('Dips'));
+    again.markPlanSeen('gym', '2026-10-11T08:00:00.000');
+    expect(again.gymAt, '2026-10-11T08:00:00.000');
   });
 
   test('students: who needs the trainer, and why, most urgent first', () {

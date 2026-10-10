@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'adaptive.dart';
 import 'cloud.dart';
 import 'diet_chart.dart';
+import 'gym.dart' show dayIcon, planText;
 import 'ma_page.dart';
 import 'students.dart';
 import 'plan.dart' show Meal;
@@ -15,6 +16,7 @@ import 'theme.dart';
 import 'today.dart' show Cta, MenuButton, niceDate, thousands;
 import 'visuals.dart';
 import 'water_walk.dart' show RingHero, Tiles, litres;
+import 'workout_editor.dart';
 
 // Helpers follow someone's plan: a diet helper (a mother) and a trainer. The owner invites with a
 // code per role; helpers see a live summary (cloud.dart coachSummary) and leave notes both ways.
@@ -499,7 +501,7 @@ class HelperView extends StatelessWidget {
                   _Weight(d: d),
                   if (role == 'trainer') ...[
                     const SizedBox(height: 24),
-                    _Gym(d: d),
+                    _Gym(d: d, owner: owner, ownerName: p.name),
                     const SizedBox(height: 24),
                     _ChartSection(d: d, owner: owner, ownerName: p.name, store: store),
                   ],
@@ -656,15 +658,20 @@ class _Weight extends StatelessWidget {
   }
 }
 
+/// For the trainer: sessions, strength, and the workout this person follows, with Edit.
 class _Gym extends StatelessWidget {
-  const _Gym({required this.d});
+  const _Gym({required this.d, required this.owner, required this.ownerName});
   final Map<String, dynamic> d;
+  final String owner, ownerName;
 
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     final sessions = (d['sessions'] as List? ?? const []).cast<List>();
     final strength = (d['strength'] as List? ?? const []).cast<Map>();
+    // older phones don't send the workout yet: no editor until they update
+    final workout = d['workout'] is Map ? workoutFrom(d['workout'] as Map) : null;
+    final by = d['gymBy'] as String? ?? '';
     String amount(num v, String unit) => unit == 's'
         ? '${v.round()} s'
         : unit == 'reps'
@@ -715,6 +722,50 @@ class _Gym extends StatelessWidget {
                 ],
               ),
             ),
+        ],
+        if (workout != null) ...[
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: Text('Workout', style: t.meta())),
+              Text(by.isEmpty ? 'their own plan' : 'by $by', style: t.meta(t.ink)),
+            ],
+          ),
+          for (final MapEntry(key: day, value: list) in workout.entries)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: t.rule, width: .5)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(dayIcon(day), size: 20, color: t.ink),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('$day day', style: t.body(weight: FontWeight.w500)),
+                        if (list.isEmpty) Text('nothing yet', style: t.meta()),
+                        for (final (n, p) in list) Text('$n · ${planText(p)}', style: t.meta()),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 8),
+          Cta(
+            label: 'Edit workout',
+            trailing: '${workout.values.fold(0, (a, l) => a + l.length)} exercises',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => WorkoutEditor(owner: owner, ownerName: ownerName, initial: workout),
+              ),
+            ),
+          ),
         ],
       ],
     );

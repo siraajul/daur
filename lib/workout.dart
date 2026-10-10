@@ -169,7 +169,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                             ),
                           if (!all) ...[
                             const SizedBox(height: 8),
-                            _Stepper(
+                            NumberStepper(
                               label: p.timed ? 'Seconds' : 'Reps',
                               sub: 'planned ${p.reps}',
                               value: '$reps',
@@ -177,7 +177,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                               onPlus: () => setState(() => reps += p.timed ? 5 : 1),
                             ),
                             if (!p.timed)
-                              _Stepper(
+                              NumberStepper(
                                 label: 'Weight',
                                 sub: '2.5 kg steps',
                                 value: kgText(kg),
@@ -275,8 +275,10 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   );
 }
 
-class _Stepper extends StatelessWidget {
-  const _Stepper({
+/// A number with − and + either side: reps, kg, speed.
+class NumberStepper extends StatelessWidget {
+  const NumberStepper({
+    super.key,
     required this.label,
     required this.sub,
     required this.value,
@@ -607,7 +609,7 @@ class _TreadmillScreenState extends State<TreadmillScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: [
-                    _Stepper(
+                    NumberStepper(
                       label: 'Speed',
                       sub: s.treadSpeed < 6.5 ? 'brisk walk' : 'jog',
                       value: s.treadSpeed.toStringAsFixed(1),
@@ -615,7 +617,7 @@ class _TreadmillScreenState extends State<TreadmillScreen> {
                       onMinus: () => setState(() => s.setTreadmill(speed: (s.treadSpeed - .1).clamp(1, 16))),
                       onPlus: () => setState(() => s.setTreadmill(speed: (s.treadSpeed + .1).clamp(1, 16))),
                     ),
-                    _Stepper(
+                    NumberStepper(
                       label: 'Incline',
                       sub: 'hills burn more',
                       value: s.treadIncline.toStringAsFixed(1).replaceFirst('.0', ''),

@@ -23,7 +23,7 @@ Four meals a day, push / pull / legs at the gym, and a running track that fills 
 
 Daur turns a 12-week plan (to lose, keep or gain weight) into **84 days of a simple daily loop**: log four meals, drink your water, walk your steps, train on your split. Every logged meal moves a runner one leg around a 400 m track. Four meals close the day. Closed days build a streak, and the weekly average weight is what counts, not the noise of one morning.
 
-It's also built for the people around you: **a trainer** who writes your diet chart and follows your progress, and **a family member** (often the one who cooks) who sees what to cook today, in Bangla.
+It's also built for the people around you: **a trainer** who writes your diet chart and workout and follows your progress, and **a family member** (often the one who cooks) who sees what to cook today, in Bangla.
 
 It's built around how people in Bangladesh actually eat and type: bhat, dal, murgi, ilish and dudh cha are first-class foods, and search understands *bhat*, *vat*, *rice* and *ভাত* as the same thing.
 
@@ -107,7 +107,7 @@ Log four meals, and Daur keeps the rest in view: what's left to eat or burn, wat
 
 ### 5 · The people who help
 
-Invite a trainer and a family member with a code each. The trainer follows every student from one dashboard and writes the diet chart; the family member who cooks sees what to cook today, in Bangla.
+Invite a trainer and a family member with a code each. The trainer follows every student from one dashboard and writes the diet chart and the workout; the family member who cooks sees what to cook today, in Bangla.
 
 <table>
 <tr>
@@ -137,7 +137,7 @@ Invite a trainer and a family member with a code each. The trainer follows every
 | **Habits** | Streak with freezes · "streak ends at midnight" reminder · perfect days (meals + water + steps) · medals · Sunday recap · family board |
 | **Body** | Personal targets from sex, age, height (feet and inches) and activity · water goal · steps 7k → 10k · sleep from Health Connect |
 | **Fasting** | 14:10, 16:8, 18:6 with a movable window · meals outside it become "Fasting" and the rest grow so the day stays the same size · start / end real fasts with a live ring through the stages (digesting → burning fat → deep fast) · a Live Update on Android 16 and a Live Activity on iPhone · window reminders |
-| **Coaching** | Invite a **trainer** and a **family helper** with a code each · they see a live summary of your day, weight and (trainer) gym and strength, never your spending · notes both ways · the trainer writes your **diet chart** and it reaches your phone with Undo · a helper can swap today's meals within the trainer's options |
+| **Coaching** | Invite a **trainer** and a **family helper** with a code each · they see a live summary of your day, weight and (trainer) gym and strength, never your spending · notes both ways · the trainer writes your **diet chart** and your **workout** (push / pull / legs, sets, reps, kg), and each reaches your phone with Undo · a helper can swap today's meals within the trainer's options |
 | **Trainer** | A **Students** dashboard: who needs you first and why (not opened in days, no gym, weight not moving for their goal, over or short today), filters by goal, one-tap feedback, a Sunday "3 of 8 need you" |
 | **Ma's page** | For the family member who cooks: did he eat (one sentence, four big circles), **what to cook today** with amounts, the whole chart to share or print, water and weight in plain words, one-tap replies · Bangla first, English one tap away |
 | **Money** | Spending by category against a monthly budget |
@@ -215,7 +215,7 @@ flowchart TB
         health[Health Connect / Apple Health<br/>steps · sleep]
     end
     subgraph helpers[Helpers' phones]
-        trainer[Trainer<br/>Students dashboard · diet chart]
+        trainer[Trainer<br/>Students dashboard · diet chart · workout]
         ma[Family helper<br/>Ma's page, in Bangla]
     end
     subgraph firebase[Firebase · project daurfit]
@@ -310,8 +310,8 @@ sequenceDiagram
         You->>FS: summary: today, weight, gym, strength, chart
     end
     FS-->>Trainer: Students dashboard, who needs attention
-    Trainer->>FS: new diet chart
-    FS-->>You: chart applied, with Undo
+    Trainer->>FS: new diet chart or workout
+    FS-->>You: applied, with Undo
     FS-->>Ma: what to cook today (Bangla)
     Ma->>FS: swap tonight's dinner, or a one-tap note
     FS-->>You: dinner switched, with Undo · the note on Today
@@ -369,19 +369,19 @@ erDiagram
         string role
     }
     PLAN {
-        string data "the diet chart"
+        string data "the diet chart, or the workout"
         map picks "today's cooking"
     }
 ```
 
-Security rules (`firestore.rules`) keep each person's data private to them, the family board visible only to its members, and every write validated field by field. For coaching, only helpers you invited can read your summary; only you and your trainer can write the diet chart; a family helper can only pick among the trainer's options for today. `test/firestore_rules.test.mjs` checks all of it (52 cases) against the Firestore emulator.
+Security rules (`firestore.rules`) keep each person's data private to them, the family board visible only to its members, and every write validated field by field. For coaching, only helpers you invited can read your summary; only you and your trainer can write the diet chart and the workout; a family helper can only pick among the trainer's options for today. `test/firestore_rules.test.mjs` checks all of it (59 cases) against the Firestore emulator.
 
 ## Getting started
 
 ```bash
 flutter pub get
 flutter run -d <android-device>        # or: -d chrome, or an iPhone
-flutter test                           # 44 tests: store, search, progression, reminders, goals, coaching
+flutter test                           # 46 tests: store, search, progression, reminders, goals, coaching
 ```
 
 The AI estimate needs an App Check token. Put it in `dart_defines.json` (git-ignored):
@@ -425,7 +425,7 @@ The workflow is `.github/workflows/release.yml`. Release notes come from the mer
 | `lib/cloud.dart` | Google sign-in, Firestore sync, family board, AI count, account deletion |
 | `lib/fasting.dart` · `spending.dart` · `family.dart` · `targets.dart` · `your_data.dart` | Drawer screens |
 | `lib/water_walk.dart` · `burn.dart` | Water, Walk and Sleep pages; Burn and Fuel |
-| `lib/coaching.dart` · `students.dart` · `ma_page.dart` · `diet_chart.dart` | Coaches, the helper's view, the trainer's dashboard, Ma's page, the diet chart editor |
+| `lib/coaching.dart` · `students.dart` · `ma_page.dart` · `diet_chart.dart` · `workout_editor.dart` | Coaches, the helper's view, the trainer's dashboard, Ma's page, the diet chart and workout editors |
 | `lib/onboarding.dart` | Account, role (just me · trainer · family), then the plan |
 | `lib/adaptive.dart` | iPhone vs Android controls: menus, segments, date picker, tab bar |
 | `lib/dau.dart` | Dau the mascot, in four moods |
