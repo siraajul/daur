@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'food_search.dart';
 import 'foods.dart';
 import 'plan.dart';
+import 'ramadan.dart';
 
 /// Local calendar day as yyyy-mm-dd. Local, not UTC: the old HTML app used
 /// toISOString(), so in Dhaka (UTC+6) the day flipped at 06:00.
@@ -142,6 +143,11 @@ class Store extends ChangeNotifier {
   int eatStart = 13; // the eating window opens at this hour
   DateTime? fastFrom; // the fast running now, started by hand; null = none
   List<(DateTime, DateTime)> fasts = []; // finished fasts (start, end), oldest first, last 60
+  bool ramadan = false; // Ramadan mode: Dhaka sehri and iftar times, the fast counts itself
+  String? ramadanFrom, ramadanTo; // the days Ramadan mode covered (to = null while it's on)
+  List<String> ramadanMissed = []; // Ramadan days not fasted, still to make up, oldest first
+  List<Meal>? ramadanChart; // the trainer's chart sent during Ramadan (null = ramadanMenu)
+  String? ramadanPlace; // where sehri and iftar are worked out for (ramadanPlaces); null = not picked yet
   List<Expense> expenses = [];
   int? monthBudget; // taka
   int freezes = 0; // streak freezes in hand (max 2), one earned per 7 full days in a row
@@ -255,6 +261,13 @@ class Store extends ChangeNotifier {
       for (final f in (j['fasts'] as List? ?? const []))
         (DateTime.parse((f as List)[0] as String), DateTime.parse(f[1] as String)),
     ];
+    ramadan = j['ramadan'] as bool? ?? false;
+    ramadanFrom = j['ramadanFrom'] as String?;
+    ramadanTo = j['ramadanTo'] as String?;
+    ramadanMissed = [for (final d in (j['ramadanMissed'] as List? ?? const [])) d as String];
+    ramadanPlace = j['ramadanPlace'] as String?;
+    useRamadanPlace(ramadanPlace ?? 'Dhaka');
+    ramadanChart = j['ramadanChart'] == null ? null : [for (final m in j['ramadanChart'] as List) Meal.from(m as Map)];
     expenses = [for (final x in (j['expenses'] as List? ?? [])) Expense.from(x as Map)];
     monthBudget = j['monthBudget'] as int?;
     freezes = j['freezes'] as int? ?? 0;
@@ -278,7 +291,7 @@ class Store extends ChangeNotifier {
     chartSeen = Map<String, String>.from(j['chartSeen'] ?? {});
     studentsNeed = j['studentsNeed'] as int? ?? 0;
     studentsTotal = j['studentsTotal'] as int? ?? 0;
-    useChart(chart);
+    _useMeals();
     aiDay = j['aiDay'] as String?;
     aiUsed = Map<String, int>.from(j['aiUsed'] ?? {});
     // re-filed under today's key rules, so estimates saved by an older version still match
@@ -359,6 +372,12 @@ class Store extends ChangeNotifier {
     'fasts': [
       for (final (a, b) in fasts) [a.toIso8601String(), b.toIso8601String()],
     ],
+    'ramadan': ramadan,
+    'ramadanFrom': ramadanFrom,
+    'ramadanTo': ramadanTo,
+    'ramadanMissed': ramadanMissed,
+    'ramadanPlace': ramadanPlace,
+    if (ramadanChart != null) 'ramadanChart': [for (final m in ramadanChart!) m.toJson()],
     'expenses': [for (final x in expenses) x.toJson()],
     'monthBudget': monthBudget,
     'freezes': freezes,
@@ -452,6 +471,7 @@ class Store extends ChangeNotifier {
     other = {};
     skipped = {};
     extras = [];
+    _useMeals(); // Ramadan's times move a minute a day
     _useFreezes();
     _save();
   }
@@ -519,7 +539,7 @@ class Store extends ChangeNotifier {
 
   /// Outside today's eating window (by the hour the meal's window opens).
   bool fasted(Meal m) {
-    if (fastPlan == null) return false;
+    if (fastPlan == null || ramadan) return false;
     final h = int.parse(m.window.substring(0, 2));
     return h < eatStart || h >= eatEnd;
   }
@@ -541,8 +561,14 @@ class Store extends ChangeNotifier {
     _save();
   }
 
-  /// The fast's goal in hours: the plan's, or 16 if the plan was turned off mid-fast.
-  int get fastGoal => fastPlan == null ? 16 : fastHours;
+  /// The fast's goal in hours: today's Ramadan fast, the plan's, or 16 if the plan was turned off mid-fast.
+  int get fastGoal {
+    if (ramadan) {
+      final (:sehri, :iftar) = ramadanTimes(DateTime.now());
+      return iftar.difference(sehri).inHours;
+    }
+    return fastPlan == null ? 16 : fastHours;
+  }
 
   void startFast([DateTime? at]) {
     fastFrom = at ?? DateTime.now();
@@ -563,10 +589,89 @@ class Store extends ChangeNotifier {
     return to.difference(from);
   }
 
-  /// The longest fast that ended on [day], in minutes (0 = none).
-  int fastMinOn(String day) => fasts
-      .where((f) => dayKey(f.$2) == day)
-      .fold(0, (a, f) => f.$2.difference(f.$1).inMinutes > a ? f.$2.difference(f.$1).inMinutes : a);
+  /// The longest fast that ended on [day], in minutes (0 = none). A Ramadan day counts by itself.
+  int fastMinOn(String day) {
+    final byHand = fasts
+        .where((f) => dayKey(f.$2) == day)
+        .fold(0, (a, f) => f.$2.difference(f.$1).inMinutes > a ? f.$2.difference(f.$1).inMinutes : a);
+    if (!_ramadanKept(day, DateTime.now())) return byHand;
+    final (:sehri, :iftar) = ramadanTimes(_date(day));
+    return math.max(byHand, iftar.difference(sehri).inMinutes);
+  }
+
+  // ---- Ramadan ----
+
+  /// Today's four meals: Ramadan's with today's times while it's on, else the chart or the plan.
+  void _useMeals() =>
+      useChart(ramadan ? withRamadanTimes(ramadanChart ?? ramadanMenu(chart ?? defaultMeals), DateTime.now()) : chart);
+
+  /// A Ramadan fast kept on [day]: inside the Ramadan days, not missed, and iftar has come.
+  bool _ramadanKept(String day, DateTime now) {
+    final from = ramadanFrom;
+    if (from == null || day.compareTo(from) < 0) return false;
+    if (ramadanTo != null && day.compareTo(ramadanTo!) > 0) return false;
+    if (ramadanMissed.contains(day) || day.compareTo(dayKey(now)) > 0) return false;
+    return day != dayKey(now) || !now.isBefore(ramadanTimes(now).iftar);
+  }
+
+  /// Fasts kept this Ramadan so far.
+  int get ramadanKept {
+    final from = ramadanFrom;
+    if (from == null) return 0;
+    final now = DateTime.now();
+    var n = 0;
+    for (var d = _date(from); dayKey(d).compareTo(ramadanTo ?? today) <= 0; d = d.add(const Duration(days: 1))) {
+      if (_ramadanKept(dayKey(d), now)) n++;
+    }
+    return n;
+  }
+
+  bool get fastingToday => ramadan && !ramadanMissed.contains(today);
+
+  /// Ramadan on: the fast follows sehri and iftar, so a 16:8 plan steps aside. Turned off and on
+  /// again within two days, it's the same Ramadan and the count carries on.
+  void setRamadan(bool on) {
+    if (on == ramadan) return;
+    ramadan = on;
+    final now = DateTime.now();
+    if (on) {
+      fastPlan = null;
+      final to = ramadanTo;
+      if (to != null && _date(today).difference(_date(to)).inDays <= 2) {
+        ramadanTo = null;
+      } else if (ramadanFrom == null || to != null) {
+        ramadanFrom = today;
+        ramadanTo = null;
+      }
+    } else {
+      // today counts if iftar has come
+      ramadanTo = now.isBefore(ramadanTimes(now).iftar) ? dayKey(now.subtract(const Duration(days: 1))) : today;
+      if (ramadanTo!.compareTo(ramadanFrom ?? today) < 0) ramadanFrom = ramadanTo = null;
+    }
+    _useMeals();
+    _save();
+  }
+
+  void setRamadanPlace(String name) {
+    ramadanPlace = name;
+    useRamadanPlace(name);
+    _useMeals();
+    _save();
+  }
+
+  /// Not fasting today (illness, travel, period): it goes on the list to make up. Tap again to undo.
+  void missFastToday(bool missed) {
+    ramadanMissed.remove(today);
+    if (missed) ramadanMissed = [...ramadanMissed, today]..sort();
+    _save();
+  }
+
+  /// One missed fast made up: the oldest comes off the list.
+  void madeUpFast() {
+    if (ramadanMissed.isEmpty) return;
+    ramadanMissed = ramadanMissed.sublist(1);
+    _save();
+  }
 
   /// Days in a row with a fast that reached the goal; today counts once it's done, else from yesterday.
   int get fastStreak {
@@ -1409,11 +1514,12 @@ class Store extends ChangeNotifier {
   /// what was eaten; the choice of option carries over where the chart still has it.
   void setChart(List<Meal>? c, {String by = '', List<String> changes = const [], String at = ''}) {
     if (c != null && c.length != 4) return; // four meals, or nothing
-    chart = c;
+    // in Ramadan the trainer edits Sehri and Iftar: that chart is for Ramadan only
+    ramadan ? ramadanChart = c : chart = c;
     chartBy = c == null ? '' : by;
     chartChanges = changes;
     if (at.isNotEmpty) chartAt = at;
-    useChart(c);
+    _useMeals();
     _save();
   }
 

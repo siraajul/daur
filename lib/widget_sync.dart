@@ -130,7 +130,7 @@ class WidgetSync {
         'meters': s.legsDone * 100,
         'date': niceDate(DateTime.now()),
         'next_name': allDone ? 'All meals logged' : next.name,
-        'next_when': allDone ? 'Tomorrow · 08:00' : next.window,
+        'next_when': allDone ? 'Tomorrow · ${meals.first.window.split('–').first}' : next.window,
         // over today's target, the kcal line says what's left to burn (yellow on the widget)
         'kcal_text': s.burnLeft > 0
             ? '${thousands(s.burnLeft)} kcal to burn · ${hoursMinutes(s.minutesFor(s.burnLeft, burnWays.first.$4))} walk'
@@ -162,7 +162,7 @@ class WidgetSync {
         'meal_when': allDone ? (s.done[meals.last.id] ?? '') : next.window,
         'meal_btn': allDone ? 'Open' : 'Log',
         'meal_done': allDone ? 1 : 0,
-        'meal_cap': 'Tomorrow · 08:00',
+        'meal_cap': 'Tomorrow · ${meals.first.window.split('–').first}',
         // Walk: only when steps are known (a background tap mustn't reset them to 0)
         if (walked != null) ...{
           'walk_steps': walked,

@@ -1,10 +1,14 @@
 import 'dart:async';
+
+import 'package:flutter_timezone/flutter_timezone.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'plan.dart';
+import 'ramadan.dart';
 import 'store.dart';
 import 'targets.dart' show groundChip;
 import 'theme.dart';
@@ -30,6 +34,7 @@ int stageAt(Duration d) => fastStages.lastIndexWhere((st) => d.inMinutes >= st.$
 /// Where the fast stands now: the one started by hand if there is one, else the plan's schedule
 /// (fasting outside the eating window, eating inside it).
 ({bool eating, Duration elapsed, Duration left, double frac}) fastNow(Store s, DateTime now) {
+  if (s.ramadan) return _ramadanNow(now);
   if (s.fastFrom != null) {
     final total = Duration(hours: s.fastGoal), e = now.difference(s.fastFrom!), l = total - e;
     return (eating: false, elapsed: e, left: l.isNegative ? Duration.zero : l, frac: e.inSeconds / total.inSeconds);
@@ -57,6 +62,22 @@ int stageAt(Duration d) => fastStages.lastIndexWhere((st) => d.inMinutes >= st.$
   );
 }
 
+/// Ramadan: fasting from the end of sehri to iftar, eating from iftar to the next sehri.
+({bool eating, Duration elapsed, Duration left, double frac}) _ramadanNow(DateTime now) {
+  final today = ramadanTimes(now);
+  final (from, to, eating) = now.isBefore(today.sehri)
+      ? (ramadanTimes(now.subtract(const Duration(days: 1))).iftar, today.sehri, true)
+      : now.isBefore(today.iftar)
+      ? (today.sehri, today.iftar, false)
+      : (today.iftar, ramadanTimes(now.add(const Duration(days: 1))).sehri, true);
+  return (
+    eating: eating,
+    elapsed: now.difference(from),
+    left: to.difference(now),
+    frac: now.difference(from).inSeconds / to.difference(from).inSeconds,
+  );
+}
+
 /// One row on Today while fasting is on: the fast's progress and stage, or the eating window's.
 class FastBar extends StatelessWidget {
   const FastBar({super.key, required this.store});
@@ -66,7 +87,27 @@ class FastBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     final s = store;
-    final f = fastNow(s, DateTime.now());
+    final now = DateTime.now(), f = fastNow(s, now);
+    final times = ramadanTimes(now);
+    final next = f.eating && now.isAfter(times.iftar) ? ramadanTimes(now.add(const Duration(days: 1))) : times;
+    final (String title, String side) = !s.ramadan
+        ? (
+            f.eating
+                ? 'Eating window · ${_dur(f.left)} left'
+                : 'Fasting ${_dur(f.elapsed)} · ${fastStages[stageAt(f.elapsed)].$2}',
+            f.eating
+                ? 'closes ${_hh(s.eatEnd)}'
+                : s.fastFrom == null
+                ? 'eat at ${_hh(s.eatStart)}'
+                : f.left == Duration.zero
+                ? 'goal done'
+                : '${_dur(f.left)} left',
+          )
+        : !s.fastingToday
+        ? ('Not fasting today', 'iftar ${hhmm(times.iftar)}')
+        : f.eating
+        ? ('Sehri ends in ${_dur(f.left)}', hhmm(next.sehri))
+        : ('Iftar in ${_dur(f.left)}', hhmm(times.iftar));
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastingScreen(store: s))),
@@ -79,28 +120,20 @@ class FastBar extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(f.eating ? Icons.restaurant_rounded : fastStages[stageAt(f.elapsed)].$3, size: 18, color: t.ink),
+                Icon(
+                  s.ramadan
+                      ? Icons.nightlight_round
+                      : f.eating
+                      ? Icons.restaurant_rounded
+                      : fastStages[stageAt(f.elapsed)].$3,
+                  size: 18,
+                  color: t.ink,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    f.eating
-                        ? 'Eating window · ${_dur(f.left)} left'
-                        : 'Fasting ${_dur(f.elapsed)} · ${fastStages[stageAt(f.elapsed)].$2}',
-                    style: t.body(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  child: Text(title, style: t.body(), maxLines: 1, overflow: TextOverflow.ellipsis),
                 ),
-                Text(
-                  f.eating
-                      ? 'closes ${_hh(s.eatEnd)}'
-                      : s.fastFrom == null
-                      ? 'eat at ${_hh(s.eatStart)}'
-                      : f.left == Duration.zero
-                      ? 'goal done'
-                      : '${_dur(f.left)} left',
-                  style: t.sec(),
-                ),
+                Text(side, style: t.sec()),
               ],
             ),
             const SizedBox(height: 8),
@@ -165,8 +198,9 @@ class _FastingScreenState extends State<FastingScreen> {
       builder: (context, _) {
         final s = widget.store;
         final on = s.fastPlan != null;
-        final live = on || s.fastFrom != null;
+        final live = on || s.fastFrom != null || s.ramadan;
         final f = fastNow(s, DateTime.now());
+        final times = ramadanTimes(DateTime.now());
         final stage = f.eating ? null : stageAt(f.elapsed);
         if (_stage != null && stage != null && stage > _stage!) HapticFeedback.mediumImpact();
         _stage = stage;
@@ -183,11 +217,34 @@ class _FastingScreenState extends State<FastingScreen> {
                     children: [
                       PageHeader(
                         'Fasting',
-                        sub: on
+                        sub: s.ramadan
+                            ? 'Sehri ends ${hhmm(times.sehri)} · iftar ${hhmm(times.iftar)}'
+                            : on
                             ? 'Eat ${_hh(s.eatStart)}–${_hh(s.eatEnd)} · fast ${s.fastHours}h'
                             : 'Eat inside a window, fast the rest',
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        secondary: Icon(Icons.nightlight_round, color: t.ink),
+                        title: Text('Ramadan', style: t.body()),
+                        subtitle: Text('Sehri and iftar times, meals around the fast', style: t.meta()),
+                        value: s.ramadan,
+                        onChanged: (v) async {
+                          HapticFeedback.selectionClick();
+                          s.setRamadan(v);
+                          // the first time: a place from the phone's time zone, changeable below
+                          if (v && s.ramadanPlace == null) {
+                            var zone = '';
+                            try {
+                              zone = (await FlutterTimezone.getLocalTimezone()).identifier;
+                            } catch (_) {}
+                            s.setRamadanPlace(placeForZone(zone));
+                          }
+                        },
+                      ),
+                      if (s.ramadanMissed.isNotEmpty) _MakeUp(store: s),
+                      const SizedBox(height: 12),
                       if (!live) ...[
                         for (final (p, eat, how) in const [
                           ('14:10', 10, 'Easy start'),
@@ -209,10 +266,75 @@ class _FastingScreenState extends State<FastingScreen> {
                             ],
                           ),
                         const SizedBox(height: 24),
-                        _StageRing(f: f, goal: s.fastGoal, byHand: s.fastFrom != null),
+                        _StageRing(f: f, goal: s.fastGoal, byHand: s.fastFrom != null, ramadan: s.ramadan),
                         if (!f.eating) ...[
                           const SizedBox(height: 24),
                           _StageLine(elapsed: f.elapsed, goal: s.fastGoal),
+                        ],
+                        if (s.ramadan) ...[
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Expanded(child: Text('Fasts kept', style: t.body())),
+                              Text('${s.ramadanKept}', style: t.x(22)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.place_outlined, color: t.ink),
+                            title: Text('Times for', style: t.body()),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(s.ramadanPlace ?? 'Dhaka', style: t.x(15)),
+                                Icon(Icons.chevron_right_rounded, color: t.ink2),
+                              ],
+                            ),
+                            onTap: () async {
+                              final p = await showModalBottomSheet<String>(
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (_) => _PlacePicker(current: s.ramadanPlace ?? 'Dhaka'),
+                              );
+                              if (p != null) s.setRamadanPlace(p);
+                            },
+                          ),
+                          SwitchListTile.adaptive(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text('Not fasting today', style: t.body()),
+                            subtitle: Text(
+                              'Ill, travelling or on your period · it goes on the make-up list',
+                              style: t.meta(),
+                            ),
+                            value: !s.fastingToday,
+                            onChanged: (v) {
+                              HapticFeedback.selectionClick();
+                              s.missFastToday(v);
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          for (final m in meals)
+                            Container(
+                              constraints: const BoxConstraints(minHeight: 48),
+                              decoration: BoxDecoration(
+                                border: Border(top: BorderSide(color: t.rule, width: .5)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(mealIcon(m.id), size: 20, color: t.ink),
+                                  const SizedBox(width: 12),
+                                  Expanded(child: Text(m.name, style: t.body())),
+                                  Text(m.window, style: t.sec(t.ink)),
+                                ],
+                              ),
+                            ),
+                          const SizedBox(height: 8),
+                          const Tip(
+                            Icons.water_drop_outlined,
+                            'Drink your water between iftar and sehri, a glass an hour',
+                          ),
+                          const Tip(Icons.directions_walk_rounded, 'Walk after iftar, not before it'),
                         ],
                         if (on) ...[
                           const SizedBox(height: 24),
@@ -279,7 +401,11 @@ class _FastingScreenState extends State<FastingScreen> {
                           children: [
                             Expanded(child: Text('Last 7 days', style: t.meta())),
                             Text(
-                              streak > 0 ? '$streak-day fasting streak' : 'tap Start to log a fast',
+                              streak > 0
+                                  ? '$streak-day fasting streak'
+                                  : s.ramadan
+                                  ? 'counts at iftar'
+                                  : 'tap Start to log a fast',
                               style: t.meta(t.ink),
                             ),
                           ],
@@ -299,7 +425,7 @@ class _FastingScreenState extends State<FastingScreen> {
                     ],
                   ),
                 ),
-                if (live)
+                if (live && !s.ramadan)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                     child: s.fastFrom != null
@@ -318,6 +444,103 @@ class _FastingScreenState extends State<FastingScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+/// Pick where Ramadan times are for: type to find a district or a city.
+class _PlacePicker extends StatefulWidget {
+  const _PlacePicker({required this.current});
+  final String current;
+  @override
+  State<_PlacePicker> createState() => _PlacePickerState();
+}
+
+class _PlacePickerState extends State<_PlacePicker> {
+  String _q = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Daur.of(context);
+    final shown = [
+      for (final (i, p) in ramadanPlaces.indexed)
+        if (p.$1.toLowerCase().contains(_q.toLowerCase())) (p.$1, i < ramadanDistricts),
+    ];
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * .75,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20, 0, 20, MediaQuery.viewInsetsOf(context).bottom),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Times for', style: t.x(20, color: t.sheetRed)),
+            TextField(
+              onChanged: (v) => setState(() => _q = v.trim()),
+              style: t.body(color: t.sheetInk, weight: FontWeight.w500),
+              decoration: InputDecoration(
+                prefixIcon: Icon(Icons.search_rounded, color: t.sheetInk2),
+                hintText: 'District or city',
+                hintStyle: t.sec(t.sheetInk2),
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                children: [
+                  for (final (i, (name, home)) in shown.indexed) ...[
+                    if (i == 0 || shown[i - 1].$2 != home)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16, bottom: 4),
+                        child: Text(home ? 'Bangladesh' : 'Abroad', style: t.meta(t.sheetInk2)),
+                      ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(name, style: t.body(color: t.sheetInk)),
+                      trailing: name == widget.current ? Icon(Icons.check_rounded, color: t.sheetRed) : null,
+                      onTap: () {
+                        FocusManager.instance.primaryFocus?.unfocus(); // the keyboard goes with the sheet
+                        Navigator.pop(context, name);
+                      },
+                    ),
+                  ],
+                  if (shown.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: Text('Not on the list · pick the nearest place', style: t.sec(t.sheetInk2)),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Missed Ramadan fasts still to make up, and a button for each one made up.
+class _MakeUp extends StatelessWidget {
+  const _MakeUp({required this.store});
+  final Store store;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Daur.of(context);
+    final n = store.ramadanMissed.length;
+    return Row(
+      children: [
+        Expanded(
+          child: Text('$n ${n == 1 ? 'fast' : 'fasts'} to make up', style: t.body(weight: FontWeight.w400)),
+        ),
+        TextButton(
+          onPressed: () {
+            HapticFeedback.mediumImpact();
+            final snap = store.snapshot();
+            store.madeUpFast();
+            undoToast(context, 'One made up · ${n - 1} left', () => store.restore(snap));
+          },
+          child: Text('Made one up', style: t.sec(t.accent)),
+        ),
+      ],
     );
   }
 }
@@ -377,10 +600,10 @@ class _PlanCard extends StatelessWidget {
 /// The hero: a ring that fills to the goal, a stage notch at each stage's hour, a breathing yellow
 /// tip; inside, the stage's icon (springs in when a stage starts), the clock and the stage's name.
 class _StageRing extends StatefulWidget {
-  const _StageRing({required this.f, required this.goal, required this.byHand});
+  const _StageRing({required this.f, required this.goal, required this.byHand, this.ramadan = false});
   final ({bool eating, Duration elapsed, Duration left, double frac}) f;
   final int goal;
-  final bool byHand;
+  final bool byHand, ramadan;
 
   @override
   State<_StageRing> createState() => _StageRingState();
@@ -409,7 +632,7 @@ class _StageRingState extends State<_StageRing> with SingleTickerProviderStateMi
     final d = f.elapsed;
     final done = !f.eating && f.left == Duration.zero && widget.byHand;
     final icon = st?.$3 ?? Icons.restaurant_rounded;
-    final name = f.eating ? 'Eating window' : st!.$2;
+    final name = f.eating ? (widget.ramadan ? 'After iftar' : 'Eating window') : st!.$2;
     return Semantics(
       label: f.eating ? 'Eating window, ${_dur(f.left)} left' : 'Fasting ${_dur(d)} of ${widget.goal} hours, ${st!.$2}',
       excludeSemantics: true,
@@ -458,7 +681,11 @@ class _StageRingState extends State<_StageRing> with SingleTickerProviderStateMi
                   ),
                   Text(
                     f.eating
-                        ? '${_dur(f.left)} left to eat'
+                        ? widget.ramadan
+                              ? 'sehri ends in ${_dur(f.left)}'
+                              : '${_dur(f.left)} left to eat'
+                        : widget.ramadan
+                        ? 'iftar in ${_dur(f.left)}'
                         : done
                         ? 'Goal done · ${widget.goal}h'
                         : 'of ${widget.goal}h',

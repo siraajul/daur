@@ -5,6 +5,7 @@ import 'package:daur/diet_chart.dart' show chartChanges;
 import 'package:daur/fasting.dart' show stageAt;
 import 'package:daur/meal_ai.dart';
 import 'package:daur/plan.dart';
+import 'package:daur/ramadan.dart';
 import 'package:daur/reminders.dart';
 import 'package:daur/foods.dart';
 import 'package:daur/store.dart';
@@ -919,6 +920,68 @@ void main() {
     expect(again.exercises, contains('Dips'));
     again.markPlanSeen('gym', '2026-10-11T08:00:00.000');
     expect(again.gymAt, '2026-10-11T08:00:00.000');
+  });
+
+  test('ramadan: Dhaka times, Sehri and Iftar meals, fasts kept and made up, reminders after iftar', () async {
+    // the Islamic Foundation's Dhaka table, first day of Ramadan 2026
+    final first = ramadanTimes(DateTime(2026, 2, 19));
+    expect(first.sehri.toUtc(), DateTime.utc(2026, 2, 18, 23, 12)); // 05:12 in Dhaka
+    expect(first.iftar.toUtc(), DateTime.utc(2026, 2, 19, 11, 58)); // 17:58
+    // another district, and a summer in London where the sun never gets 18° down
+    useRamadanPlace('Sylhet');
+    expect(ramadanTimes(DateTime(2026, 2, 19)).iftar.isBefore(first.iftar), isTrue); // east: earlier
+    useRamadanPlace('London');
+    final june = ramadanTimes(DateTime(2026, 6, 21));
+    expect(june.iftar.toUtc().hour, 20); // sunset about 21:21 BST
+    expect(june.sehri.toUtc().hour, 2); // about 03:40 BST: a seventh of the night before sunrise
+    expect(placeForZone('Europe/London'), 'London');
+    expect(placeForZone('Asia/Dhaka'), 'Dhaka');
+    useRamadanPlace('Dhaka');
+
+    SharedPreferences.setMockInitialValues({});
+    final s = await Store.load();
+    s.setFast('16:8');
+    s.setRamadan(true);
+    expect(s.fastPlan, isNull); // the Ramadan fast replaces the 16:8 window
+    expect(meals.map((m) => m.name), ['Sehri', 'Iftar', 'Snack', 'Dinner']);
+    final rt = ramadanTimes(DateTime.now());
+    expect(meals[0].window.split('–').last, hhmm(rt.sehri));
+    expect(meals[1].window.split('–').first, hhmm(rt.iftar));
+    expect(meals.any(s.fasted), isFalse);
+    expect(s.fastGoal, rt.iftar.difference(rt.sehri).inHours);
+
+    // a trainer's chart sent in Ramadan is for Ramadan only
+    s.setChart([
+      meals[0],
+      meals[1].withOptions([
+        const MealOption('Dates + soup', ['3 dates', 'Soup'], 300, 12),
+      ]),
+      meals[2],
+      meals[3],
+    ]);
+    expect(meals[1].options.single.name, 'Dates + soup');
+    expect(s.chart, isNull);
+
+    s.missFastToday(true);
+    expect(s.fastingToday, isFalse);
+    expect(s.ramadanMissed, [s.today]);
+    expect(s.ramadanKept, 0);
+    s.setRamadan(false);
+    expect(meals[0].name, 'Breakfast');
+    expect(meals[1].options.length, defaultMeals[1].options.length);
+    expect(s.ramadanMissed.length, 1); // still owed after Ramadan
+    s.madeUpFast();
+    expect(s.ramadanMissed, isEmpty);
+
+    // reminders: sehri and iftar by the sun, water only after iftar
+    s.setRamadan(true);
+    s.setReminders(true);
+    final day = DateTime.now().add(const Duration(days: 1));
+    final times = ramadanTimes(day);
+    final p = Reminders.plan(s, DateTime.now()).where((x) => x.when.day == day.day).toList();
+    expect(p.firstWhere((x) => x.title.startsWith('Iftar')).when, times.iftar.subtract(const Duration(minutes: 10)));
+    expect(p.firstWhere((x) => x.title.startsWith('Sehri')).when, times.sehri.subtract(const Duration(minutes: 45)));
+    expect(p.where((x) => x.channel == 'water').every((x) => x.when.isAfter(times.iftar)), isTrue);
   });
 
   test('students: who needs the trainer, and why, most urgent first', () {
