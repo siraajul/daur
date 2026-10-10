@@ -205,6 +205,13 @@ class SideBySide extends StatelessWidget {
   /// weight lost is measured against whoever has lost more.
   static final rows = <(IconData, String, String Function(Map), double Function(Map, Map))>[
     (Icons.restaurant_outlined, 'Food', (d) => thousands(_n(d, 'kcal')), (d, _) => _of(d, 'kcal', 'kcalGoal')),
+    // kcal over their own target, added up this week: the longer bar ate more extra
+    (
+      Icons.local_fire_department_outlined,
+      'Extra kcal',
+      (d) => '${_n(d, 'weekExtra') > 0 ? '+' : ''}${thousands(_n(d, 'weekExtra'))}',
+      (d, o) => _n(d, 'weekExtra') / math.max(1, math.max(_n(d, 'weekExtra'), _n(o, 'weekExtra'))),
+    ),
     (Icons.water_drop_outlined, 'Water', (d) => '${litres(_n(d, 'water'))} L', (d, _) => _of(d, 'water', 'waterGoal')),
     (Icons.directions_walk_rounded, 'Steps', (d) => thousands(_n(d, 'steps')), (d, _) => _of(d, 'steps', 'stepTarget')),
     (Icons.fitness_center_rounded, 'Gym', (d) => '${_n(d, 'gymThisWeek')} of 3', (d, _) => _n(d, 'gymThisWeek') / 3),

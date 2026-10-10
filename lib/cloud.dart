@@ -237,7 +237,7 @@ class Cloud extends ChangeNotifier {
   //
   // families/{code}           members (uids); the same for a friends' board
   // families/{code}/board/{uid}  each member's row: streak, today's meals, this race week's points,
-  //                              steps, kg lifted, full days and water
+  //                              steps, kg lifted, full days, water and kcal over target
 
   DocumentReference<Map<String, dynamic>> _family(String code) => _db.collection('families').doc(code);
 
@@ -264,6 +264,7 @@ class Cloud extends ChangeNotifier {
           'lifted': s.weekLifted,
           'full': s.weekFullDays,
           'water': s.weekWater,
+          'extra': s.weekExtra,
           'week': raceWeekStart(s.today),
           'updatedAt': FieldValue.serverTimestamp(),
         });

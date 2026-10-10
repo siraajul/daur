@@ -142,6 +142,8 @@ await t('a member writes their row with points', assertSucceeds(row(owner, 'owne
 await t('points past a week\'s most are refused', assertFails(row(owner, 'owner', { points: 5000 })));
 await t('a row with the week\'s steps, kg lifted, full days and water', assertSucceeds(row(owner, 'owner', { steps: 52310, lifted: 4200, full: 5, water: 70 })));
 await t('8 full days in a week are refused', assertFails(row(owner, 'owner', { full: 8 })));
+await t('a row with the week\'s extra kcal', assertSucceeds(row(owner, 'owner', { extra: 1240 })));
+await t('negative extra kcal is refused', assertFails(row(owner, 'owner', { extra: -5 })));
 await t('a lifted count that isn\'t a whole number is refused', assertFails(row(owner, 'owner', { lifted: 'lots' })));
 await t('nobody writes someone else\'s row', assertFails(row(fr('f1'), 'owner')));
 await t('members read the leaderboard', assertSucceeds(getDocs(collection(fr('f3'), 'families/FFFFFFFF/board'))));

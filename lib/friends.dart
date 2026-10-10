@@ -211,12 +211,20 @@ const boards = <(String, String, IconData, String Function(int), String)>[
   ('lifted', 'Lifted', Icons.fitness_center_rounded, _kg, 'kg × reps over every set logged this week'),
   ('full', 'Consistency', Icons.event_available_rounded, _days, 'Days with all four meals logged this week'),
   ('water', 'Water', Icons.water_drop_outlined, _litres, 'Water drunk this week'),
+  (
+    'extra',
+    'Extra kcal',
+    Icons.local_fire_department_outlined,
+    _kcal,
+    'kcal eaten over each one\'s own target this week · Burn shows how to walk it off',
+  ),
 ];
 
 String _plain(int n) => thousands(n);
 String _kg(int n) => '${thousands(n)} kg';
 String _days(int n) => '$n ${n == 1 ? 'day' : 'days'}';
 String _litres(int n) => '${litres(n)} L';
+String _kcal(int n) => '${n > 0 ? '+' : ''}${thousands(n)} kcal';
 
 /// This week's ranking by one of [boards]: the top three on a podium that rises in, everyone else in
 /// a list with a bar against the leader, their streak and today's meals. A longer streak breaks a tie.
@@ -254,7 +262,14 @@ class Leaderboard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        _Podium(top3: ranked.take(3).toList(), value: value, format: format, me: me),
+        _Podium(
+          top3: ranked.take(3).toList(),
+          value: value,
+          format: format,
+          me: me,
+          // most extra kcal gets a flame, not a trophy
+          crownIcon: by == 'extra' ? Icons.local_fire_department_rounded : Icons.emoji_events_rounded,
+        ),
         const SizedBox(height: 8),
         for (final (i, r) in ranked.indexed.skip(3))
           SlideIn(
@@ -288,10 +303,11 @@ class Leaderboard extends StatelessWidget {
 /// Second, first, third: the blocks rise from the floor one after another (third, second, then
 /// first), the faces drop onto them, and the winner gets a crown that bounces in last.
 class _Podium extends StatelessWidget {
-  const _Podium({required this.top3, required this.value, required this.format, required this.me});
+  const _Podium({required this.top3, required this.value, required this.format, required this.me, required this.crownIcon});
   final List<Map<String, dynamic>> top3;
   final int Function(Map) value;
   final String Function(int) format;
+  final IconData crownIcon; // over the leader
   final String? me;
 
   @override
@@ -327,7 +343,7 @@ class _Podium extends StatelessWidget {
                             if (first)
                               Transform.scale(
                                 scale: crown,
-                                child: Icon(Icons.emoji_events_rounded, color: t.accent, size: 30),
+                                child: Icon(crownIcon, color: t.accent, size: 30),
                               ),
                             Opacity(
                               opacity: drop.clamp(0, 1),

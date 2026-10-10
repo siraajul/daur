@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:daur/badges.dart';
 import 'package:daur/couple.dart' show SideBySide;
@@ -1071,5 +1072,10 @@ void main() {
     expect(s.weekSteps, 5200);
     expect(s.weekWater, 9);
     expect(s.weekFullDays, 0); // one meal logged so far
+    // extra kcal: only what's over the day's target counts
+    expect(s.weekExtra, math.max(0, s.kcal - s.kcalGoal));
+    s.addExtra(Eaten('Biryani', s.kcalGoal, 30));
+    expect(s.weekExtra, s.kcal - s.kcalGoal);
+    expect(s.coachSummary()['weekExtra'], s.weekExtra);
   });
 }

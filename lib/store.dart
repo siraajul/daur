@@ -1711,6 +1711,7 @@ class Store extends ChangeNotifier {
       for (final w in weights.length > 60 ? weights.sublist(weights.length - 60) : weights) [w.day, w.kg],
     ],
     'gymThisWeek': gymThisWeek,
+    'weekExtra': weekExtra,
     // the last 7 days, for a trainer's dashboard: weight change (7-day averages) and full days logged
     'kgWeek': week.kgChange,
     'fullDays': week.full,
@@ -1769,6 +1770,10 @@ class Store extends ChangeNotifier {
 
   /// Full days this race week: all four meals logged.
   int get weekFullDays => raceDays.where((d) => (d == today ? legsDone : lapHistory[d] ?? 0) >= 4).length;
+
+  /// kcal eaten over the day's target, added up over this race week (couple, friends, family).
+  int get weekExtra =>
+      raceDays.fold(0, (a, d) => a + math.max(0, (d == today ? kcal : kcalHistory[d] ?? 0) - kcalGoal));
 
   /// Glasses of water this race week.
   int get weekWater => raceDays.fold(0, (a, d) => a + (d == today ? water : waterHistory[d] ?? 0));

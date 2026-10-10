@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'activity_anim.dart';
 import 'cloud.dart';
 import 'coaching.dart' show NotesThread, ago;
+import 'motion.dart';
 import 'store.dart';
 import 'theme.dart';
 import 'today.dart' show thousands;
@@ -151,6 +152,39 @@ class _PartnerDayState extends State<PartnerDay> {
         ),
         const SizedBox(height: 8),
         Track(meters: today ? legs * 100 : 0, caption: '${thousands(_n('kcal'))} of ${thousands(_n('kcalGoal'))} kcal'),
+        // extra kcal: over target today, and this week's total
+        if (_n('weekExtra') > 0)
+          Center(
+            child: Pop(
+              trigger: _n('weekExtra'),
+              child: Container(
+                margin: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.fromLTRB(10, 6, 14, 6),
+                decoration: BoxDecoration(
+                  color: today && _n('burnLeft') > 0 ? t.accent : t.infield,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.local_fire_department_rounded,
+                      size: 18,
+                      color: today && _n('burnLeft') > 0 ? t.onAccent : t.ink,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      [
+                        if (today && _n('burnLeft') > 0) '${thousands(_n('burnLeft'))} kcal over today',
+                        '+${thousands(_n('weekExtra'))} this week',
+                      ].join(' · '),
+                      style: t.body(color: today && _n('burnLeft') > 0 ? t.onAccent : t.ink),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         const SizedBox(height: 16),
 
         // the meals as stops along the lap
