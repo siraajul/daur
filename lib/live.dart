@@ -59,7 +59,7 @@ class Live {
         chronometerCountDown: countDown,
         visibility: NotificationVisibility.public, // readable on the lock screen
         category: AndroidNotificationCategory.workout,
-        color: const Color(0xFFAD3B26),
+        color: const Color(0xFF28645D),
         icon: 'ic_stat_daur',
         largeIcon: const DrawableResourceAndroidBitmap('notif_workout'),
       );

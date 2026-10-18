@@ -132,9 +132,20 @@ class TodayScreen extends StatelessWidget {
                     count: s.legsDone - fastedLeft,
                     of: 4 - fastedLeft,
                     caption: s.legsDone == 4
-                        ? 'Done for today\n${thousands(s.kcal)} kcal · ${s.protein} g protein'
+                        ? 'Meal logging complete\n${thousands(s.kcal)} kcal · ${s.protein} g protein'
                         : '${thousands(s.kcal)} of ${thousands(s.kcalGoal)} kcal\n${s.protein} of ${s.proteinText} g protein',
                   ),
+                  Center(
+                    child: Text(
+                      'Track = meal logging · steps are counted separately',
+                      style: t.meta(),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  if (s.skipped.isNotEmpty)
+                    Center(child: Text('${s.mealsDone} eaten · ${s.skipped.length} skipped', style: t.sec())),
+                  if (s.programmePausedOn != null)
+                    const Tip(Icons.pause_circle_outline, 'Programme paused · daily logging is still available'),
                   if (s.kcal > 0)
                     Center(
                       child: Pop(
@@ -648,9 +659,8 @@ class Cta extends StatelessWidget {
     final t = Daur.of(context);
     final bg = muted ? (onDark ? t.ink.withValues(alpha: .14) : t.sheetRule) : t.accent;
     final fg = muted ? (onDark ? t.ink : t.sheetInk) : t.onAccent;
-    return SizedBox(
-      height: 54,
-      width: double.infinity,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 54, minWidth: double.infinity),
       child: FilledButton(
         onPressed: onTap,
         onLongPress: onLongPress,
@@ -660,14 +670,17 @@ class Cta extends StatelessWidget {
           disabledBackgroundColor: bg,
           disabledForegroundColor: fg,
           shape: const StadiumBorder(),
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         ),
         child: Row(
           children: [
             Expanded(
               child: Text(label, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
             ),
-            if (trailing != null) Text(trailing!, style: const TextStyle(fontSize: 17)),
+            if (trailing != null)
+              Flexible(
+                child: Text(trailing!, textAlign: TextAlign.end, style: const TextStyle(fontSize: 17)),
+              ),
           ],
         ),
       ),

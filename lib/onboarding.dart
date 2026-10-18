@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -41,7 +44,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     if (!mounted) return;
     setState(() {
       _error = msg;
-      if (msg == null) _account = true;
+      if (msg == null && Cloud.instance.signedIn) _account = true;
     });
   }
 
@@ -49,7 +52,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     HapticFeedback.mediumImpact();
     final s = widget.store;
     s.setRole(_role);
-    if (_role != 'me' && !_own) s.setHelperOnly(true); // straight to the people they help
+    if (_role != 'me' && !_own) {
+      s.setHelperOnly(true); // straight to the people they help
+    }
   }
 
   @override
@@ -74,12 +79,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       const SizedBox(height: 24),
                       // the lap closes once there's an account; smaller then, to leave room for the choice
                       AnimatedContainer(
-                        duration: const Duration(milliseconds: 400),
+                        duration: MediaQuery.disableAnimationsOf(context)
+                            ? Duration.zero
+                            : const Duration(milliseconds: 400),
                         curve: Curves.easeOutCubic,
-                        height: _account || signedIn ? 110 : 220,
+                        height: _account || signedIn ? 110 : 160,
                         child: TweenAnimationBuilder<double>(
                           tween: Tween(begin: 0, end: _account || signedIn ? 400 : 100),
-                          duration: const Duration(milliseconds: 1200),
+                          duration: MediaQuery.disableAnimationsOf(context)
+                              ? Duration.zero
+                              : const Duration(milliseconds: 1200),
                           curve: Curves.easeOutCubic,
                           builder: (context, m, _) => Center(
                             child: AspectRatio(
@@ -93,7 +102,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       if (!_account && !signedIn) ...[
                         Text('Make your account', style: t.title()),
                         const SizedBox(height: 8),
-                        const Tip(Icons.cloud_done_outlined, 'Backed up, and safe on a new phone'),
+                        const Tip(Icons.cloud_done_outlined, 'Optional cloud backup for a new phone'),
                         const Tip(
                           Icons.family_restroom_rounded,
                           'Needed to follow, or be followed by, a trainer or family',
@@ -113,35 +122,39 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         for (final (r, icon, title, sub) in _roles)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 10),
-                            child: Material(
-                              color: _role == r ? t.accent : t.infield,
-                              borderRadius: BorderRadius.circular(20),
-                              child: InkWell(
+                            child: Semantics(
+                              selected: _role == r,
+                              inMutuallyExclusiveGroup: true,
+                              child: Material(
+                                color: _role == r ? t.accent : t.infield,
                                 borderRadius: BorderRadius.circular(20),
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  setState(() {
-                                    _role = r;
-                                    _own = r != 'family'; // a mother usually just follows; a trainer trains too
-                                    _error = null;
-                                  });
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                                  child: Row(
-                                    children: [
-                                      Icon(icon, color: _role == r ? t.onAccent : t.ink),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(title, style: t.body(color: _role == r ? t.onAccent : t.ink)),
-                                            Text(sub, style: t.meta(_role == r ? t.onAccent : null)),
-                                          ],
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(20),
+                                  onTap: () {
+                                    HapticFeedback.selectionClick();
+                                    setState(() {
+                                      _role = r;
+                                      _own = r != 'family'; // a mother usually just follows; a trainer trains too
+                                      _error = null;
+                                    });
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                                    child: Row(
+                                      children: [
+                                        Icon(icon, color: _role == r ? t.onAccent : t.ink),
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(title, style: t.body(color: _role == r ? t.onAccent : t.ink)),
+                                              Text(sub, style: t.meta(_role == r ? t.onAccent : null)),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -207,6 +220,116 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Profile _profile = const Profile(male: true, age: 30, heightCm: 170);
   int? _steps;
   bool _connecting = false, _triedConnect = false;
+  bool _confirmed = false, _loading = true;
+  String? _backupError, _healthError;
+  static const _draftKey = 'daur.onboarding.draft.v1';
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreDraft();
+  }
+
+  Future<void> _restoreDraft() async {
+    try {
+      final raw = (await SharedPreferences.getInstance()).getString(_draftKey);
+      if (raw != null) {
+        final j = jsonDecode(raw) as Map;
+        _start = DateTime.parse(j['start'] as String);
+        _kg = (j['kg'] as num).toDouble().clamp(30, 300);
+        _todayKg = (j['todayKg'] as num?)?.toDouble();
+        final p = Profile.from(j['profile'] as Map);
+        _profile = p.copyWith(
+          age: p.age.clamp(14, 90),
+          heightCm: p.heightCm.clamp(120, 220),
+          activity: p.activity.clamp(0, 2),
+          goal: p.goal.clamp(0, 2),
+        );
+        final savedPage = j['page'] as int;
+        _page = (j['version'] == 2 || savedPage < 3 || savedPage > 4 ? savedPage : savedPage + 1).clamp(0, 5);
+      }
+    } catch (_) {
+      // A damaged draft must never prevent setup from opening.
+    }
+    final now = DateTime.now();
+    final earliest = DateUtils.dateOnly(now).subtract(const Duration(days: laps - 1));
+    if (_start.isBefore(earliest) || _start.isAfter(now)) _start = now;
+    if (!mounted) return;
+    setState(() => _loading = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _pages.hasClients) _pages.jumpToPage(_page);
+    });
+  }
+
+  Future<void> _saveDraft() async {
+    if (_loading) return;
+    final raw = jsonEncode({
+      'start': _start.toIso8601String(),
+      'kg': _kg,
+      'todayKg': _todayKg,
+      'profile': _profile.toJson(),
+      'page': _page,
+      'version': 2,
+    });
+    try {
+      await (await SharedPreferences.getInstance()).setString(_draftKey, raw);
+    } catch (_) {
+      // Setup remains usable when device storage is unavailable.
+    }
+  }
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(() {
+      fn();
+      if (_page < 5) _confirmed = false;
+    });
+    _saveDraft();
+  }
+
+  Future<void> _editWeight({bool current = false}) async {
+    var input = (current ? _todayKg ?? _kg : _kg).toStringAsFixed(1);
+    String? error;
+    final value = await showDialog<double>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, update) => AlertDialog(
+          title: Text(current ? 'Today’s weight' : 'Starting weight'),
+          content: TextFormField(
+            initialValue: input,
+            onChanged: (value) => input = value,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(labelText: 'Weight in kg', helperText: '30–300 kg', errorText: error),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () {
+                final kg = double.tryParse(input.replaceAll(',', '.'));
+                if (kg == null || !kg.isFinite || kg < 30 || kg > 300) {
+                  update(() => error = 'Enter a weight between 30 and 300 kg');
+                } else {
+                  Navigator.pop(context, kg);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (value != null && mounted) {
+      setState(() {
+        if (current) {
+          _todayKg = value;
+        } else {
+          _kg = value;
+        }
+        _confirmed = false;
+      });
+    }
+  }
 
   int get _lap {
     final n = DateTime.now();
@@ -216,31 +339,34 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _next() {
     HapticFeedback.selectionClick();
-    if (_page == 3) {
+    if (_page == 5) {
+      if (!_confirmed) return;
       widget.store.setProfile(_profile);
       widget.store.finishOnboarding(start: _start, kg: _kg, todayKg: _isToday ? null : _todayKg);
+      SharedPreferences.getInstance().then((p) => p.remove(_draftKey));
       HapticFeedback.heavyImpact();
       return;
     }
-    _pages.nextPage(duration: const Duration(milliseconds: 350), curve: Curves.easeOutCubic);
+    _pages.nextPage(
+      duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   bool get _isToday => DateUtils.isSameDay(_start, DateTime.now());
-
-  /// Skip = start now with the original plan (day 1 today, 109.0 kg); Your targets changes it later.
-  void _skip() {
-    HapticFeedback.selectionClick();
-    widget.store.finishOnboarding(start: _start, kg: _kg);
-  }
 
   /// One ask only: Android locks an app out after repeated denials, so a cancel is respected.
   Future<void> _connect() async {
     setState(() => _connecting = true);
     widget.store.setHealthAsked();
-    if (await Steps.available()) {
-      _steps = await Steps.today(ask: true);
-    } else if (Steps.supported) {
-      await Steps.installHealthConnect();
+    try {
+      if (await Steps.available()) {
+        _steps = await Steps.today(ask: true);
+      } else if (Steps.supported) {
+        await Steps.installHealthConnect();
+      }
+    } catch (_) {
+      _healthError = 'Could not connect. You can enter steps manually and try again from Walk.';
     }
     if (mounted) {
       setState(() {
@@ -254,11 +380,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final d = await pickDate(
       context,
       initial: _start,
-      first: DateTime.now().subtract(const Duration(days: laps * 2)),
+      first: DateTime.now().subtract(const Duration(days: laps - 1)),
       last: DateTime.now(),
       help: 'Day 1 of the 12-week plan',
     );
-    if (d != null) setState(() => _start = d);
+    if (d != null) {
+      setState(() {
+        _start = d;
+        _confirmed = false;
+      });
+    }
   }
 
   @override
@@ -270,30 +401,48 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
-              child: Row(
+              child: Wrap(
+                spacing: 16,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  for (var i = 0; i < 4; i++)
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      width: i == _page ? 28 : 8,
-                      height: 8,
-                      margin: const EdgeInsets.only(right: 6),
-                      decoration: BoxDecoration(
-                        color: i == _page ? t.accent : t.faint,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  const Spacer(),
-                  if (_page < 3)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var i = 0; i < 6; i++)
+                        AnimatedContainer(
+                          duration: MediaQuery.disableAnimationsOf(context)
+                              ? Duration.zero
+                              : const Duration(milliseconds: 250),
+                          width: i == _page ? 28 : 8,
+                          height: 8,
+                          margin: const EdgeInsets.only(right: 6),
+                          decoration: BoxDecoration(
+                            color: i == _page ? t.accent : t.faint,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                    ],
+                  ),
+                  Semantics(liveRegion: true, child: Text('Step ${_page + 1} of 6', style: t.meta())),
+                  if (_page > 0)
                     TextButton(
-                      onPressed: _skip,
-                      child: Text('Skip', style: t.sec(t.ink)),
+                      onPressed: () => _pages.previousPage(
+                        duration: MediaQuery.disableAnimationsOf(context)
+                            ? Duration.zero
+                            : const Duration(milliseconds: 250),
+                        curve: Curves.easeOutCubic,
+                      ),
+                      child: Text('Back', style: t.sec(t.ink)),
                     ),
                 ],
               ),
@@ -301,16 +450,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Expanded(
               child: PageView(
                 controller: _pages,
+                physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (i) => setState(() => _page = i),
-                children: [_lapPage(t), _startPage(t), _aboutPage(t), _stepsPage(t)],
+                children: [_lapPage(t), _startPage(t), _goalPage(t), _aboutPage(t), _stepsPage(t), _reviewPage(t)],
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
               child: Cta(
-                label: _page == 3 ? 'Start day $_lap' : 'Next',
+                label: _page == 5
+                    ? 'Start my plan'
+                    : _page == 4
+                    ? 'Review my plan'
+                    : 'Next',
                 trailing: _page == 1 ? '${_kg.toStringAsFixed(1)} kg' : null,
-                onTap: _lap < 1 ? null : _next,
+                onTap: _lap < 1 || (_page == 5 && !_confirmed) ? null : _next,
               ),
             ),
           ],
@@ -321,7 +475,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _page0Track() => TweenAnimationBuilder<double>(
     tween: Tween(begin: 0, end: 100),
-    duration: const Duration(milliseconds: 1200),
+    duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 1200),
     curve: Curves.easeOutCubic,
     builder: (context, m, _) => AspectRatio(
       aspectRatio: 402 / 250,
@@ -352,6 +506,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       const SizedBox(height: 20),
       const Tip(Icons.flag_outlined, '$laps days = your 12-week plan'),
+      const Tip(
+        Icons.info_outline,
+        'The track shows meal logging, not distance walked. Skipped meals are marked separately.',
+      ),
       const Tip(Icons.swap_horiz_rounded, 'Ate something else? Log what you ate'),
     ],
   );
@@ -383,24 +541,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           children: [
             _round(t, Icons.remove, () => setState(() => _kg = (_kg - .1).clamp(30, 300))),
             Expanded(
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: _kg.toStringAsFixed(1),
-                      style: t.x(52, weight: FontWeight.w900),
-                    ),
-                    TextSpan(text: ' kg', style: t.x(20)),
-                  ],
+              child: InkWell(
+                onTap: () => _editWeight(),
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: _kg.toStringAsFixed(1),
+                        style: t.x(52, weight: FontWeight.w900),
+                      ),
+                      TextSpan(text: ' kg', style: t.x(20)),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
             _round(t, Icons.add, () => setState(() => _kg = (_kg + .1).clamp(30, 300))),
           ],
         ),
         const SizedBox(height: 8),
-        Text('Morning, before breakfast · hold ± to go faster', style: t.meta(), textAlign: TextAlign.center),
+        Text('Example weight · tap the number to enter yours', style: t.meta(), textAlign: TextAlign.center),
         if (!_isToday) ...[
           const SizedBox(height: 24),
           // a past day 1 leaves no current weight: offer today's, optional
@@ -466,14 +627,54 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _chips() =>
       TargetChips(kcal: _profile.kcal(_kg), protein: _profile.protein(_kg), litres: litres(_profile.glasses(_kg)));
 
+  Widget _goalPage(Daur t) => ListView(
+    padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+    children: [
+      Text('What is your goal?', style: t.title()),
+      const SizedBox(height: 12),
+      Text('Choose the direction for your next 12 weeks. You can change this later in Your targets.', style: t.sec()),
+      const SizedBox(height: 28),
+      for (final (i, name) in Profile.goalNames.indexed)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Semantics(
+            selected: _profile.goal == i,
+            inMutuallyExclusiveGroup: true,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                backgroundColor: _profile.goal == i ? t.accent : Colors.transparent,
+                foregroundColor: _profile.goal == i ? t.onAccent : t.ink,
+                side: BorderSide(color: _profile.goal == i ? t.accent : t.lane),
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              ),
+              onPressed: () => setState(() => _profile = _profile.copyWith(goal: i)),
+              child: Text('$name weight', style: t.body(color: _profile.goal == i ? t.onAccent : t.ink)),
+            ),
+          ),
+        ),
+      const SizedBox(height: 24),
+      Text(_profile.paceText, style: t.body()),
+      const SizedBox(height: 12),
+      Text('Your body details on the next step help estimate a starting calorie target.', style: t.sec()),
+    ],
+  );
+
   Widget _aboutPage(Daur t) => ListView(
     padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
     children: [
-      Text('About you', style: t.title()),
+      Text('Your body details', style: t.title()),
       const SizedBox(height: 8),
-      Text('Sets your targets · ${_profile.paceText}', style: t.sec()),
+      Text('These are example values. Check every detail before starting. ${_profile.paceText}.', style: t.sec()),
       const SizedBox(height: 20),
-      ProfileFields(value: _profile, onChanged: (p) => setState(() => _profile = p)),
+      ProfileFields(
+        showGoal: false,
+        value: _profile,
+        onChanged: (p) => setState(() {
+          _profile = p;
+          _confirmed = false;
+        }),
+      ),
       const SizedBox(height: 24),
       Text('Your day', style: t.meta()),
       const SizedBox(height: 10),
@@ -492,10 +693,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ? Tip(
                 Icons.favorite_border_rounded,
                 defaultTargetPlatform == TargetPlatform.iOS
-                    ? 'From Apple Health · steps only, stays on your phone'
-                    : 'From Health Connect · steps only, stays on your phone',
+                    ? 'Read step totals from Apple Health. Connecting is optional.'
+                    : 'Read step totals from Health Connect. Connecting is optional.',
               )
             : const Tip(Icons.edit_outlined, 'Type steps on the Walk row'),
+        const SizedBox(height: 12),
+        Text(
+          'Recorded step totals may be included in cloud backups when signed in, and in summaries shared with people you authorise. You can connect later from Walk.',
+          style: t.sec(),
+        ),
         const SizedBox(height: 28),
         if (Steps.supported) ...[
           if (connected)
@@ -547,6 +753,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ],
         ],
         const SizedBox(height: 32),
+        if (_healthError != null) Text(_healthError!, style: t.body()),
         Text('Back up', style: t.meta()),
         const SizedBox(height: 10),
         ListenableBuilder(
@@ -566,15 +773,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Icon(Icons.cloud_done_outlined, color: t.ink),
+                  Icon(Icons.account_circle_outlined, color: t.ink),
                 ],
               );
             }
-            return GoogleButton(busy: c.busy, onPressed: () => c.signInWithGoogle());
+            return GoogleButton(
+              busy: c.busy,
+              onPressed: () async {
+                final error = await c.signInWithGoogle();
+                if (mounted) setState(() => _backupError = error);
+              },
+            );
           },
         ),
         const SizedBox(height: 8),
-        Text('Optional · back on a new phone', style: t.meta()),
+        Text('Optional · sign-in enables backup; check its status in Your data.', style: t.meta()),
+        if (_backupError != null) Text(_backupError!, style: t.body()),
         const SizedBox(height: 32),
         Text('Your targets', style: t.meta()),
         const SizedBox(height: 10),
@@ -582,4 +796,45 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ],
     );
   }
+
+  Widget _reviewPage(Daur t) => ListView(
+    padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+    children: [
+      Text('Review your plan', style: t.title()),
+      const SizedBox(height: 12),
+      Text('Starting estimates, adjustable in Your targets. Use Back to correct any detail.', style: t.sec()),
+      const SizedBox(height: 20),
+      for (final row in [
+        ('Goal', '${Profile.goalNames[_profile.goal]} weight'),
+        ('Start', '${niceDate(_start)} · day $_lap of $laps'),
+        ('Starting weight', '${_kg.toStringAsFixed(1)} kg'),
+        ('Body details', '${_profile.male ? 'Man' : 'Woman'} · ${_profile.age} years · ${_profile.heightCm} cm'),
+        ('Daily activity', Profile.activityNames[_profile.activity]),
+        ('Calories per day', '${thousands(_profile.kcal(_kg))} kcal'),
+        ('Protein per day', '${_profile.protein(_kg)} g'),
+        ('Water per day', '${litres(_profile.glasses(_kg))} L'),
+        ('Movement', 'Build towards 7,000–10,000 steps a day'),
+      ])
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(row.$1, style: t.meta()),
+              const SizedBox(height: 4),
+              Text(row.$2, style: t.body()),
+            ],
+          ),
+        ),
+      const SizedBox(height: 16),
+      CheckboxListTile(
+        contentPadding: EdgeInsets.zero,
+        value: _confirmed,
+        activeColor: t.accent,
+        checkColor: t.onAccent,
+        onChanged: (v) => setState(() => _confirmed = v ?? false),
+        title: Text('I have checked my weight, age, height, goal and activity.', style: t.body()),
+      ),
+    ],
+  );
 }

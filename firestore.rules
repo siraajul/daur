@@ -123,7 +123,8 @@ service cloud.firestore {
     // ===============================================================
 
     function isAuthenticated() {
-      return request.auth != null;
+      return request.auth != null &&
+             !exists(/databases/$(database)/documents/accountDeletions/$(request.auth.uid));
     }
 
     function isOwner(userId) {
@@ -323,7 +324,10 @@ service cloud.firestore {
     }
 
     function isHelper(owner) {
-      return isAuthenticated() && exists(helperDoc(owner));
+      return isAuthenticated() && exists(helperDoc(owner)) &&
+             exists(/databases/$(database)/documents/invites/$(get(helperDoc(owner)).data.code)) &&
+             get(/databases/$(database)/documents/invites/$(get(helperDoc(owner)).data.code)).data.ownerUid == owner &&
+             get(/databases/$(database)/documents/invites/$(get(helperDoc(owner)).data.code)).data.role == get(helperDoc(owner)).data.role;
     }
 
     // a trainer or a diet helper: they follow the plan; a partner only sees their own share
@@ -350,6 +354,7 @@ service cloud.firestore {
 
       // by id only: knowing the code is the permission; codes can't be listed
       allow get: if isAuthenticated();
+      allow list: if isAuthenticated() && resource.data.ownerUid == request.auth.uid;
       allow create: if isAuthenticated() && code.matches('^[A-HJ-NP-Z2-9]{8}$') && isValidInvite(request.resource.data);
       allow delete: if isAuthenticated() && resource.data.ownerUid == request.auth.uid;
     }
@@ -371,6 +376,7 @@ service cloud.firestore {
 
       // coaching/{owner}/share/partner: the partner's copy, without what the owner keeps back
       match /share/{doc} {
+        allow list: if isOwner(owner);
         allow get: if doc == 'partner' && (isOwner(owner) || isPartner(owner));
         allow create, update: if doc == 'partner' && isOwner(owner) && isValidSummary(request.resource.data);
         allow delete: if isOwner(owner);

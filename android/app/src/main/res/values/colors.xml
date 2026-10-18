@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#AD3B26</color>
+    <color name="daur_background">#F6F3EC</color>
+<color name="daur_ink">#25342F</color>
+<color name="daur_accent">#28645D</color>
 </resources>

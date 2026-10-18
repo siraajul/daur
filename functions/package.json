@@ -1,0 +1,8 @@
+{
+  "name": "daur-account-lifecycle",
+  "private": true,
+  "main": "index.js",
+  "engines": { "node": "22" },
+  "scripts": { "test": "node --test cleanup.test.js" },
+  "dependencies": { "firebase-admin": "^13.0.0", "firebase-functions": "^6.0.0" }
+}

@@ -10,9 +10,6 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import android.text.TextPaint
 import android.text.TextUtils
-import com.siraj.daur.TrackArt.INK
-import com.siraj.daur.TrackArt.INK2
-import com.siraj.daur.TrackArt.RUNNER
 
 /**
  * Each widget's face drawn as one image, at the widget's real size, to the same design as the
@@ -21,7 +18,6 @@ import com.siraj.daur.TrackArt.RUNNER
  * buttons (+, Log) stay real views on top. Coordinates are in dp; the canvas is scaled to pixels.
  */
 object WidgetFace {
-    private const val ON_RUNNER = 0xFF3A1208.toInt()
     private const val PAD = 16f
 
     /** The widget's size in dp (portrait: min width × max height), or [def] before the launcher says. */
@@ -34,6 +30,9 @@ object WidgetFace {
 
     private class Face(val ctx: Context, val w: Float, val h: Float, density: Float = ctx.resources.displayMetrics.density) {
         val bmp: Bitmap = Bitmap.createBitmap((w * density).toInt().coerceAtLeast(1), (h * density).toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+        val palette = TrackArt.palette(ctx)
+        val INK = palette.ink; val INK2 = palette.secondary; val RUNNER = palette.accent
+        val ON_RUNNER = palette.onAccent
         val c = Canvas(bmp).apply { scale(density, density) }
         val x: Typeface = runCatching { ctx.resources.getFont(R.font.unbounded_black) }.getOrDefault(Typeface.DEFAULT_BOLD)
         val medium: Typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
@@ -70,11 +69,11 @@ object WidgetFace {
         /** A thin rounded progress bar: ink over faint ink. */
         fun bar(left: Float, top: Float, width: Float, frac: Float) {
             val r = RectF(left, top, left + width, top + 5f)
-            c.drawRoundRect(r, 2.5f, 2.5f, fill(0x38FFF8F3))
+            c.drawRoundRect(r, 2.5f, 2.5f, fill(palette.faint))
             if (frac > 0) c.drawRoundRect(RectF(left, top, left + width * frac.coerceIn(0f, 1f), top + 5f), 2.5f, 2.5f, fill(INK))
         }
 
-        /** The yellow pill (Log) or disc (+): drawn here, the tappable view sits on top at the same spot. */
+        /** The teal pill (Log) or disc (+): drawn here, the tappable view sits on top at the same spot. */
         fun pill(label: String, right: Float, bottom: Float, width: Float = 72f) {
             val r = RectF(right - width, bottom - 40f, right, bottom)
             c.drawRoundRect(r, 20f, 20f, fill(RUNNER))
@@ -101,6 +100,7 @@ object WidgetFace {
     /** Today, medium: the track with n/4 on the left; the day, the next meal and kcal on the right. */
     fun today(ctx: Context, w: Float, h: Float, d: SharedPreferences): Bitmap {
         val f = Face(ctx, w, h)
+        val INK = f.palette.ink; val INK2 = f.palette.secondary; val RUNNER = f.palette.accent
         val meters = d.num("meters")
         val half = (w - 2 * PAD - 12f) / 2
         f.track(meters, RectF(PAD, PAD, PAD + half, h - PAD), centre = "${meters / 100}/4")
@@ -121,6 +121,7 @@ object WidgetFace {
     /** Today, large: the whole lap with leg numbers, the day and date on top, the four meals under it. */
     fun large(ctx: Context, w: Float, h: Float, d: SharedPreferences): Bitmap {
         val f = Face(ctx, w, h)
+        val INK = f.palette.ink; val INK2 = f.palette.secondary; val RUNNER = f.palette.accent
         val meters = d.num("meters")
         val finish = d.num("finish") == 1
         f.text(lapLine(d), PAD, PAD, f.paint(f.x, 11f, INK2, .06f), maxW = w * .62f)
@@ -145,6 +146,7 @@ object WidgetFace {
     /** Water: litres big, 14 glasses in two rows, + glass (the button view sits on the drawn disc). */
     fun water(ctx: Context, w: Float, h: Float, d: SharedPreferences): Bitmap {
         val f = Face(ctx, w, h)
+        val INK = f.palette.ink; val INK2 = f.palette.secondary; val RUNNER = f.palette.accent
         val g = d.num("water_glasses")
         val full = g >= d.num("water_goal", 14)
         val slots = d.num("water_slots", g)
@@ -165,7 +167,7 @@ object WidgetFace {
             when {
                 i < slots -> f.c.drawRoundRect(r, 4f, 4f, f.fill(INK))
                 i == slots && !full -> f.c.drawRoundRect(r.apply { inset(1f, 1f) }, 4f, 4f, f.stroke(RUNNER, 2f))
-                else -> f.c.drawRoundRect(r.apply { inset(.75f, .75f) }, 4f, 4f, f.stroke(0x80FFF8F3.toInt(), 1.5f))
+                else -> f.c.drawRoundRect(r.apply { inset(.75f, .75f) }, 4f, 4f, f.stroke(f.palette.outline, 1.5f))
             }
         }
         if (!full) f.plus(w - PAD, h - PAD)
@@ -175,6 +177,7 @@ object WidgetFace {
     /** Walk: steps big, the line under it, and the home straight with the runner. */
     fun walk(ctx: Context, w: Float, h: Float, d: SharedPreferences): Bitmap {
         val f = Face(ctx, w, h)
+        val INK = f.palette.ink; val INK2 = f.palette.secondary; val RUNNER = f.palette.accent
         val has = d.contains("walk_steps")
         val steps = d.num("walk_steps")
         val target = d.num("walk_target", 7000).coerceAtLeast(1000)
@@ -191,6 +194,7 @@ object WidgetFace {
     /** Next meal: n/4 big in yellow, the four-leg strip, the meal and Log (or a slim one-row version). */
     fun meal(ctx: Context, w: Float, h: Float, d: SharedPreferences, slim: Boolean): Bitmap {
         val f = Face(ctx, w, h)
+        val INK = f.palette.ink; val INK2 = f.palette.secondary; val RUNNER = f.palette.accent
         val done = d.num("meal_done") == 1
         val leg = d.num("meal_num", 100) / 100
         val btn = d.str("meal_btn", "Log")
@@ -223,7 +227,7 @@ object WidgetFace {
                 when {
                     i < leg -> f.c.drawRoundRect(r, 4f, 4f, f.fill(INK))
                     i == leg -> f.c.drawRoundRect(r.apply { inset(1f, 1f) }, 4f, 4f, f.stroke(RUNNER, 2f))
-                    else -> f.c.drawRoundRect(r, 4f, 4f, f.fill(0x38FFF8F3))
+                    else -> f.c.drawRoundRect(r, 4f, 4f, f.fill(f.palette.faint))
                 }
             }
         }

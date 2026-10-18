@@ -1,8 +1,13 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons, CupertinoPageRoute;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
+import 'l10n.dart';
 
 import 'dart:async';
+
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -42,33 +47,87 @@ import 'visuals.dart';
 import 'water_walk.dart';
 import 'widget_sync.dart';
 import 'your_data.dart';
+import 'preferences.dart';
+import 'about.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(_bars);
-  // Firebase talks to native code, so it starts after ensureInitialized and before runApp.
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await MealAi.activateAppCheck(); // guards the AI meal estimate (Firebase AI Logic)
-  final store = await Store.load();
-  runApp(DaurApp(store: store));
-  WidgetSync.attach(store); // home-screen widget follows every change
-  scheduleBackgroundRefresh(); // steps + widgets every ~30 min, app closed (Android)
-  Reminders.bind(store);
-  Reminders.attach(store); // local reminders reschedule on every change
-  Live.watchFast(store); // the running fast, live on the lock screen and status bar
-  Cloud.instance.attach(store); // Google sign-in + Firestore backup, when signed in
+  SystemChrome.setSystemUIOverlayStyle(_systemBars(PlatformDispatcher.instance.platformBrightness));
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform).timeout(const Duration(seconds: 20));
+    final store = await Store.load();
+    if (!kIsWeb) {
+      try {
+        await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(store.crashReports);
+        var lastConsent = store.crashReports;
+        store.addListener(() {
+          if (store.crashReports == lastConsent) return;
+          lastConsent = store.crashReports;
+          FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(lastConsent).catchError((Object e) {
+            debugPrint('Could not update crash-report preference: $e');
+          });
+          if (!lastConsent) FirebaseCrashlytics.instance.deleteUnsentReports();
+        });
+        FlutterError.onError = (details) {
+          FlutterError.presentError(details);
+          if (store.crashReports) FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+        };
+        PlatformDispatcher.instance.onError = (error, stack) {
+          if (store.crashReports) FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+          return false;
+        };
+      } catch (e) {
+        debugPrint('Diagnostics unavailable: $e');
+      }
+    }
+    runApp(DaurApp(store: store));
+    await MealAi.activateAppCheck();
+    WidgetSync.attach(store);
+    scheduleBackgroundRefresh();
+    Reminders.bind(store);
+    Reminders.attach(store);
+    Live.watchFast(store);
+    await Cloud.instance.attach(store);
+  } catch (e) {
+    debugPrint('Daur startup: $e');
+    runApp(
+      MaterialApp(
+        theme: buildTheme(Brightness.light),
+        home: Scaffold(
+          body: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.refresh, size: 48),
+                    const SizedBox(height: 16),
+                    const Text('Daur could not start', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    const Text('Your saved data has not been erased. Check your connection and try again.'),
+                    const SizedBox(height: 20),
+                    FilledButton(onPressed: main, child: const Text('Try again')),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-/// Light status-bar and nav-bar icons over the red track (set at start and on every frame below,
-/// because iOS otherwise falls back to dark icons).
-const _bars = SystemUiOverlayStyle(
+/// System chrome follows the actual surface brightness in both appearances.
+SystemUiOverlayStyle _systemBars(Brightness brightness) => SystemUiOverlayStyle(
   statusBarColor: Colors.transparent,
-  statusBarIconBrightness: Brightness.light,
-  statusBarBrightness: Brightness.dark, // iOS
+  statusBarIconBrightness: brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+  statusBarBrightness: brightness,
   systemNavigationBarColor: Colors.transparent,
-  systemNavigationBarIconBrightness: Brightness.light,
+  systemNavigationBarIconBrightness: brightness == Brightness.dark ? Brightness.light : Brightness.dark,
 );
 
 class DaurApp extends StatelessWidget {
@@ -76,24 +135,72 @@ class DaurApp extends StatelessWidget {
   final Store store;
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'Daur',
-    debugShowCheckedModeBanner: false,
-    theme: buildTheme(Brightness.light),
-    darkTheme: buildTheme(Brightness.dark),
-    builder: (_, child) => AnnotatedRegion(
-      value: _bars,
-      child: SplashIntro(child: child!),
-    ),
-    home: ListenableBuilder(
-      listenable: store,
-      builder: (_, _) => store.helperOnly
-          ? HelperHome(store: store)
-          : store.onboarded
-          ? Shell(store: store)
-          : store.role == null
-          ? WelcomeScreen(store: store) // account, then how Daur will be used
-          : OnboardingScreen(store: store),
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: store,
+    builder: (context, _) => MaterialApp(
+      locale: Locale(store.appLanguage),
+      supportedLocales: const [Locale('en'), Locale('bn')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      title: 'Daur',
+      debugShowCheckedModeBanner: false,
+      theme: buildTheme(Brightness.light),
+      darkTheme: buildTheme(Brightness.dark),
+      builder: (context, child) => AnnotatedRegion(
+        value: _systemBars(Theme.of(context).brightness),
+        child: Column(
+          children: [
+            ListenableBuilder(
+              listenable: Cloud.instance,
+              builder: (context, _) {
+                final c = Cloud.instance;
+                if (c.error == null) return const SizedBox.shrink();
+                return SafeArea(
+                  bottom: false,
+                  child: Material(
+                    color: Theme.of(context).colorScheme.errorContainer,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              c.error!,
+                              style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Dismiss message',
+                            onPressed: c.dismissError,
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            if (store.recoveryNotice != null)
+              SafeArea(
+                bottom: false,
+                child: Material(
+                  child: Padding(padding: const EdgeInsets.all(12), child: Text(store.recoveryNotice!)),
+                ),
+              ),
+            Expanded(child: SplashIntro(child: child!)),
+          ],
+        ),
+      ),
+      home: ListenableBuilder(
+        listenable: store,
+        builder: (_, _) => store.helperOnly
+            ? HelperHome(store: store)
+            : store.onboarded
+            ? Shell(store: store)
+            : store.role == null
+            ? WelcomeScreen(store: store) // account, then how Daur will be used
+            : OnboardingScreen(store: store),
+      ),
     ),
   );
 }
@@ -284,12 +391,18 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
       [
         (Icons.flag_outlined, 'Your targets', () => TargetsScreen(store: s)),
         (Icons.local_fire_department_outlined, 'Burn', () => BurnScreen(store: s)),
-        (Icons.hourglass_bottom_rounded, 'Fasting', () => FastingScreen(store: s)),
-        (Icons.account_balance_wallet_outlined, 'Spending', () => SpendingScreen(store: s)),
-        (Icons.groups_outlined, 'Family', () => FamilyScreen(store: s)),
-        (Icons.favorite_outline_rounded, 'Couple', () => CoupleScreen(store: s)),
-        (Icons.emoji_events_outlined, 'Friends', () => FriendsScreen(store: s)),
+        if (s.enabledModules.contains('fasting'))
+          (Icons.hourglass_bottom_rounded, 'Fasting', () => FastingScreen(store: s)),
+        if (s.enabledModules.contains('spending'))
+          (Icons.account_balance_wallet_outlined, 'Spending', () => SpendingScreen(store: s)),
+        if (s.enabledModules.contains('social')) (Icons.groups_outlined, 'Family', () => FamilyScreen(store: s)),
+        if (s.enabledModules.contains('social'))
+          (Icons.favorite_outline_rounded, 'Couple', () => CoupleScreen(store: s)),
+        if (s.enabledModules.contains('social'))
+          (Icons.emoji_events_outlined, 'Friends', () => FriendsScreen(store: s)),
         (Icons.family_restroom_rounded, 'Coaches', () => CoachesScreen(store: s)),
+        (Icons.tune, 'Preferences & programme', () => PreferencesScreen(store: s)),
+        (Icons.info_outline, 'Privacy & support', () => const AboutScreen()),
         (Icons.shield_outlined, 'Your data', () => DataScreen(store: s)),
         (Icons.notifications_outlined, 'Reminders', () => RemindersScreen(store: s)),
       ],
@@ -375,7 +488,8 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
         const _AccountTile(),
         for (final (i, group) in _pages.indexed) ...[
           if (i > 0) const Divider(indent: 28, endIndent: 28),
-          for (final (icon, label, _) in group) NavigationDrawerDestination(icon: Icon(icon), label: Text(label)),
+          for (final (icon, label, _) in group)
+            NavigationDrawerDestination(icon: Icon(icon), label: Text(navLabel(s.appLanguage, label))),
         ],
         const Divider(indent: 28, endIndent: 28),
         ListTile(
@@ -430,19 +544,26 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           index: _shown,
           onTap: (i) => setState(() => _tab = i),
           items: [
-            (Icons.track_changes_outlined, Icons.track_changes, 'Today'),
-            (Icons.fitness_center_outlined, Icons.fitness_center, 'Gym'),
-            (Icons.show_chart_outlined, Icons.show_chart, 'Progress'),
+            (Icons.track_changes_outlined, Icons.track_changes, navLabel(widget.store.appLanguage, 'Today')),
+            (
+              Icons.fitness_center_outlined,
+              Icons.fitness_center,
+              navLabel(widget.store.appLanguage, widget.store.trainingSetup == 'gym' ? 'Gym' : 'Train'),
+            ),
+            (Icons.show_chart_outlined, Icons.show_chart, navLabel(widget.store.appLanguage, 'Progress')),
             // trainers and family helpers: the people they follow, a tap away
             if (widget.store.helps)
               (
                 Icons.groups_outlined,
                 Icons.groups,
-                widget.store.role == 'trainer'
-                    ? 'Students'
-                    : widget.store.role == 'family'
-                    ? 'Family'
-                    : 'People',
+                navLabel(
+                  widget.store.appLanguage,
+                  widget.store.role == 'trainer'
+                      ? 'Students'
+                      : widget.store.role == 'family'
+                      ? 'Family'
+                      : 'People',
+                ),
               ),
           ],
         ),
@@ -482,7 +603,7 @@ class _MorePage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(label, style: t.body(weight: FontWeight.w500)),
+                          Text(navLabel(s.appLanguage, label), style: t.body(weight: FontWeight.w500)),
                           if (sub != null) Text(sub, style: t.meta()),
                         ],
                       ),
@@ -503,7 +624,7 @@ class _MorePage extends StatelessWidget {
           builder: (context, _) => ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
             children: [
-              PageHeader('More', sub: 'Day ${s.lap} of $laps · week ${s.cutWeek}'),
+              PageHeader(navLabel(s.appLanguage, 'More'), sub: 'Day ${s.lap} of $laps · week ${s.cutWeek}'),
               const SizedBox(height: 16),
               Container(
                 margin: const EdgeInsets.only(bottom: 20),
@@ -643,6 +764,12 @@ class _AccountTile extends StatelessWidget {
       'Sign out',
       destructive: true,
     );
-    if (ok) await Cloud.instance.signOut();
+    if (ok) {
+      try {
+        await Cloud.instance.signOut();
+      } catch (e) {
+        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      }
+    }
   }
 }

@@ -21,8 +21,15 @@ class MealAi {
   // Firebase console; Play Integrity / App Attest take over once there's a store build.
   static const _debugToken = String.fromEnvironment('APPCHECK_DEBUG_TOKEN');
 
+  static const webSiteKey = String.fromEnvironment('APPCHECK_WEB_SITE_KEY');
+
   static Future<void> activateAppCheck() async {
-    if (kIsWeb) return;
+    if (kIsWeb) {
+      if (webSiteKey.isNotEmpty) {
+        await FirebaseAppCheck.instance.activate(providerWeb: ReCaptchaV3Provider(webSiteKey));
+      }
+      return;
+    }
     try {
       await FirebaseAppCheck.instance.activate(
         providerAndroid: _debugToken.isEmpty

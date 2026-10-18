@@ -1,17 +1,26 @@
 import ActivityKit
 import SwiftUI
 import WidgetKit
+import UIKit
 
 // Daur widgets (design: design/widgets.html). The Flutter app writes the values into the App Group
 // (lib/widget_sync.dart); everything visual, including the track, is drawn here as SwiftUI shapes.
 
 private let appGroup = "group.com.siraj.daur"
-private let tartan = Color(red: 0xAD / 255, green: 0x3B / 255, blue: 0x26 / 255)
-private let infield = Color(red: 0x98 / 255, green: 0x32 / 255, blue: 0x1F / 255)
-private let ink = Color(red: 1, green: 0xF8 / 255, blue: 0xF3 / 255)
-private let ink2 = Color(red: 1, green: 0xD9 / 255, blue: 0xCC / 255)
-private let runner = Color(red: 1, green: 0xD2 / 255, blue: 0x3F / 255)
-private let onRunner = Color(red: 0x3A / 255, green: 0x12 / 255, blue: 0x08 / 255)
+private func adaptive(_ light: UInt32, _ dark: UInt32) -> Color {
+  func ui(_ rgb: UInt32) -> UIColor {
+    UIColor(red: CGFloat((rgb >> 16) & 255) / 255, green: CGFloat((rgb >> 8) & 255) / 255,
+            blue: CGFloat(rgb & 255) / 255, alpha: 1)
+  }
+  return Color(uiColor: UIColor { traits in ui(traits.userInterfaceStyle == .dark ? dark : light) })
+}
+private let tartan = adaptive(0xF6F3EC, 0x172420)
+private let infield = adaptive(0xEAEFE7, 0x2D3F36)
+private let ink = adaptive(0x25342F, 0xEDF1E9)
+private let ink2 = adaptive(0x58665F, 0xB4BFB5)
+private let runner = adaptive(0x28645D, 0x9CCFC0)
+private let onRunner = adaptive(0xFFFFFF, 0x153E34)
+private let outline = adaptive(0x7C8B81, 0x7E9486)
 
 private func x(_ size: CGFloat) -> Font { .system(size: size, weight: .black).width(.expanded) }
 
@@ -117,11 +126,11 @@ struct TrackView: View {
         ForEach(0..<3) { i in
           let r = [CGRect(x: 24, y: 14, width: 354, height: 222), CGRect(x: 38, y: 28, width: 326, height: 194),
                    CGRect(x: 52, y: 42, width: 298, height: 166)][i]
-          Path(roundedRect: r, cornerRadius: r.height / 2).applying(t).stroke(ink.opacity(0.5), lineWidth: 3.3 * s)
+          Path(roundedRect: r, cornerRadius: r.height / 2).applying(t).stroke(outline, lineWidth: 3.3 * s)
         }
         Path(roundedRect: CGRect(x: 66, y: 56, width: 270, height: 138), cornerRadius: 69).applying(t).fill(infield)
         Path(roundedRect: CGRect(x: 66, y: 56, width: 270, height: 138), cornerRadius: 69).applying(t)
-          .stroke(ink.opacity(0.5), lineWidth: 3.3 * s)
+          .stroke(outline, lineWidth: 3.3 * s)
         Path { p in p.move(to: pt(CGPoint(x: 267, y: 194))); p.addLine(to: pt(CGPoint(x: 267, y: 236))) }
           .stroke(ink, lineWidth: 5 * s)
         Lane.path.applying(t).trimmedPath(from: 0, to: m / 400)
@@ -161,7 +170,7 @@ struct LapGlyph: View {
       let w = g.size.width, h = g.size.height, sw: CGFloat = 4, r = (h - 2 * sw) / 2
       let rect = CGRect(x: sw, y: sw, width: w - 2 * sw, height: h - 2 * sw)
       ZStack {
-        RoundedRectangle(cornerRadius: r).path(in: rect).stroke(ink.opacity(0.3), lineWidth: sw)
+        RoundedRectangle(cornerRadius: r).path(in: rect).stroke(outline, lineWidth: sw)
         RoundedRectangle(cornerRadius: r).path(in: rect).trimmedPath(from: 0, to: progress)
           .stroke(ink, style: StrokeStyle(lineWidth: sw, lineCap: .round))
         Circle().fill(runner).frame(width: sw * 3.2, height: sw * 3.2)
@@ -285,7 +294,7 @@ struct DaurWaterWidget: Widget {
                   UnevenRoundedRectangle(topLeadingRadius: 3, bottomLeadingRadius: 5, bottomTrailingRadius: 5, topTrailingRadius: 3)
                     .fill(i < n ? ink : .clear)
                     .overlay(UnevenRoundedRectangle(topLeadingRadius: 3, bottomLeadingRadius: 5, bottomTrailingRadius: 5, topTrailingRadius: 3)
-                      .stroke(i < n ? ink : i == n && !full ? runner : ink.opacity(0.5), lineWidth: i == n && !full ? 2 : 1.5))
+                      .stroke(i < n ? ink : i == n && !full ? runner : outline, lineWidth: i == n && !full ? 2 : 1.5))
                     .frame(height: 17)
                 }
               }
@@ -385,8 +394,8 @@ struct DaurWalkWidget: Widget {
         GeometryReader { g in
           let w = g.size.width, xpos = { (v: Double) in 6 + v * (w - 12) }
           ZStack(alignment: .topLeading) {
-            Rectangle().fill(ink.opacity(0.5)).frame(height: 1)
-            Rectangle().fill(ink.opacity(0.5)).frame(height: 1).offset(y: 28)
+            Rectangle().fill(outline).frame(height: 1)
+            Rectangle().fill(outline).frame(height: 1).offset(y: 28)
             ForEach(1...(d.target / 1000), id: \.self) { k in
               Rectangle().fill(k * 1000 <= d.steps ? ink : ink.opacity(0.22))
                 .frame(width: 1.6, height: k % 4 == 0 ? 18 : 6).offset(x: xpos(Double(k * 1000) / Double(d.target)), y: 5)

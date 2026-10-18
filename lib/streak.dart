@@ -62,6 +62,10 @@ class StreakScreen extends StatelessWidget {
                 Text(todayDone ? 'Today counted' : '${4 - s.legsDone} meals left today', style: t.sec(t.ink)),
               ],
             ),
+            const Tip(
+              Icons.info_outline,
+              'A streak measures logging. Skipped meals can close a day; nutrition and movement targets are separate.',
+            ),
             const SizedBox(height: 28),
             Row(
               children: [
@@ -86,7 +90,7 @@ class StreakScreen extends StatelessWidget {
               runSpacing: 6,
               children: [
                 _legend(t, _key(t, color: t.accent), 'perfect: meals, water, steps'),
-                _legend(t, _key(t, color: t.ink), 'all 4 meals'),
+                _legend(t, _key(t, color: t.ink), 'meal logging complete'),
                 _legend(t, Icon(Icons.ac_unit_rounded, size: 13, color: t.ink), 'frozen'),
               ],
             ),
@@ -149,7 +153,7 @@ class _Day extends StatelessWidget {
         : store.perfect(key)
         ? 'perfect day'
         : n == 4
-        ? 'all 4 meals'
+        ? 'meal logging complete'
         : '$n of 4 meals';
     return Semantics(label: '${day.day}: $what', excludeSemantics: true, child: _cell(context, key));
   }

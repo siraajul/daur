@@ -8,7 +8,7 @@
 //      --project daur-rules-test "node firestore_rules.test.mjs")
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, setDoc, getDoc, getDocs, collection, addDoc, deleteDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocs, collection, addDoc, deleteDoc, updateDoc, arrayUnion, serverTimestamp, query, where } from 'firebase/firestore';
 
 const env = await initializeTestEnvironment({
   projectId: 'daur-rules-test',
@@ -28,7 +28,10 @@ await t('owner makes a trainer code', assertSucceeds(setDoc(doc(owner, 'invites/
 await t('stranger cannot make a code in owner\'s name', assertFails(setDoc(doc(stranger, 'invites/SSSSSSSS'), { ownerUid: 'owner', role: 'diet', createdAt: now })));
 await t('stranger code for themselves', assertSucceeds(setDoc(doc(stranger, 'invites/XXXXXXXX'), { ownerUid: 'stranger', role: 'trainer', createdAt: now })));
 await t('anyone signed in can get a code by id', assertSucceeds(getDoc(doc(mom, 'invites/DDDDDDDD'))));
-await t('nobody can list codes', assertFails(getDocs(collection(mom, 'invites'))));
+await t('unfiltered invite list is denied', assertFails(getDocs(collection(mom, 'invites'))));
+await t('owner lists only their own invites for deletion', assertSucceeds(getDocs(query(collection(owner, 'invites'), where('ownerUid', '==', 'owner')))));
+await t('stranger cannot list owner invites', assertFails(getDocs(query(collection(stranger, 'invites'), where('ownerUid', '==', 'owner')))));
+await t('owner cannot list another person invites', assertFails(getDocs(query(collection(owner, 'invites'), where('ownerUid', '==', 'stranger')))));
 await t('a bad role is refused', assertFails(setDoc(doc(owner, 'invites/BBBBBBBB'), { ownerUid: 'owner', role: 'admin', createdAt: now })));
 
 await t('owner publishes summary', assertSucceeds(setDoc(doc(owner, 'coaching/owner'), { ownerUid: 'owner', name: 'Siraj', data: '{"kcal":1800}', updatedAt: now })));
@@ -92,6 +95,13 @@ await t('owner deletes mom\'s note', assertSucceeds(deleteDoc(doc(owner, `coachi
 
 await t('owner removes the trainer', assertSucceeds(deleteDoc(doc(owner, 'coaching/owner/helpers/trainer'))));
 await t('removed trainer can no longer read', assertFails(getDoc(doc(trainer, 'coaching/owner'))));
+await t('trainer rejoins before invite revocation', assertSucceeds(join(trainer, 'trainer', 'TTTTTTTT', 'trainer')));
+await t('owner revokes trainer invite while helper document remains', assertSucceeds(deleteDoc(doc(owner, 'invites/TTTTTTTT'))));
+await t('revoked trainer cannot read existing summary', assertFails(getDoc(doc(trainer, 'coaching/owner'))));
+await t('revoked trainer cannot read plan', assertFails(getDoc(doc(trainer, 'coaching/owner/plan/diet'))));
+await t('revoked trainer cannot write plan', assertFails(diet(trainer, 'trainer')));
+await t('revoked trainer cannot read notes', assertFails(getDocs(collection(trainer, 'coaching/owner/notes'))));
+await t('owner reissues trainer invite for remaining fixtures', assertSucceeds(setDoc(doc(owner, 'invites/TTTTTTTT'), { ownerUid: 'owner', role: 'trainer', createdAt: now })));
 await t('mom leaves herself', assertSucceeds(deleteDoc(doc(mom, 'coaching/owner/helpers/mom'))));
 await t('stranger cannot delete owner\'s code', assertFails(deleteDoc(doc(stranger, 'invites/DDDDDDDD'))));
 await t('owner revokes the code', assertSucceeds(deleteDoc(doc(owner, 'invites/DDDDDDDD'))));
@@ -124,6 +134,12 @@ await t('stranger can\'t read the partner copy', assertFails(getDoc(doc(stranger
 await t('a partner writes a note as partner', assertSucceeds(note(wife, 'wife', 'partner', 'Gym together at 7?')));
 await t('a partner cannot pose as trainer', assertFails(note(wife, 'wife', 'trainer')));
 await t('a partner cannot change the workout', assertFails(gym(wife, 'wife')));
+await t('owner can list partner shares for account cleanup', assertSucceeds(getDocs(collection(owner, 'coaching/owner/share'))));
+await t('partner cannot list all share documents', assertFails(getDocs(collection(wife, 'coaching/owner/share'))));
+await t('owner revokes partner invite without deleting relationship', assertSucceeds(deleteDoc(doc(owner, 'invites/PPPPPPPP'))));
+await t('revoked partner cannot read redacted share', assertFails(getDoc(doc(wife, 'coaching/owner/share/partner'))));
+await t('revoked partner cannot read notes', assertFails(getDocs(collection(wife, 'coaching/owner/notes'))));
+await t('revoked partner cannot write notes', assertFails(note(wife, 'wife', 'partner')));
 await t('owner unlinks: removes wife', assertSucceeds(deleteDoc(doc(owner, 'coaching/owner/helpers/wife'))));
 await t('owner unlinks: leaves wife', assertSucceeds(deleteDoc(doc(owner, 'coaching/wife/helpers/owner'))));
 await t('unlinked, neither sees the other', assertFails(getDoc(doc(wife, 'coaching/owner/share/partner'))));
@@ -150,6 +166,16 @@ await t('a lifted count that isn\'t a whole number is refused', assertFails(row(
 await t('nobody writes someone else\'s row', assertFails(row(fr('f1'), 'owner')));
 await t('members read the leaderboard', assertSucceeds(getDocs(collection(fr('f3'), 'families/FFFFFFFF/board'))));
 await t('outsiders can\'t', assertFails(getDocs(collection(stranger, 'families/FFFFFFFF/board'))));
+
+// A retained Admin-only marker prevents still-valid tokens from republishing deleted data.
+await env.withSecurityRulesDisabled(async (c) => {
+  await setDoc(doc(c.firestore(), 'accountDeletions/owner'), { requestedAt: now });
+});
+await t('deleting account cannot read old summary', assertFails(getDoc(doc(owner, 'coaching/owner'))));
+await t('deleting account cannot create new invites', assertFails(setDoc(doc(owner, 'invites/NEWNEWNE'), { ownerUid: 'owner', role: 'diet', createdAt: now })));
+await t('deleting account cannot republish coaching', assertFails(setDoc(doc(owner, 'coaching/owner'), { ownerUid: 'owner', name: 'Siraj', data: '{}', updatedAt: now })));
+await t('client cannot delete its deletion marker', assertFails(deleteDoc(doc(owner, 'accountDeletions/owner'))));
+await t('other accounts remain authorised after owner deletion marker', assertSucceeds(getDoc(doc(wife, 'coaching/wife'))));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 await env.cleanup();

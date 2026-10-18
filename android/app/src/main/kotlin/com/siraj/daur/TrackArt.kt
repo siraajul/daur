@@ -15,13 +15,16 @@ import android.graphics.Typeface
  * a 402×250 viewBox, lane running counter-clockwise from the start line on the home straight.
  */
 object TrackArt {
-    const val TARTAN = 0xFFAD3B26.toInt()
-    const val INFIELD = 0xFF98321F.toInt()
-    const val INK = 0xFFFFF8F3.toInt()
-    const val INK2 = 0xFFFFD9CC.toInt()
-    const val RUNNER = 0xFFFFD23F.toInt()
-    private const val LANE = 0x80FFF8F3.toInt()
-    private const val FAINT = 0x38FFF8F3
+    data class Palette(val background: Int, val container: Int, val ink: Int, val secondary: Int,
+        val accent: Int, val onAccent: Int, val outline: Int) {
+        val faint: Int get() = (ink and 0x00FFFFFF) or 0x38000000
+    }
+    fun palette(ctx: Context): Palette = if (ctx.resources.configuration.uiMode and
+        android.content.res.Configuration.UI_MODE_NIGHT_MASK == android.content.res.Configuration.UI_MODE_NIGHT_YES)
+        Palette(0xFF172420.toInt(), 0xFF2D3F36.toInt(), 0xFFEDF1E9.toInt(), 0xFFB4BFB5.toInt(),
+            0xFF9CCFC0.toInt(), 0xFF153E34.toInt(), 0xFF7E9486.toInt())
+    else Palette(0xFFF6F3EC.toInt(), 0xFFEAEFE7.toInt(), 0xFF25342F.toInt(), 0xFF58665F.toInt(),
+        0xFF28645D.toInt(), 0xFFFFFFFF.toInt(), 0xFF7C8B81.toInt())
 
     private fun font(ctx: Context): Typeface =
         runCatching { ctx.resources.getFont(R.font.unbounded_black) }.getOrDefault(Typeface.DEFAULT_BOLD)
@@ -37,9 +40,13 @@ object TrackArt {
 
     /**
      * The oval at [meters] (0–400). With [numerals], stencilled leg numbers 1–4 sit outside the lane:
-     * run legs ink, the current leg yellow, the rest faded ink-2. [centre] is drawn in the infield.
+     * run legs ink, the current leg teal, the rest faded ink-2. [centre] is drawn in the infield.
      */
     fun track(ctx: Context, meters: Int, widthPx: Int, numerals: Boolean = false, centre: String? = null, sub: String? = null): Bitmap {
+        val palette = palette(ctx)
+        val TARTAN = palette.background; val INFIELD = palette.container
+        val INK = palette.ink; val INK2 = palette.secondary; val RUNNER = palette.accent
+        val LANE = palette.outline; val FAINT = palette.faint
         val pad = if (numerals) 46f else 10f
         val vbW = 402f + 2 * pad - 32f
         val vbH = 250f + 2 * pad - 12f
@@ -102,6 +109,10 @@ object TrackArt {
 
     /** The home straight for Walk: a tick every 1,000 steps, the runner at [steps]. */
     fun straight(ctx: Context, steps: Int, target: Int, widthPx: Int): Bitmap {
+        val palette = palette(ctx)
+        val TARTAN = palette.background; val INFIELD = palette.container
+        val INK = palette.ink; val INK2 = palette.secondary; val RUNNER = palette.accent
+        val LANE = palette.outline; val FAINT = palette.faint
         val h = (widthPx * 30f / 170f).toInt()
         val bmp = Bitmap.createBitmap(widthPx, h, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)

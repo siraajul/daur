@@ -55,6 +55,7 @@ class _MealSheetState extends State<MealSheet> {
   late final List<Eaten> plate = [...?s.other[m?.id]];
   final _search = TextEditingController();
   final _searchKey = GlobalKey();
+  bool _showAllFoods = false;
   String? _cat; // category chip; ignored while typing (search looks everywhere)
   String get query => _search.text;
 
@@ -334,6 +335,22 @@ class _MealSheetState extends State<MealSheet> {
   }
 
   List<Widget> _planned(Daur t) => [
+    if (s.dietPreference != 'any' && !s.acceptsFood('${m!.options[opt].name} ${m!.options[opt].items.join(' ')}'))
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Text(
+          'This planned option does not match your food preference. Use Something else to find an alternative. You can still log what you actually ate.',
+          style: t.sec(t.sheetRed),
+        ),
+      ),
+    if (s.allergyNotes.isNotEmpty)
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Text(
+          'Your food notes: ${s.allergyNotes}. Check ingredients and preparation before choosing.',
+          style: t.sec(t.sheetInk2),
+        ),
+      ),
     for (final (i, o) in m!.options.indexed)
       InkWell(
         onTap: () {
@@ -432,18 +449,27 @@ class _MealSheetState extends State<MealSheet> {
           .map((r) => foods.where((f) => f.name == r).map(Eaten.of).firstOrNull)
           .whereType<Eaten>(),
     ];
-    final list = foods.where((f) => q.isEmpty ? (_cat == null || f.cat == _cat) : f.matches(q)).map(Eaten.of).toList();
+    final list = foods
+        .where(
+          (f) =>
+              (_showAllFoods || s.acceptsFood(f.name)) && (q.isEmpty ? (_cat == null || f.cat == _cat) : f.matches(q)),
+        )
+        .map(Eaten.of)
+        .toList();
     // foods the AI estimated before are searchable too: no AI the second time
     list.addAll(
       s.aiFoods.where(
         (e) =>
             (q.isNotEmpty ? foodMatches(e.name, '', q) : _cat != null && e.cat == _cat) &&
+            (_showAllFoods || s.acceptsFood(e.name)) &&
             !list.any((f) => f.name == e.name),
       ),
     );
     final mineFiltered = _cat != null && q.isEmpty
         ? s.customFoods.where((e) => e.cat == _cat).toList()
         : mine.where((f) => q.isEmpty || foodMatches(f.name, '', q)).toList();
+
+    if (!_showAllFoods) mineFiltered.removeWhere((e) => !s.acceptsFood(e.name));
 
     Widget row(Eaten e, {String? portionText}) {
       final inPlate = plate.where((p) => p.name == e.name).firstOrNull;
@@ -489,6 +515,14 @@ class _MealSheetState extends State<MealSheet> {
         e.portion.isNotEmpty ? e.portion : foods.where((f) => f.name == e.name).firstOrNull?.portion ?? 'your portion';
 
     return [
+      if (s.dietPreference != 'any')
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          title: Text('Show foods outside my preference', style: t.sec(t.sheetInk)),
+          subtitle: Text('Use this to record what you actually ate.', style: t.meta(t.sheetInk2)),
+          value: _showAllFoods,
+          onChanged: (v) => setState(() => _showAllFoods = v),
+        ),
       TextField(
         key: _searchKey,
         controller: _search,

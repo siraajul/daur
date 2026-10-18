@@ -1,10 +1,37 @@
+import java.util.Base64
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
     id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
     // END: FlutterFire Configuration
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Family builds keep the installed testers' key. Production is an explicit opt-in:
+// DAUR_PRODUCTION_RELEASE=true flutter build appbundle --release
+// Credentials come from android/key.properties or DAUR_SIGNING_* environment variables.
+val productionRelease = providers.gradleProperty("daurProductionRelease")
+    .orElse(providers.environmentVariable("DAUR_PRODUCTION_RELEASE"))
+    .map { it.toBooleanStrict() }.getOrElse(false)
+val releaseKeys = Properties().apply {
+    val keyFile = rootProject.file("key.properties")
+    if (keyFile.exists()) keyFile.inputStream().use { load(it) }
+}
+fun signingValue(name: String, env: String): String =
+    System.getenv(env)?.takeIf { it.isNotBlank() }
+        ?: releaseKeys.getProperty(name)?.takeIf { it.isNotBlank() }
+        ?: error("Production signing requires $name in android/key.properties or $env")
+
+if (productionRelease) {
+    // Do not accidentally ship App Check's debug provider in a production artifact.
+    val dartDefines = providers.gradleProperty("dart-defines").getOrElse("")
+    require(dartDefines.split(',').filter { it.isNotBlank() }.none {
+        String(Base64.getDecoder().decode(it)).startsWith("APPCHECK_DEBUG_TOKEN=")
+    }) { "Production builds must omit APPCHECK_DEBUG_TOKEN; use production App Check attestation." }
 }
 
 android {
@@ -33,11 +60,21 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (productionRelease) {
+            create("production") {
+                storeFile = rootProject.file(signingValue("storeFile", "DAUR_SIGNING_STORE_FILE"))
+                require(storeFile!!.isFile) { "Production signing keystore does not exist" }
+                storePassword = signingValue("storePassword", "DAUR_SIGNING_STORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "DAUR_SIGNING_KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "DAUR_SIGNING_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (productionRelease) "production" else "debug")
             // Keep all resources: notification icons are named only from Dart, which the shrinker
             // can't see, so it stripped ic_stat_daur and every reminder failed in release builds.
             isShrinkResources = false

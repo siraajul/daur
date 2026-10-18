@@ -128,7 +128,7 @@ class Reminders {
         channelDescription: desc,
         importance: channel == 'meals' ? Importance.high : Importance.defaultImportance,
         priority: channel == 'meals' ? Priority.high : Priority.defaultPriority,
-        color: const Color(0xFFAD3B26),
+        color: const Color(0xFF28645D),
         icon: 'ic_stat_daur',
         groupKey: 'daur',
         largeIcon: DrawableResourceAndroidBitmap('notif_$channel'),
@@ -528,8 +528,8 @@ class Planned {
 Future<Uint8List?> recapPicture(Store s) async {
   try {
     const w = 1024.0, h = 512.0;
-    const red = ui.Color(0xFFAD3B26), ink = ui.Color(0xFFFFF8F3), ink2 = ui.Color(0xFFFFD9CC);
-    const yellow = ui.Color(0xFFFFD23F), dark = ui.Color(0xFF3A1208);
+    const red = ui.Color(0xFFF6F3EC), ink = ui.Color(0xFF25342F), ink2 = ui.Color(0xFF58665F);
+    const yellow = ui.Color(0xFF28645D), dark = ui.Color(0xFFFFFFFF);
     final rec = ui.PictureRecorder();
     final c = ui.Canvas(rec);
     c.drawRect(const ui.Rect.fromLTWH(0, 0, w, h), ui.Paint()..color = red);

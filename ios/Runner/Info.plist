@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 	<dict>
+		<key>FirebaseCrashlyticsCollectionEnabled</key>
+		<false/>
 		<key>NSHealthShareUsageDescription</key>
 		<string>Daur reads your steps, walking distance and weight from Apple Health to fill in your daily walk and weigh-ins.</string>
 		<key>NSHealthUpdateUsageDescription</key>

@@ -253,6 +253,7 @@
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				E3A8152B3DF103DED6543C33 /* Embed Foundation Extensions */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
+				F7A1D426CC8041D5A35DCE70 /* Upload Crashlytics Symbols */,
 			);
 			buildRules = (
 			);
@@ -370,6 +371,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
+		};
+		F7A1D426CC8041D5A35DCE70 /* Upload Crashlytics Symbols */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = ();
+			inputPaths = (
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}",
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${PRODUCT_NAME}",
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Info.plist",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+				"$(TARGET_BUILD_DIR)/$(EXECUTABLE_PATH)",
+			);
+			name = "Upload Crashlytics Symbols";
+			outputPaths = ();
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -eu\n# Keep local debugging offline; release/profile builds must have symbol upload configured.\ncase \"$CONFIGURATION\" in\n  Debug*) echo \"note: Crashlytics symbol upload skipped for Debug configuration\"; exit 0 ;;\nesac\nCRASHLYTICS_RUN=\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"\nif [ ! -f \"$CRASHLYTICS_RUN\" ] && [ -n \"${PODS_ROOT:-}\" ]; then\n  CRASHLYTICS_RUN=\"$PODS_ROOT/FirebaseCrashlytics/run\"\nfi\nif [ ! -f \"$CRASHLYTICS_RUN\" ]; then\n  echo \"error: Crashlytics upload script missing. Resolve Firebase Swift packages before archiving.\"\n  exit 1\nfi\n\"$CRASHLYTICS_RUN\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -643,7 +662,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;

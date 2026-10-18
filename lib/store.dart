@@ -117,6 +117,102 @@ class Store extends ChangeNotifier {
   Store._(this._p);
   final SharedPreferences _p;
   static const _key = 'daur';
+  static const backupVersion = 1;
+  String? recoveryNotice;
+  String dietPreference = 'any', trainingSetup = 'gym', allergyNotes = '', appLanguage = 'en';
+  bool crashReports = false;
+  Set<String> enabledModules = {'fasting', 'spending', 'social'};
+
+  void setPreferences({String? diet, String? training, String? allergies, bool? reports, String? language}) {
+    if (diet != null && ['any', 'vegetarian', 'pescatarian'].contains(diet)) dietPreference = diet;
+    if (training != null && ['gym', 'home', 'dumbbells'].contains(training)) trainingSetup = training;
+    if (allergies != null) allergyNotes = allergies.trim().substring(0, allergies.trim().length.clamp(0, 500));
+    if (reports != null) {
+      crashReports = reports;
+      _p.setBool('daur.crashConsent', reports);
+    }
+    if (language != null && ['en', 'bn'].contains(language)) appLanguage = language;
+    _save();
+  }
+
+  void setModule(String module, bool enabled) {
+    if (!['fasting', 'spending', 'social'].contains(module)) return;
+    enabled ? enabledModules.add(module) : enabledModules.remove(module);
+    _save();
+  }
+
+  /// Preference filter only: recipe ingredients must still be checked by the user.
+  bool acceptsFood(String name) {
+    if (dietPreference == 'any') return true;
+    final meat = RegExp(
+      r'\b(chicken|murgi|beef|gorur|mutton|goat|lamb|meat|roast|kacchi|tehari|nehari|haleem|kebab|sausage|burger|shawarma)\b',
+      caseSensitive: false,
+    );
+    final fish = RegExp(
+      r'\b(fish|mach|rui|katla|ilish|prawn|shrimp|tuna|tilapia|pangas|pabda|koi|salmon)\b',
+      caseSensitive: false,
+    );
+    return !meat.hasMatch(name) && (dietPreference != 'vegetarian' || !fish.hasMatch(name));
+  }
+
+  void applyTrainingSetup(String setup) {
+    if (setup == 'gym') {
+      restoreGym();
+    } else if (setup == 'home' || setup == 'dumbbells') {
+      setWorkout(
+        setup == 'home'
+            ? {
+                'Push': [
+                  ['Push-up', 3, 8, 0, false],
+                ],
+                'Pull': [
+                  ['Prone Y raise', 3, 10, 0, false],
+                ],
+                'Legs': [
+                  ['Bodyweight squat', 3, 10, 0, false],
+                  ['Plank', 3, 20, 0, true],
+                ],
+              }
+            : {
+                'Push': [
+                  ['Dumbbell floor press', 3, 10, 0, false],
+                  ['Dumbbell shoulder press', 3, 10, 0, false],
+                ],
+                'Pull': [
+                  ['Dumbbell row', 3, 10, 0, false],
+                ],
+                'Legs': [
+                  ['Goblet squat', 3, 10, 0, false],
+                  ['Dumbbell Romanian deadlift', 3, 10, 0, false],
+                ],
+              },
+        by: 'Your training setup',
+        changes: ['Changed equipment template; adjust reps and weight to your ability'],
+      );
+    } else {
+      return;
+    }
+    trainingSetup = setup;
+    _save();
+  }
+
+  List<Map<String, dynamic>> programmes = [];
+  String? programmePausedOn;
+
+  static Map<String, dynamic> decodeBackup(String raw) {
+    final value = jsonDecode(raw);
+    if (value is! Map<String, dynamic>) throw const FormatException('Expected a Daur JSON object.');
+    final version = value['backupVersion'] ?? 1;
+    if (version != backupVersion) throw const FormatException('This backup needs a newer Daur app.');
+    if (!value.containsKey('startDay') || !value.containsKey('onboarded')) {
+      throw const FormatException('This is not a Daur backup.');
+    }
+    final date = value['startDay'];
+    if (date is! String || DateTime.tryParse(date) == null) throw const FormatException('Invalid plan date.');
+    final kg = value['startKg'];
+    if (kg is! num || !kg.isFinite || kg < 30 || kg > 300) throw const FormatException('Invalid starting weight.');
+    return value;
+  }
 
   late String startDay, today;
   int savedAt = 0; // ms since epoch of the last change; the newer copy wins when syncing
@@ -203,10 +299,25 @@ class Store extends ChangeNotifier {
   Map<String, List<Eaten>> aiMeals = {}; // normalised description → the estimate (reused, no AI)
   List<Eaten> aiFoods = []; // every food an estimate produced, searchable like the food list
 
+  static Future<void> _pendingPersistence = Future.value();
+
   static Future<Store> load() async {
+    await _pendingPersistence.catchError((Object _) {});
     final s = Store._(await SharedPreferences.getInstance());
     final raw = s._p.getString(_key);
-    s._read(raw == null ? const {} : jsonDecode(raw) as Map<String, dynamic>);
+    try {
+      s._read(raw == null ? const {} : decodeBackup(raw));
+    } catch (_) {
+      if (raw != null) await s._p.setString('daur.corrupt', raw);
+      try {
+        s._read(decodeBackup(s._p.getString('daur.previous') ?? ''));
+        s.recoveryNotice = 'Recovered your previous saved copy. Your damaged copy is retained on this phone.';
+      } catch (_) {
+        s._read(const {});
+        s.recoveryNotice =
+            'Your saved data could not be opened. The damaged copy is retained; restore a JSON backup from Your data.';
+      }
+    }
     s.rollover();
     return s;
   }
@@ -214,6 +325,16 @@ class Store extends ChangeNotifier {
   void _read(Map<String, dynamic> j) {
     final now = dayKey(DateTime.now());
     startDay = j['startDay'] as String? ?? now;
+    dietPreference = ['any', 'vegetarian', 'pescatarian'].contains(j['dietPreference'])
+        ? j['dietPreference'] as String
+        : 'any';
+    trainingSetup = ['gym', 'home', 'dumbbells'].contains(j['trainingSetup']) ? j['trainingSetup'] as String : 'gym';
+    allergyNotes = j['allergyNotes'] as String? ?? '';
+    appLanguage = j['appLanguage'] == 'bn' ? 'bn' : 'en';
+    crashReports = _p.getBool('daur.crashConsent') ?? false; // installation consent is never restored from a backup
+    enabledModules = Set<String>.from(j['enabledModules'] as List? ?? ['fasting', 'spending', 'social']);
+    programmes = [for (final x in j['programmes'] as List? ?? []) Map<String, dynamic>.from(x as Map)];
+    programmePausedOn = j['programmePausedOn'] as String?;
     savedAt = (j['savedAt'] as num?)?.toInt() ?? 0;
     onboarded = j['onboarded'] as bool? ?? false;
     seenHints = Set<String>.from(j['seenHints'] ?? []);
@@ -339,6 +460,15 @@ class Store extends ChangeNotifier {
   }
 
   Map<String, Object?> _toJson() => {
+    'backupVersion': backupVersion,
+    'dietPreference': dietPreference,
+    'trainingSetup': trainingSetup,
+    'allergyNotes': allergyNotes,
+    'appLanguage': appLanguage,
+    'crashReports': crashReports,
+    'enabledModules': enabledModules.toList(),
+    'programmes': programmes,
+    'programmePausedOn': programmePausedOn,
     'startDay': startDay,
     'savedAt': savedAt,
     'onboarded': onboarded,
@@ -459,7 +589,15 @@ class Store extends ChangeNotifier {
   Future<void> reload() async {
     await _p.reload();
     final raw = _p.getString(_key);
-    if (raw != null) _read(jsonDecode(raw) as Map<String, dynamic>);
+    if (raw != null) {
+      final before = snapshot();
+      try {
+        _read(decodeBackup(raw));
+      } catch (_) {
+        _read(decodeBackup(before));
+        recoveryNotice = 'Could not read a background update. Your open copy has been kept.';
+      }
+    }
     rollover();
     notifyListeners();
   }
@@ -478,8 +616,73 @@ class Store extends ChangeNotifier {
       freezeEarnedOn = today;
     }
     savedAt = DateTime.now().millisecondsSinceEpoch;
-    _write = _p.setString(_key, jsonEncode(_toJson()));
+    _persist();
     notifyListeners();
+  }
+
+  void _persist() {
+    final raw = jsonEncode(_toJson());
+    _write = _write.catchError((Object _) {}).then((_) async {
+      final previous = _p.getString(_key);
+      if (previous != null) {
+        try {
+          decodeBackup(previous);
+          await _p.setString('daur.previous', previous);
+        } catch (_) {}
+      }
+      if (!await _p.setString(_key, raw)) throw StateError('Could not save data on this phone.');
+    });
+    _pendingPersistence = _write;
+  }
+
+  /// Validate before replacing tracking data; preserve this account’s existing sharing links.
+  Future<void> importBackup(String raw) async {
+    final before = snapshot(), account = ownerUid;
+    final reports = crashReports;
+    final links = (
+      familyId,
+      friendsId,
+      Map<String, String>.from(inviteCodes),
+      [for (final h in helping) Map<String, String>.from(h)],
+    );
+    final value = decodeBackup(raw);
+    try {
+      _read(value);
+    } catch (_) {
+      _read(decodeBackup(before));
+      throw const FormatException('The backup contains invalid data. Nothing was replaced.');
+    }
+    ownerUid = account;
+    crashReports = reports; // consent belongs to this installation, never an imported file
+    familyId = links.$1;
+    friendsId = links.$2;
+    inviteCodes = links.$3;
+    helping = links.$4;
+    await _p.setString('daur.beforeImport', before);
+    rollover();
+    _save();
+    await saved;
+  }
+
+  Future<void> undoImport() async {
+    final raw = _p.getString('daur.beforeImport');
+    if (raw == null) throw StateError('No previous import to undo.');
+    _read(decodeBackup(raw));
+    _save();
+    await saved;
+    await _p.remove('daur.beforeImport');
+  }
+
+  bool get canUndoImport => _p.containsKey('daur.beforeImport');
+
+  void pauseProgramme(bool pause) {
+    if (pause && programmePausedOn == null) programmePausedOn = today;
+    if (!pause && programmePausedOn != null) {
+      final days = _date(today).difference(_date(programmePausedOn!)).inDays;
+      startDay = dayKey(_date(startDay).add(Duration(days: days)));
+      programmePausedOn = null;
+    }
+    _save();
   }
 
   /// Whole-state snapshot for undo: take one before a change, restore it to undo exactly.
@@ -487,9 +690,15 @@ class Store extends ChangeNotifier {
 
   /// Replace everything with a copy from the cloud, keeping its own savedAt (no echo back as "newer").
   void adoptCloud(String json) {
-    _read(jsonDecode(json) as Map<String, dynamic>);
+    final before = snapshot();
+    try {
+      _read(decodeBackup(json));
+    } catch (_) {
+      _read(decodeBackup(before));
+      rethrow;
+    }
     rollover();
-    _write = _p.setString(_key, jsonEncode(_toJson()));
+    _persist();
     notifyListeners();
   }
 
@@ -547,9 +756,14 @@ class Store extends ChangeNotifier {
   }
 
   /// Day of the cut, 1-based ("Lap 23 of 84").
-  int get lap => _date(today).difference(_date(startDay)).inDays + 1;
+  int get lap => _date(programmePausedOn ?? today).difference(_date(startDay)).inDays + 1;
 
-  MealOption chosen(Meal m) => m.options[(option[m.id] ?? defaultOption[m.id] ?? 0).clamp(0, m.options.length - 1)];
+  MealOption chosen(Meal m) {
+    final selected = m.options[(option[m.id] ?? defaultOption[m.id] ?? 0).clamp(0, m.options.length - 1)];
+    if (done.containsKey(m.id) || acceptsFood('${selected.name} ${selected.items.join(' ')}')) return selected;
+    return m.options.where((o) => acceptsFood('${o.name} ${o.items.join(' ')}')).firstOrNull ?? selected;
+  }
+
   int get mealsDone => meals.where((m) => done.containsKey(m.id)).length;
 
   /// Legs of today's lap run: meals logged or deliberately skipped. Honest logging is the habit.
@@ -1360,11 +1574,21 @@ class Store extends ChangeNotifier {
   /// The day's kcal goal: the cut's 1,800, or ~2,300 during a planned 2-week maintenance break.
   int get kcalGoal => inMaintenance ? baseKcal + 500 : baseKcal;
 
-  bool get needsFinishChoice => onboarded && lap >= laps && finishChoice == null;
+  bool get needsFinishChoice => onboarded && programmePausedOn == null && lap >= laps && finishChoice == null;
 
   void chooseFinish(String choice) {
     finishChoice = choice;
     if (choice == 'again') {
+      programmes.add({
+        'startDay': startDay,
+        'endDay': today,
+        'startKg': startKg,
+        'endKg': latestKg ?? startKg,
+        'round': cutRound,
+        'goal': profile?.goal ?? 0,
+      });
+      maintenanceUntil = null;
+      programmePausedOn = null;
       cutRound++;
       startDay = today;
       startKg = latestKg ?? startKg;
@@ -1850,12 +2074,28 @@ class Store extends ChangeNotifier {
   /// Erase everything on this phone (the caller signs out first, so the cloud copy stays).
   void eraseAll() {
     _read(const {});
-    _save();
+    savedAt = DateTime.now().millisecondsSinceEpoch;
+    recoveryNotice = null;
+    crashReports = false;
+    final clean = snapshot();
+    // Drain older writes before removing recovery copies, so they cannot recreate private data.
+    _write = _write.catchError((Object _) {}).then((_) async {
+      for (final key in _p.getKeys().where((key) => key == 'daur' || key.startsWith('daur.')).toList()) {
+        await _p.remove(key);
+      }
+      if (!await _p.setString(_key, clean)) throw StateError('Could not reset local storage.');
+    });
+    _pendingPersistence = _write;
+    notifyListeners();
   }
 
   /// The cloud copy was deleted: the next sign-in claims this phone's data afresh.
   void releaseOwner() {
     ownerUid = null;
+    familyId = friendsId = null;
+    inviteCodes.clear();
+    helping.clear();
+    partnerHides.clear();
     _save();
   }
 

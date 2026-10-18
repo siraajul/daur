@@ -35,8 +35,15 @@ Widget groundChip(BuildContext context, String label, bool selected, VoidCallbac
 
 /// Sex, age, height, activity: what a personal plan is computed from (plan.dart, Profile).
 class ProfileFields extends StatelessWidget {
-  const ProfileFields({super.key, required this.value, required this.onChanged});
+  const ProfileFields({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.showGoal = true,
+    this.showBody = true,
+  });
   final Profile value;
+  final bool showGoal, showBody;
   final ValueChanged<Profile> onChanged;
 
   Profile _with({bool? male, int? age, int? heightCm, int? activity, int? goal}) => value.copyWith(
@@ -59,45 +66,49 @@ class ProfileFields extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // the goal first: everything else (kcal, protein, month targets, medals) follows it
-        Text('Goal', style: t.meta()),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 8,
-          children: [
-            for (final (i, name) in Profile.goalNames.indexed)
-              groundChip(context, '$name weight', value.goal == i, () => set(_with(goal: i))),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Wrap(
-          spacing: 8,
-          children: [
-            for (final m in const [true, false])
-              groundChip(context, m ? 'Man' : 'Woman', value.male == m, () => set(_with(male: m))),
-          ],
-        ),
-        _Step(
-          label: 'Age',
-          value: '${value.age}',
-          onMinus: () => set(_with(age: value.age - 1)),
-          onPlus: () => set(_with(age: value.age + 1)),
-        ),
-        _Step(
-          label: 'Height',
-          value: feetInches(value.heightCm),
-          onMinus: () => set(_with(heightCm: inchesToCm(cmToInches(value.heightCm) - 1))),
-          onPlus: () => set(_with(heightCm: inchesToCm(cmToInches(value.heightCm) + 1))),
-        ),
-        const SizedBox(height: 8),
-        Text('Day to day', style: t.meta()),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 8,
-          children: [
-            for (final (i, name) in Profile.activityNames.indexed)
-              groundChip(context, name, value.activity == i, () => set(_with(activity: i))),
-          ],
-        ),
+        if (showGoal) ...[
+          Text('Goal', style: t.meta()),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final (i, name) in Profile.goalNames.indexed)
+                groundChip(context, '$name weight', value.goal == i, () => set(_with(goal: i))),
+            ],
+          ),
+        ],
+        if (showGoal && showBody) const SizedBox(height: 14),
+        if (showBody) ...[
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final m in const [true, false])
+                groundChip(context, m ? 'Man' : 'Woman', value.male == m, () => set(_with(male: m))),
+            ],
+          ),
+          _Step(
+            label: 'Age',
+            value: '${value.age}',
+            onMinus: () => set(_with(age: value.age - 1)),
+            onPlus: () => set(_with(age: value.age + 1)),
+          ),
+          _Step(
+            label: 'Height',
+            value: feetInches(value.heightCm),
+            onMinus: () => set(_with(heightCm: inchesToCm(cmToInches(value.heightCm) - 1))),
+            onPlus: () => set(_with(heightCm: inchesToCm(cmToInches(value.heightCm) + 1))),
+          ),
+          const SizedBox(height: 8),
+          Text('Day to day', style: t.meta()),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final (i, name) in Profile.activityNames.indexed)
+                groundChip(context, name, value.activity == i, () => set(_with(activity: i))),
+            ],
+          ),
+        ],
       ],
     );
   }

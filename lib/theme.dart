@@ -2,8 +2,8 @@ import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder, Cu
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Design tokens from design/DIRECTION.md. The ground is the running track:
-/// tartan red by day, oxblood at night. Yellow has one job: "you are here / do this next".
+/// Semantic colours for warm ivory / muted teal, with a separately tuned dark palette.
+/// Contrast evidence and alternatives live in design/color-research.html.
 class Daur {
   final Color ground, infield, ink, ink2, lane, rule, faint, accent, onAccent;
   final Color sheet, sheetInk, sheetInk2, sheetRule;
@@ -23,39 +23,42 @@ class Daur {
     this.sheetRule,
   );
 
+  // Warm ivory and muted teal: large surfaces stay neutral; accent marks actions and progress.
   static const light = Daur._(
-    Color(0xFFAD3B26),
-    Color(0xFF98321F),
-    Color(0xFFFFF8F3),
-    Color(0xFFFFD9CC),
-    Color(0x8CFFF8F3),
-    Color(0x47FFF8F3),
-    Color(0x38FFF8F3),
-    Color(0xFFFFD23F),
-    Color(0xFF3A1208),
-    Color(0xFFFFF6EF),
-    Color(0xFF2A0E07),
-    Color(0xFF7A4A3C),
-    Color(0xFFEBD9CF),
+    Color(0xFFF6F3EC),
+    Color(0xFFEAEFE7),
+    Color(0xFF25342F),
+    Color(0xFF58665F),
+    Color(0xFF7C8B81),
+    Color(0xFFD3DAD1),
+    Color(0xFF8A958E),
+    Color(0xFF28645D),
+    Color(0xFFFFFFFF),
+    Color(0xFFFFFDF8),
+    Color(0xFF25342F),
+    Color(0xFF58665F),
+    Color(0xFFD3DAD1),
   );
   static const dark = Daur._(
-    Color(0xFF3D140C),
-    Color(0xFF2C0E08),
-    Color(0xFFFFF1EA),
-    Color(0xFFE8B3A3),
-    Color(0x61FFF1EA),
-    Color(0x33FFF1EA),
-    Color(0x29FFF1EA),
-    Color(0xFFF5CB45),
-    Color(0xFF3A1208),
-    Color(0xFF1F0B07),
-    Color(0xFFFFF1EA),
-    Color(0xFFD9A898),
-    Color(0xFF3A1A12),
+    Color(0xFF172420),
+    Color(0xFF2D3F36),
+    Color(0xFFEDF1E9),
+    Color(0xFFB4BFB5),
+    Color(0xFF7E9486),
+    Color(0xFF42564A),
+    Color(0xFF7E9486),
+    Color(0xFF9CCFC0),
+    Color(0xFF153E34),
+    Color(0xFF22312B),
+    Color(0xFFEDF1E9),
+    Color(0xFFB4BFB5),
+    Color(0xFF42564A),
   );
 
-  /// Track red as text on the sheet: tartan on light, a lighter red on the dark sheet (contrast).
-  Color get sheetRed => identical(this, dark) ? const Color(0xFFF2937B) : ground;
+  /// Legacy name retained for existing callers; this is the accessible action tint.
+  Color get sheetRed => accent;
+  Color get error => identical(this, dark) ? const Color(0xFFFFB4AB) : const Color(0xFFA63C36);
+  Color get warning => identical(this, dark) ? const Color(0xFFE3C27D) : const Color(0xFF805D1B);
 
   static Daur of(BuildContext c) => Theme.of(c).brightness == Brightness.dark ? dark : light;
 
@@ -83,9 +86,21 @@ ThemeData buildTheme(Brightness b) {
     useMaterial3: true,
     brightness: b,
     scaffoldBackgroundColor: t.ground,
-    colorScheme: ColorScheme.fromSeed(seedColor: t.ground, brightness: b, surface: t.ground, primary: t.ink),
+    colorScheme: ColorScheme.fromSeed(seedColor: t.accent, brightness: b).copyWith(
+      primary: t.accent,
+      onPrimary: t.onAccent,
+      surface: t.ground,
+      onSurface: t.ink,
+      onSurfaceVariant: t.ink2,
+      surfaceContainer: t.infield,
+      surfaceContainerLow: t.sheet,
+      surfaceContainerHigh: t.infield,
+      outline: t.lane,
+      outlineVariant: t.rule,
+      error: t.error,
+    ),
     splashFactory: InkSparkle.splashFactory,
-    // iPhone's own controls (action sheets, alerts, switches) take Daur red as their tint, not cream
+    // Native controls share the action tint.
     cupertinoOverrideTheme: CupertinoThemeData(primaryColor: t.sheetRed),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: t.infield,
@@ -93,7 +108,7 @@ ThemeData buildTheme(Brightness b) {
       labelTextStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: t.ink)),
       iconTheme: WidgetStatePropertyAll(IconThemeData(color: t.ink)),
     ),
-    // ⋯ menus: deep red like the pop-ups, not Material's default white
+    // Menus use the neutral container surface.
     popupMenuTheme: PopupMenuThemeData(
       color: t.infield,
       surfaceTintColor: Colors.transparent,
@@ -106,7 +121,7 @@ ThemeData buildTheme(Brightness b) {
         ),
       ),
     ),
-    // toasts: the cream of the sheets so they stand out on the red, Undo in tartan red
+    // Toasts use a raised surface and a readable action tint.
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: t.sheet,

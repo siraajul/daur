@@ -55,3 +55,12 @@ design/shots/
 
 # Personal source material, kept out of the public repo
 Siraj vai Diet App (1).html
+
+# Production Android signing credentials and private keystores
+/android/key.properties
+*.keystore
+*.jks
+
+# Generated Kotlin sessions and local server dependencies
+/android/.kotlin/
+/functions/node_modules/

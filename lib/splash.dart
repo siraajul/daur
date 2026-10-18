@@ -3,6 +3,9 @@ import 'dart:ui' show PathMetric;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+import 'theme.dart';
+
 import 'package:flutter/services.dart';
 
 import 'motion.dart';
@@ -66,9 +69,7 @@ class _SplashIntroState extends State<SplashIntro> with SingleTickerProviderStat
             // today settles back as the window opens over it
             Transform.scale(scale: 1 + .08 * (1 - Curves.easeOutCubic.transform(reveal)), child: child),
             IgnorePointer(
-              child: CustomPaint(
-                painter: _IntroPainter(_c.value, dark ? const Color(0xFF3D140C) : const Color(0xFFAD3B26)),
-              ),
+              child: CustomPaint(painter: _IntroPainter(_c.value, dark ? Daur.dark.ground : Daur.light.ground)),
             ),
           ],
         );
@@ -82,7 +83,10 @@ class _IntroPainter extends CustomPainter {
   final double t; // 0..1 over the whole intro
   final Color ground;
 
-  static const ink = Color(0xFFFFF8F3), accent = Color(0xFFFFD23F), ring = Color(0xFFAD3B26);
+  Daur get palette => ground == Daur.dark.ground ? Daur.dark : Daur.light;
+  Color get ink => palette.ink2;
+  Color get accent => palette.accent;
+  Color get ring => palette.accent;
   static const hold = .06, finish = .52; // sprint runs hold..finish, then the window opens
 
   /// The OS draws the splash icon in a 288 dp box (Android 12+); older Android, iOS and web

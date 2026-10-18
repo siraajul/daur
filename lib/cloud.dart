@@ -3,12 +3,15 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'plan.dart';
+import 'meal_ai.dart';
 import 'store.dart';
 
 /// Google Sign-In + Firestore backup/sync for Daur.
@@ -18,21 +21,98 @@ import 'store.dart';
 ///   users/{uid}/state/app  the whole app state as JSON (the Store), schema, device, updatedAt
 ///
 /// The app keeps working offline from the phone's own storage. When signed in, every change is
-/// pushed a few seconds later, and on sign-in the newer copy (phone or cloud) wins.
+/// pushed a few seconds later. Divergent copies require an explicit choice; transactions
+/// prevent an unseen change from another device being overwritten.
 class Cloud extends ChangeNotifier {
-  Cloud._();
+  Cloud._()
+    : _auth = FirebaseAuth.instance,
+      _db = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: _databaseId);
+
+  @visibleForTesting
+  factory Cloud.forTesting({required FirebaseAuth auth, required FirebaseFirestore db, required Store store}) =>
+      Cloud._testing(auth, db, store);
+
+  Cloud._testing(this._auth, this._db, Store store) { _store = store; }
+
+  @visibleForTesting
+  Future<void> flushForTesting() => _push();
   static final instance = Cloud._();
 
   static const _databaseId = 'daur'; // Enterprise edition requires a named database
   static const _schema = 1;
   static const _maxBytes = 900000; // matches the size limit in firestore.rules
 
-  final _auth = FirebaseAuth.instance;
-  final _db = FirebaseFirestore.instanceFor(app: Firebase.app(), databaseId: _databaseId);
+  final FirebaseAuth _auth;
+  final FirebaseFirestore _db;
 
   Store? _store;
   Timer? _debounce;
   bool _pulling = false;
+  bool syncing = false;
+  int _authGeneration = 0;
+  Future<void>? _pushTask;
+  bool _pushAgain = false;
+
+  bool _sameSession(int generation, String uid) => generation == _authGeneration && user?.uid == uid && !_deleting;
+  String? conflictData;
+  String? _baseData;
+  String? _baseUid;
+
+  String get backupStatus => !signedIn
+      ? 'Not backed up · sign in from the menu'
+      : conflictData != null
+      ? 'Two saved copies need your choice'
+      : error != null
+      ? error!
+      : syncing
+      ? 'Backing up…'
+      : lastSync == null
+      ? 'Backup pending'
+      : 'Last backed up at ${lastSync!.toLocal().toString().substring(0, 16)}';
+
+  void dismissError() {
+    error = null;
+    notifyListeners();
+  }
+
+  Future<void> retrySync() async {
+    final u = user;
+    if (u != null) await _syncOnSignIn(u);
+  }
+
+  Future<void> resolveConflict({required bool useCloud}) async {
+    final remote = conflictData, s = _store, u = user;
+    if (remote == null || s == null || u == null) return;
+    final generation = _authGeneration;
+    final prefs = await SharedPreferences.getInstance();
+    if (!_sameSession(generation, u.uid)) return;
+    await prefs.setString('daur.syncRecovery.${u.uid}', useCloud ? s.snapshot() : remote);
+    if (!_sameSession(generation, u.uid)) return;
+    await prefs.setString('daur.syncBase.${u.uid}', remote);
+    if (!_sameSession(generation, u.uid)) return;
+    _baseData = remote;
+    conflictData = null;
+    if (useCloud) {
+      _pulling = true;
+      try {
+        s.adoptCloud(remote);
+        s.claim(u.uid);
+        await s.saved;
+      } finally {
+        _pulling = false;
+      }
+    }
+    if (_sameSession(generation, u.uid)) await _push();
+  }
+
+  Future<String?> recoveredSyncCopy() async {
+    final uid = user?.uid;
+    if (uid == null) return null;
+    final prefs = await SharedPreferences.getInstance();
+    if (user?.uid != uid) return null;
+    return prefs.getString('daur.syncRecovery.$uid');
+  }
+
   bool _deleting = false; // deleting the account: no sync may write anything back
   bool busy = false;
   String? error;
@@ -59,6 +139,13 @@ class Cloud extends ChangeNotifier {
     }
     s.addListener(_onLocalChange);
     _auth.authStateChanges().listen((u) {
+      _authGeneration++;
+      _debounce?.cancel();
+      _baseUid = null;
+      _baseData = null;
+      conflictData = null;
+      lastSync = null;
+      error = null;
       s.signedIn = u != null;
       notifyListeners();
       if (u != null) _syncOnSignIn(u);
@@ -78,7 +165,9 @@ class Cloud extends ChangeNotifier {
       } else {
         final account = await GoogleSignIn.instance.authenticate();
         final idToken = account.authentication.idToken;
-        if (idToken == null) return await _fail('Google did not return a sign-in token. Try again.');
+        if (idToken == null) {
+          return await _fail('Google did not return a sign-in token. Try again.');
+        }
         await _auth.signInWithCredential(GoogleAuthProvider.credential(idToken: idToken));
       }
       return null;
@@ -103,21 +192,32 @@ class Cloud extends ChangeNotifier {
   Future<String?> deleteAccount() async {
     final u = user, s = _store;
     if (u == null || s == null) return 'Not signed in.';
-    _debounce?.cancel();
-    for (final kind in const ['family', 'friends']) {
-      if (s.boardId(kind) != null) await leaveBoard(kind);
+    if (kIsWeb && MealAi.webSiteKey.isEmpty) {
+      return 'Secure web deletion is not configured for this build. Use Daur on your phone or contact support from Privacy & support.';
     }
+    _debounce?.cancel();
     _deleting = true;
+    _set(busy: true);
     try {
-      await _state(u.uid).delete();
-      await _profile(u.uid).delete();
-      try {
-        await u.delete();
-      } on FirebaseAuthException catch (e) {
-        if (e.code != 'requires-recent-login') rethrow;
-        final err = await signInWithGoogle();
-        if (err != null) return err;
-        await _auth.currentUser?.delete();
+      // Finish any transaction already sent before starting server cleanup.
+      await _pushTask;
+      // Authenticate before deleting any data. Cancellation must leave the account intact.
+      if (kIsWeb) {
+        await u.reauthenticateWithPopup(GoogleAuthProvider());
+      } else {
+        final account = await GoogleSignIn.instance.authenticate();
+        final token = account.authentication.idToken;
+        if (token == null) return 'Google did not return a sign-in token.';
+        await u.reauthenticateWithCredential(GoogleAuthProvider.credential(idToken: token));
+      }
+      await u.getIdToken(true);
+      // Admin cleanup finds legacy relationships and notes on other accounts too.
+      // Never fall back to partial client cleanup when the service is unavailable.
+      final result = await FirebaseFunctions.instanceFor(region: 'us-central1')
+          .httpsCallable('deleteAccountData', options: HttpsCallableOptions(timeout: const Duration(minutes: 9)))
+          .call<Map<String, dynamic>>();
+      if (result.data['deleted'] != true) {
+        return await _fail('Cloud deletion was not confirmed. Stay signed in and retry.');
       }
       s.releaseOwner();
       if (!kIsWeb) {
@@ -129,16 +229,26 @@ class Cloud extends ChangeNotifier {
       lastSync = null;
       notifyListeners();
       return null;
+    } on GoogleSignInException catch (e) {
+      return e.code == GoogleSignInExceptionCode.canceled
+          ? 'Deletion cancelled. Your account was not deleted.'
+          : 'Could not verify your identity (${e.code.name}).';
     } catch (e) {
-      return 'Couldn\'t delete: $e';
+      return await _fail('Could not finish deletion. Stay signed in and retry: $e');
     } finally {
       _deleting = false;
+      _set(busy: false);
     }
   }
 
-  Future<void> signOut() async {
+  Future<void> signOut({bool requireBackup = true}) async {
     _debounce?.cancel();
-    if (signedIn) await _push(); // last changes up before leaving
+    if (signedIn && requireBackup) {
+      await _push(); // also waits for any in-flight push and later local changes
+      if (conflictData != null || error != null || (_store?.ownerUid == user?.uid && _store?.snapshot() != _baseData)) {
+        throw StateError('Backup is not complete. Resolve the issue in Your data before signing out.');
+      }
+    }
     if (!kIsWeb) {
       try {
         await GoogleSignIn.instance.signOut();
@@ -159,35 +269,49 @@ class Cloud extends ChangeNotifier {
 
   Future<void> _syncOnSignIn(User u) async {
     final s = _store;
-    if (s == null || _deleting) return;
+    final generation = _authGeneration;
+    if (s == null || !_sameSession(generation, u.uid)) return;
     try {
       await _writeProfile(u);
-      final remote = await _state(u.uid).get();
+      if (!_sameSession(generation, u.uid)) return;
+      final prefs = await SharedPreferences.getInstance();
+      if (!_sameSession(generation, u.uid)) return;
+      if (_baseUid != u.uid) {
+        _baseUid = u.uid;
+        _baseData = prefs.getString('daur.syncBase.${u.uid}');
+        conflictData = null;
+      }
+      final remote = await _state(u.uid).get(const GetOptions(source: Source.server));
+      if (!_sameSession(generation, u.uid)) return;
       final data = remote.data()?['data'];
-      // someone else's laps are on this phone (a shared phone, a family member signing in)
       final otherPerson = s.ownerUid != null && s.ownerUid != u.uid;
       if (data is String) {
-        final remoteSavedAt = (jsonDecode(data) as Map<String, dynamic>)['savedAt'] as int? ?? 0;
-        // A fresh install or another person's data always restores; otherwise the newer copy wins.
-        if (otherPerson || !s.onboarded || remoteSavedAt > s.savedAt) {
+        Store.decodeBackup(data);
+        if (otherPerson || !s.onboarded) {
           _pulling = true;
           s.adoptCloud(data);
           s.claim(u.uid);
           _pulling = false;
-          _set(synced: true);
+          _baseData = data;
+          await prefs.setString('daur.syncBase.${u.uid}', data);
+          if (!_sameSession(generation, u.uid)) return;
+        } else if (data != _baseData && data != s.snapshot()) {
+          conflictData = data;
+          await _fail('Another saved copy exists. Choose which copy to keep in Your data.');
           return;
         }
       } else if (otherPerson) {
         _pulling = true;
-        s.startFresh(u.uid); // nothing of theirs in the cloud yet: onboarding, not the last person's laps
+        s.startFresh(u.uid);
         _pulling = false;
-        return;
       }
       _pulling = true;
       s.claim(u.uid);
       _pulling = false;
       await _push();
+      if (_sameSession(generation, u.uid)) _watchPlan();
     } catch (e) {
+      if (!_sameSession(generation, u.uid)) return;
       _pulling = false;
       _fail('Sync failed: $e');
     }
@@ -210,27 +334,75 @@ class Cloud extends ChangeNotifier {
     }
   }
 
-  Future<void> _push() async {
-    final u = user, s = _store;
-    if (u == null || s == null || _deleting) return;
-    final data = s.snapshot();
-    if (data.length > _maxBytes) {
-      await _fail('Too much data to back up (${data.length ~/ 1000} KB).');
-      return;
-    }
+  /// One drain owns the writer; edits made during network work join the same flush.
+  Future<void> _push() {
+    _pushAgain = true;
+    final active = _pushTask;
+    if (active != null) return active;
+    final completer = Completer<void>();
+    _pushTask = completer.future;
+    _drainPushes().then((_) => completer.complete(), onError: completer.completeError);
+    return completer.future;
+  }
+
+  Future<void> _drainPushes() async {
+    syncing = true;
+    notifyListeners();
     try {
-      await _state(u.uid).set({
-        'data': data,
-        'schema': _schema,
-        'device': kIsWeb ? 'web' : defaultTargetPlatform.name,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      _set(synced: true);
-    } catch (e) {
-      _fail('Backup failed: $e');
+      while (_pushAgain) {
+        _pushAgain = false;
+        final u = user, s = _store;
+        if (u == null || s == null || _deleting || s.ownerUid != u.uid || conflictData != null) {
+          break;
+        }
+        final generation = _authGeneration;
+        final data = s.snapshot();
+        if (utf8.encode(data).length > _maxBytes) {
+          await _fail('Too much data to back up (${data.length ~/ 1000} KB).');
+          break;
+        }
+        try {
+          await _db.runTransaction((tx) async {
+            final ref = _state(u.uid);
+            final remote = (await tx.get(ref)).data()?['data'];
+            if (!_sameSession(generation, u.uid) || s.ownerUid != u.uid) {
+              throw StateError('Account changed during backup.');
+            }
+            if (remote is String && remote != _baseData && remote != data) {
+              conflictData = remote;
+              throw StateError('Another device changed your backup. Choose a copy in Your data.');
+            }
+            tx.set(ref, {
+              'data': data,
+              'schema': _schema,
+              'device': kIsWeb ? 'web' : defaultTargetPlatform.name,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          });
+          if (!_sameSession(generation, u.uid)) continue;
+          final prefs = await SharedPreferences.getInstance();
+          if (!_sameSession(generation, u.uid)) continue;
+          await prefs.setString('daur.syncBase.${u.uid}', data);
+          if (!_sameSession(generation, u.uid)) continue;
+          _baseData = data;
+          _set(synced: true);
+          await pushBoard();
+          if (!_sameSession(generation, u.uid)) continue;
+          await pushCoaching();
+          if (_sameSession(generation, u.uid) && s.snapshot() != data) {
+            _pushAgain = true;
+          }
+        } catch (e) {
+          if (!_sameSession(generation, u.uid)) continue;
+          await _fail('Backup not completed: $e');
+          break; // retain dirty data for an explicit retry, without a network retry loop
+        }
+      }
+    } finally {
+      syncing = false;
+      _pushTask = null;
+      notifyListeners();
     }
-    await pushBoard();
-    await pushCoaching();
   }
 
   // ---- boards: family, and friends with a leaderboard ----
@@ -245,8 +417,10 @@ class Cloud extends ChangeNotifier {
   /// race points. No email.
   Future<void> pushBoard() async {
     final u = user, s = _store;
-    if (u == null || s == null) return;
+    if (u == null || s == null || s.ownerUid != u.uid || _deleting) return;
+    final generation = _authGeneration;
     for (final kind in const ['family', 'friends']) {
+      if (!_sameSession(generation, u.uid) || s.ownerUid != u.uid) return;
       final code = s.boardId(kind);
       if (code == null) continue;
       try {
@@ -270,7 +444,9 @@ class Cloud extends ChangeNotifier {
           'updatedAt': FieldValue.serverTimestamp(),
         });
       } catch (e) {
-        debugPrint('Cloud.pushBoard($kind): $e');
+        if (_sameSession(generation, u.uid)) {
+          await _fail('Could not update the $kind board: $e');
+        }
       }
     }
   }
@@ -301,7 +477,9 @@ class Cloud extends ChangeNotifier {
     final u = user, s = _store;
     if (u == null || s == null) return 'Sign in first.';
     final code = input.trim().toUpperCase();
-    if (!RegExp(r'^[A-HJ-NP-Z2-9]{8}$').hasMatch(code)) return 'A code is 8 letters and numbers.';
+    if (!RegExp(r'^[A-HJ-NP-Z2-9]{8}$').hasMatch(code)) {
+      return 'A code is 8 letters and numbers.';
+    }
     if (code == s.boardId(kind == 'friends' ? 'family' : 'friends')) {
       return 'That\'s your ${kind == 'friends' ? 'family' : 'friends\''} board.';
     }
@@ -333,7 +511,8 @@ class Cloud extends ChangeNotifier {
         });
       }
     } catch (e) {
-      debugPrint('Cloud.leaveBoard($kind): $e');
+      await _fail('Could not leave the board. Sharing is still active: $e');
+      return;
     }
     s.setBoard(kind, null);
   }
@@ -359,7 +538,10 @@ class Cloud extends ChangeNotifier {
   /// Publishes today's summary for helpers, once this person has invited someone.
   Future<void> pushCoaching() async {
     final u = user, s = _store;
-    if (u == null || s == null || s.inviteCodes.isEmpty || s.helperOnly) return;
+    if (u == null || s == null || s.ownerUid != u.uid || _deleting || s.inviteCodes.isEmpty || s.helperOnly) {
+      return;
+    }
+    final generation = _authGeneration;
     Map<String, Object> doc(Map<String, Object?> data) => {
       'ownerUid': u.uid,
       'name': _name(u, 'Daur'),
@@ -369,11 +551,13 @@ class Cloud extends ChangeNotifier {
     };
     try {
       await _coach(u.uid).set(doc(s.coachSummary()));
-      if (s.inviteCodes.containsKey('partner')) {
+      if (_sameSession(generation, u.uid) && s.ownerUid == u.uid && s.inviteCodes.containsKey('partner')) {
         await _coach(u.uid).collection('share').doc('partner').set(doc(s.partnerSummary()));
       }
     } catch (e) {
-      debugPrint('Cloud.pushCoaching: $e');
+      if (_sameSession(generation, u.uid)) {
+        await _fail('Could not update your shared progress: $e');
+      }
     }
   }
 
@@ -405,7 +589,8 @@ class Cloud extends ChangeNotifier {
     try {
       await _db.collection('invites').doc(code).delete();
     } catch (e) {
-      debugPrint('Cloud.revokeInvite: $e');
+      await _fail('Could not revoke the invite. Sharing is still active: $e');
+      return;
     }
     s.setInvite(role, null);
   }
@@ -415,12 +600,16 @@ class Cloud extends ChangeNotifier {
     final u = user, s = _store;
     if (u == null || s == null) return 'Sign in first.';
     final code = input.trim().toUpperCase();
-    if (!RegExp(r'^[A-HJ-NP-Z2-9]{8}$').hasMatch(code)) return 'A code is 8 letters and numbers.';
+    if (!RegExp(r'^[A-HJ-NP-Z2-9]{8}$').hasMatch(code)) {
+      return 'A code is 8 letters and numbers.';
+    }
     try {
       final inv = (await _db.collection('invites').doc(code).get()).data();
       if (inv == null) return 'No invite with that code.';
       final owner = inv['ownerUid'] as String, role = inv['role'] as String;
-      if (owner == u.uid) return 'That\'s your own code: share it with your helper.';
+      if (owner == u.uid) {
+        return 'That\'s your own code: share it with your helper.';
+      }
       // a partner sees this person back: hand over our own partner code with the join
       if (role == 'partner' && s.inviteCodes['partner'] == null) {
         final e = await createInvite('partner');
@@ -434,7 +623,8 @@ class Cloud extends ChangeNotifier {
         if (role == 'partner') 'back': s.inviteCodes['partner']!,
         'joinedAt': FieldValue.serverTimestamp(),
       });
-      final name = (await _coach(owner).get()).data()?['name'] as String? ?? 'Your person';
+      final summary = role == 'partner' ? _coach(owner).collection('share').doc('partner') : _coach(owner);
+      final name = (await summary.get()).data()?['name'] as String? ?? 'Your person';
       s.addHelping(owner, name, role);
       return null;
     } on FirebaseException catch (e) {
@@ -449,7 +639,8 @@ class Cloud extends ChangeNotifier {
     try {
       await _coach(owner).collection('helpers').doc(u.uid).delete();
     } catch (e) {
-      debugPrint('Cloud.leaveHelping: $e');
+      await _fail('Could not stop helping. Try again: $e');
+      return;
     }
     _store?.removeHelping(owner);
   }
@@ -458,9 +649,20 @@ class Cloud extends ChangeNotifier {
     final u = user;
     if (u == null) return;
     try {
-      await _coach(u.uid).collection('helpers').doc(helperUid).delete();
+      final ref = _coach(u.uid).collection('helpers').doc(helperUid);
+      final helper = (await ref.get()).data();
+      final code = helper?['code'] as String?;
+      // Revoke the original code as well: deleting only the helper lets them rejoin.
+      // This revokes everyone using that code; issue a fresh code to reconnect trusted helpers.
+      final batch = _db.batch();
+      if (code != null) batch.delete(_db.collection('invites').doc(code));
+      batch.delete(ref);
+      await batch.commit();
+      if (code != null && _store?.inviteCodes[helper?['role']] == code) {
+        _store?.setInvite(helper!['role'] as String, null);
+      }
     } catch (e) {
-      debugPrint('Cloud.removeHelper: $e');
+      await _fail('Could not remove the helper. Sharing is still active: $e');
     }
   }
 
@@ -537,7 +739,7 @@ class Cloud extends ChangeNotifier {
     try {
       await _coach(owner).collection('notes').doc(id).delete();
     } catch (e) {
-      debugPrint('Cloud.deleteNote: $e');
+      await _fail('Could not delete the note: $e');
     }
   }
 
@@ -567,23 +769,34 @@ class Cloud extends ChangeNotifier {
     _partnerSub?.cancel();
     _partners = {};
     final u = user, s = _store;
-    if (u == null || s == null || s.inviteCodes.isEmpty || s.helperOnly) return;
+    if (u == null || s == null || s.ownerUid != u.uid || s.inviteCodes.isEmpty || s.helperOnly) {
+      return;
+    }
+    final generation = _authGeneration;
     // a partner joined with our code: join them back with theirs; one who left: let go of them too.
     // ponytail: an unlink while this phone was closed isn't seen; their page just stops updating
     _partnerSub = _coach(u.uid).collection('helpers').where('role', isEqualTo: 'partner').snapshots().listen((q) async {
+      if (!_sameSession(generation, u.uid) || s.ownerUid != u.uid) return;
       final now = {for (final d in q.docs) d.id: d.data()['back'] as String?};
       final gone = _partners.difference(now.keys.toSet());
       _partners = now.keys.toSet();
       for (final uid in gone) {
+        if (!_sameSession(generation, u.uid)) return;
         await leaveHelping(uid);
       }
       for (final MapEntry(key: uid, value: back) in now.entries) {
-        if (back != null && !s.helping.any((h) => h['owner'] == uid)) await joinAsHelper(back);
+        if (!_sameSession(generation, u.uid)) return;
+        if (back != null && !s.helping.any((h) => h['owner'] == uid)) {
+          await joinAsHelper(back);
+        }
       }
     });
     _dietSub = _plan(u.uid, 'diet').snapshots().listen((snap) {
+      if (!_sameSession(generation, u.uid) || s.ownerUid != u.uid) return;
       final d = snap.data(), at = d == null ? null : _at(d);
-      if (d == null || at == null || at.compareTo(s.chartAt) <= 0 || d['byUid'] == u.uid) return;
+      if (d == null || at == null || at.compareTo(s.chartAt) <= 0 || d['byUid'] == u.uid) {
+        return;
+      }
       try {
         final chart = [for (final m in jsonDecode(d['data'] as String) as List) Meal.from(m as Map)];
         final undo = s.snapshot();
@@ -595,8 +808,11 @@ class Cloud extends ChangeNotifier {
       }
     });
     _gymSub = _plan(u.uid, 'gym').snapshots().listen((snap) {
+      if (!_sameSession(generation, u.uid) || s.ownerUid != u.uid) return;
       final d = snap.data(), at = d == null ? null : _at(d);
-      if (d == null || at == null || at.compareTo(s.gymAt) <= 0 || d['byUid'] == u.uid) return;
+      if (d == null || at == null || at.compareTo(s.gymAt) <= 0 || d['byUid'] == u.uid) {
+        return;
+      }
       try {
         final undo = s.snapshot();
         final by = d['byName'] as String? ?? 'Your trainer';
@@ -612,8 +828,11 @@ class Cloud extends ChangeNotifier {
       }
     });
     _cookSub = _plan(u.uid, 'cook').snapshots().listen((snap) {
+      if (!_sameSession(generation, u.uid) || s.ownerUid != u.uid) return;
       final d = snap.data(), at = d == null ? null : _at(d);
-      if (d == null || at == null || at.compareTo(s.cookAt) <= 0 || d['byUid'] == u.uid) return;
+      if (d == null || at == null || at.compareTo(s.cookAt) <= 0 || d['byUid'] == u.uid) {
+        return;
+      }
       if (d['day'] != s.today) return; // yesterday's cooking is over
       final undo = s.snapshot();
       final said = s.applyCook(Map<String, int>.from(d['picks'] as Map), at: at);

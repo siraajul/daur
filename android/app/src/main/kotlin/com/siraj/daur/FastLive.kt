@@ -26,7 +26,7 @@ object FastLive {
     private const val ID = 4401
     private const val CHANNEL = "fast_live"
     private const val PREFS = "daur_fast_live"
-    private val shades = longArrayOf(0xFFE8A598, 0xFFD9775F, 0xFFC4553D, 0xFFAD3B26, 0xFF7A2414)
+    private val shades = longArrayOf(0xFFB6D3C9, 0xFF89B8A8, 0xFF5B9584, 0xFF3C7B6F, 0xFF28645D)
 
     fun show(ctx: Context, from: Long, goalHours: Int, hours: List<Int>, names: List<String>) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
@@ -74,7 +74,7 @@ object FastLive {
         val b = Notification.Builder(ctx, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_daur)
             .setLargeIcon(Icon.createWithResource(ctx, R.drawable.notif_fasting))
-            .setColor(0xFFAD3B26.toInt())
+            .setColor(0xFF28645D.toInt())
             .setContentTitle("Fasting · ${names.getOrElse(stage) { "" }}")
             .setContentText(
                 if (done) "Goal done · ${goal}h · end it in Daur"
@@ -90,13 +90,13 @@ object FastLive {
             .setContentIntent(open)
 
         if (Build.VERSION.SDK_INT >= 36) {
-            // the bar in stages: one segment per stage up to the goal, a yellow mark where each starts
+            // the bar in stages: one segment per stage up to the goal, a teal mark where each starts
             val starts = hours.filter { it < goal }
             val segments = starts.mapIndexed { i, h ->
                 val end = if (i + 1 < starts.size) starts[i + 1] else goal
                 Notification.ProgressStyle.Segment((end - h) * 60).setColor(shades[i % shades.size].toInt())
             }
-            val points = starts.drop(1).map { Notification.ProgressStyle.Point(it * 60).setColor(0xFFFFD23F.toInt()) }
+            val points = starts.drop(1).map { Notification.ProgressStyle.Point(it * 60).setColor(0xFF9CCFC0.toInt()) }
             b.setStyle(
                 Notification.ProgressStyle()
                     .setStyledByProgress(true)
