@@ -1,0 +1,131 @@
+{
+  "ivory": {
+    "name": "Warm ivory \u00b7 muted teal",
+    "light": {
+      "bg": "#F6F3EC",
+      "surface": "#FFFDF8",
+      "container": "#EAEFE7",
+      "text": "#25342F",
+      "secondary": "#58665F",
+      "primary": "#28645D",
+      "onPrimary": "#FFFFFF",
+      "outline": "#7C8B81",
+      "error": "#A63C36",
+      "warning": "#805D1B",
+      "contrast": {
+        "Body / background": 11.76,
+        "Secondary / background": 5.44,
+        "Button label / button": 6.84,
+        "Link / background": 6.17,
+        "Control outline / surface": 3.52,
+        "Error / background": 5.71
+      }
+    },
+    "dark": {
+      "bg": "#172420",
+      "surface": "#22312B",
+      "container": "#2D3F36",
+      "text": "#EDF1E9",
+      "secondary": "#B4BFB5",
+      "primary": "#9CCFC0",
+      "onPrimary": "#153E34",
+      "outline": "#7E9486",
+      "error": "#FFB4AB",
+      "warning": "#E3C27D",
+      "contrast": {
+        "Body / background": 14.02,
+        "Secondary / background": 8.45,
+        "Button label / button": 6.83,
+        "Link / background": 9.24,
+        "Control outline / surface": 4.19,
+        "Error / background": 9.44
+      }
+    }
+  },
+  "forest": {
+    "name": "Soft grey \u00b7 forest",
+    "light": {
+      "bg": "#F1F4F1",
+      "surface": "#FBFDFB",
+      "container": "#E3EBE3",
+      "text": "#25332B",
+      "secondary": "#536259",
+      "primary": "#356447",
+      "onPrimary": "#FFFFFF",
+      "outline": "#7A8B7D",
+      "error": "#A63C36",
+      "warning": "#805D1B",
+      "contrast": {
+        "Body / background": 11.94,
+        "Secondary / background": 5.81,
+        "Button label / button": 6.85,
+        "Link / background": 6.18,
+        "Control outline / surface": 3.53,
+        "Error / background": 5.71
+      }
+    },
+    "dark": {
+      "bg": "#18231B",
+      "surface": "#243128",
+      "container": "#314438",
+      "text": "#EBF0E9",
+      "secondary": "#B7C3B6",
+      "primary": "#ACD2AE",
+      "onPrimary": "#1D3C27",
+      "outline": "#829886",
+      "error": "#FFB4AB",
+      "warning": "#E3C27D",
+      "contrast": {
+        "Body / background": 14.03,
+        "Secondary / background": 8.88,
+        "Button label / button": 7.28,
+        "Link / background": 9.72,
+        "Control outline / surface": 4.39,
+        "Error / background": 9.55
+      }
+    }
+  },
+  "clay": {
+    "name": "Warm neutral \u00b7 clay",
+    "light": {
+      "bg": "#F6F0E9",
+      "surface": "#FFFCF7",
+      "container": "#EEE3D9",
+      "text": "#382E29",
+      "secondary": "#6A5B52",
+      "primary": "#8A5140",
+      "onPrimary": "#FFFFFF",
+      "outline": "#968275",
+      "error": "#A13232",
+      "warning": "#805D1B",
+      "contrast": {
+        "Body / background": 11.67,
+        "Secondary / background": 5.74,
+        "Button label / button": 6.3,
+        "Link / background": 5.57,
+        "Control outline / surface": 3.57,
+        "Error / background": 6.15
+      }
+    },
+    "dark": {
+      "bg": "#29211E",
+      "surface": "#372C27",
+      "container": "#46362F",
+      "text": "#F3E9DF",
+      "secondary": "#CDB8AA",
+      "primary": "#E6B19B",
+      "onPrimary": "#4C2D22",
+      "outline": "#A38C7F",
+      "error": "#FFB4AB",
+      "warning": "#E3C27D",
+      "contrast": {
+        "Body / background": 13.18,
+        "Secondary / background": 8.29,
+        "Button label / button": 6.52,
+        "Link / background": 8.36,
+        "Control outline / surface": 4.26,
+        "Error / background": 9.3
+      }
+    }
+  }
+}

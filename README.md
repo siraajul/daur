@@ -13,7 +13,7 @@ Four meals a day, push / pull / legs at the gym, and a running track that fills 
 ![Dart](https://img.shields.io/badge/Dart-3.13-0175C2?logo=dart&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Auth%20·%20Firestore%20·%20AI%20Logic-FFCA28?logo=firebase&logoColor=black)
 ![Platforms](https://img.shields.io/badge/Android%20·%20iOS%20·%20Web-supported-AD3B26)
-![Tests](https://img.shields.io/badge/tests-44%20passing-2E7D32)
+![Tests](https://img.shields.io/badge/tests-run%20in%20CI-2E7D32)
 
 </div>
 
@@ -26,6 +26,14 @@ Daur turns a 12-week plan (to lose, keep or gain weight) into **84 days of a sim
 It's also built for the people around you: **a trainer** who writes your diet chart and workout and follows your progress, and **a family member** (often the one who cooks) who sees what to cook today, in Bangla.
 
 It's built around how people in Bangladesh actually eat and type: bhat, dal, murgi, ilish and dudh cha are first-class foods, and search understands *bhat*, *vat*, *rice* and *ভাত* as the same thing.
+
+## Current experience
+
+The current interface uses warm ivory and muted teal, with a separately tuned dark appearance. The gallery below documents the earlier red palette and is retained as a feature reference.
+
+Setup now has six guided steps, editable weight entry, resumable drafts, and an explicit plan review. Preferences includes food filtering, equipment templates, optional menu modules, programme pause/restart, navigation language, and opt-in crash reporting. Your data supports validated JSON restore with undo and explicit cloud conflict recovery. Account deletion requires the deployed cleanup service described in [functions/README.md](functions/README.md); it never reports success after partial client-only cleanup.
+
+Colour evidence and alternatives: [interactive research](design/color-research.html), [palette tokens](design/color-palettes.json). Release prerequisites: [checklist](docs/RELEASE_CHECKLIST.md).
 
 ## The app, start to finish
 
@@ -384,16 +392,17 @@ Security rules (`firestore.rules`) keep each person's data private to them, the 
 ```bash
 flutter pub get
 flutter run -d <android-device>        # or: -d chrome, or an iPhone
-flutter test                           # 51 tests: store, search, progression, reminders, goals, coaching, couple, friends
+flutter analyze
+flutter test                           # use current output for the verified test count
 ```
 
-The AI estimate needs an App Check token. Put it in `dart_defines.json` (git-ignored):
+Family/debug builds can use a registered App Check debug token in `dart_defines.json` (git-ignored):
 
 ```json
 { "APPCHECK_DEBUG_TOKEN": "your-registered-debug-token" }
 ```
 
-and build with `--dart-define-from-file=dart_defines.json`. Without it everything else still works.
+and build with `--dart-define-from-file=dart_defines.json`. Public production builds must omit that token and use Play Integrity on Android or App Attest/DeviceCheck on iOS. These providers must be configured in Firebase and verified on supported devices.
 
 **Health data:** Android reads steps and sleep through Health Connect (built into Android 14+). On iOS, add the HealthKit capability in Xcode. On the web, steps and sleep are typed in.
 
@@ -405,13 +414,27 @@ Every merge to `main` ships itself:
 flowchart LR
     pr[Pull request] -->|merge| main[main]
     main --> ci[GitHub Actions]
-    ci --> test[flutter test]
+    ci --> test[Analyze + Flutter tests<br/>Firestore emulator rules tests]
     test --> build[Signed release APK<br/>build 100 + commits]
     build --> dist[Firebase App Distribution]
     dist --> tester[App Tester on<br/>Family phones]
 ```
 
 The workflow is `.github/workflows/release.yml`. Release notes come from the merged commit. To ship by hand instead: `./release.sh "What changed"`. Testers install with the Firebase App Tester app, and each release shows up there as an update.
+
+## Public release readiness
+
+Pull requests validate without distribution credentials. Only `main` can publish a Family build after validation succeeds. The installed Family build keeps its existing signing identity; do not replace that key. CI pins Firebase CLI and rule-test dependency versions and uses Java 21 and Node 22.
+
+Public Android builds explicitly opt into separate production signing:
+
+```bash
+DAUR_PRODUCTION_RELEASE=true flutter build appbundle --release
+```
+
+Provide `storeFile`, `storePassword`, `keyAlias`, and `keyPassword` in the ignored `android/key.properties`, or `DAUR_SIGNING_STORE_FILE`, `DAUR_SIGNING_STORE_PASSWORD`, `DAUR_SIGNING_KEY_ALIAS`, and `DAUR_SIGNING_KEY_PASSWORD`. Relative keystore paths resolve under `android/`. Missing credentials fail the build. A production build also rejects any `APPCHECK_DEBUG_TOKEN` Dart define. Keep upload credentials outside the repository. Register production signing fingerprints with Firebase before verifying Google sign-in.
+
+Crash reporting is disabled by default in Android and iOS native configuration and requires the user's explicit in-app consent. Android applies the Crashlytics Gradle plugin. Neither plugin installation nor a passing unit test proves delivery to Firebase. See [the release checklist](docs/RELEASE_CHECKLIST.md) for platform setup and live verification still required.
 
 ## Project map
 

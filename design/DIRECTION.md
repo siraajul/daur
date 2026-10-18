@@ -1,3 +1,9 @@
+# Current colour direction · 18 October 2026
+
+The user selected **warm ivory with muted teal**, replacing the earlier full-screen red/yellow direction below. Keep the track metaphor and strong typography. Large surfaces are neutral; teal marks actions/progress. Red is reserved for errors/destructive states. Light and dark palettes are tuned separately. See `color-research.html` and `color-palettes.json` for evidence, alternatives and calculated contrast pairs. Older exploration below is historical context, not the current palette specification.
+
+Light: background #F6F3EC, raised surface #FFFDF8, container #EAEFE7, text #25342F, secondary #58665F, action #28645D with white text. Dark: background #172420, surface #22312B, container #2D3F36, text #EDF1E9, secondary #B4BFB5, action #9CCFC0 with #153E34 text.
+
 # Daur: Direction
 
 ## Brief
