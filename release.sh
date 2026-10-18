@@ -22,6 +22,8 @@ echo "Daur build ${build}"
 flutter test
 flutter build apk --release --build-number="$build" --dart-define-from-file=dart_defines.json
 
+bash scripts/verify-family-signing.sh build/app/outputs/flutter-apk/app-release.apk
+
 npx -y firebase-tools@latest appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
   --app "$app_id" \
   --groups family \
