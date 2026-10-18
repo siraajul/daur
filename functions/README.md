@@ -17,9 +17,11 @@ transfers boards with remaining members, and recursively deletes owned trees.
 The legacy helpers collection-group scan is appropriate for this small app; migrate
 helper records to an indexed helperUid field before substantial growth.
 
-Setup (not performed automatically):
+Release status (18 October 2026): rules and the Enterprise-compatible `notes.fromUid` collection-group index were deployed to `daurfit` / database `daur`. The callable deployment was rejected because the project uses Spark. The owner chose to keep Spark, so account deletion remains unavailable on the server; no live deletion test was attempted.
 
-1. Install dependencies with `npm install` inside `functions`.
+Future setup:
+
+1. Install dependencies with `npm ci` inside `functions`.
 2. Select the intended Firebase project explicitly.
 3. Deploy the named `daur` database rules/indexes and account-lifecycle functions.
 4. Verify the callable with a disposable account and App Check enabled.
@@ -34,7 +36,7 @@ npm --prefix functions ci
 firebase deploy --project daurfit --only firestore:rules,firestore:indexes,functions:account-lifecycle
 ```
 
-The `notes.fromUid` collection-group index is declared in `firestore.indexes.json`.
+The `notes.fromUid` collection-group index is declared as an Enterprise `SPARSE_ANY` index in `firestore.indexes.json`; Standard-edition fieldOverrides are not supported by this database.
 Wait for that index to become ready before exercising deletion. Node.js 22 and a
 Firebase plan supporting Cloud Functions are required for deployment.
 
