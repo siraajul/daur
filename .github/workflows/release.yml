@@ -14,7 +14,12 @@ on:
     branches: [main]
   push:
     branches: [main]
-  workflow_dispatch: # or run it by hand from the Actions tab
+  workflow_dispatch:
+    inputs:
+      signing_only:
+        description: Check the stored Family certificate without building or distributing
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -24,7 +29,29 @@ concurrency:
   cancel-in-progress: false # never drop a release half-way
 
 jobs:
+  signing_identity:
+    if: github.event_name == 'workflow_dispatch' && inputs.signing_only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Inspect public certificate from the stored Family key
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_SIGNING_KEYSTORE }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$KEYSTORE"
+          signing_file="$RUNNER_TEMP/family.keystore"
+          trap 'rm -f "$signing_file"' EXIT
+          umask 077
+          printf '%s' "$KEYSTORE" | base64 --decode > "$signing_file"
+          keytool -list -v -keystore "$signing_file" -storepass android | awk '/SHA1:|SHA256:/'
+
   validate:
+    if: github.event_name != 'workflow_dispatch' || !inputs.signing_only
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
