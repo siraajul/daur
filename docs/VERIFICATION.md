@@ -1,11 +1,11 @@
 # Local verification · 18 October 2026
 
-Implemented on `codex/fitness-hardening`. Firestore rules and the Enterprise-compatible index were deployed to `daurfit` / `daur`; the index is READY. No app release was distributed.
+Implemented on `codex/fitness-hardening`. Firestore rules and the Enterprise-compatible index were deployed to `daurfit` / `daur`; the index is READY. A separate Daur Preview `1.0.0 (121)` was distributed to the three-person Family group; the original app was not replaced.
 
 | Check | Result |
 | --- | --- |
 | `flutter analyze --no-pub` | No issues found |
-| `flutter test --no-pub --timeout 45s` | 82 tests passed |
+| `flutter test --no-pub --timeout 45s` | 84 tests passed |
 | Firestore emulator suite | 121 checks passed, 0 failed |
 | Account cleanup unit tests | 3 tests passed |
 | `flutter build web` | Passed; corrected desktop setup visually verified |
@@ -39,3 +39,15 @@ Android OAuth client. Google provider is enabled, and published web-client/app I
 match the server. Tester sign-in must still be retried to establish end-to-end success.
 The new signing guard passed against the downloaded build 112 APK and rejected the
 local differently-signed APK. No private key or App Check token was printed by those checks.
+
+## Preview distribution · 18 October 2026
+
+- Separate package `com.siraj.daur.preview`, labeled Daur Preview, published as `1.0.0 (121)`.
+- 84 normal tests and 13 Preview/setup tests passed; analysis found no issues.
+- The APK passed package, signature, launcher and native Firebase identity checks.
+- A real App Check token exchange succeeded; its token value was not logged.
+- Pixel confirmed original and Preview packages coexist with distinct UIDs.
+- Firebase CLI upload/distribution succeeded for Family (3 testers). Backend release metadata and notes were read back.
+- Source: `53b8215`; APK SHA-256: `7c8701d2a6b3fd228e0e4325c9873565d8b171d32e003ffd75eb93a0441c5a53`.
+
+[Install Preview](https://appdistribution.firebase.google.com/testerapps/1:179925532044:android:48c933d60808134954aaa9/releases/7ddng4fcqardg). Phone data remains separate; Google sign-in shares the existing Daur cloud account.

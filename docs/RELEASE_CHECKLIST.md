@@ -148,3 +148,16 @@ Analysis passed; 84 normal tests and 13 Preview/setup tests passed. The Pixel in
 Preview alongside the original: separate package UIDs and a valid launcher component
 were confirmed without uninstalling or resetting the original app.
 APK SHA-256: `7c8701d2a6b3fd228e0e4325c9873565d8b171d32e003ffd75eb93a0441c5a53`.
+
+### Published Preview build 121 · 18 October 2026
+
+The verified APK was uploaded with Firebase CLI and distributed successfully to
+the existing **Family** group (**3 testers**). Backend metadata confirms version
+`1.0.0 (121)` and the Preview-specific release notes.
+
+- [Tester installation](https://appdistribution.firebase.google.com/testerapps/1:179925532044:android:48c933d60808134954aaa9/releases/7ddng4fcqardg)
+- [Firebase release](https://console.firebase.google.com/project/daurfit/appdistribution/app/android:com.siraj.daur.preview/releases/7ddng4fcqardg)
+- App source commit: `53b8215` on `codex/fitness-hardening`.
+- The original `com.siraj.daur` package was not replaced or reset.
+- Real tester Google sign-in still requires tester confirmation.
+- Automatic main-push release defaults were retained; Preview is explicitly selected for manual releases.
