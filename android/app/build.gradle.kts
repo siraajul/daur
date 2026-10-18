@@ -61,6 +61,15 @@ android {
     }
 
     signingConfigs {
+        // Name this explicitly: AGP's implicit debug signing can use a different
+        // preferences directory on CI and silently generate a fresh certificate.
+        create("family") {
+            storeFile = file(System.getenv("DAUR_FAMILY_KEYSTORE")
+                ?: "${System.getProperty("user.home")}/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (productionRelease) {
             create("production") {
                 storeFile = rootProject.file(signingValue("storeFile", "DAUR_SIGNING_STORE_FILE"))
@@ -74,7 +83,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName(if (productionRelease) "production" else "debug")
+            signingConfig = signingConfigs.getByName(if (productionRelease) "production" else "family")
             // Keep all resources: notification icons are named only from Dart, which the shrinker
             // can't see, so it stripped ic_stat_daur and every reminder failed in release builds.
             isShrinkResources = false

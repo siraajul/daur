@@ -96,3 +96,30 @@ The local Mac debug key is DIFFERENT from build 112's key. Family uploads now ru
 its availability has not been verified. If that key cannot be recovered, plan an
 explicit backup/migration with testers before changing their install identity.
 No tester release was uploaded or sent during this work.
+
+## Release attempt · 18 October 2026
+
+Changes were pushed to `codex/fitness-hardening`. CI run
+[39113418843](https://github.com/siraajul/daur/actions/runs/39113418843) passed validation
+and built an APK, but distribution was blocked by the signing guard. The candidate
+was signed with SHA-256 `d05fd57061c1becb048c996b559340733550a525eda18297a8a2e5d4e5de125e`,
+which does not match build 112. Nothing was uploaded to App Distribution.
+
+The certificate-only [diagnostic run](https://github.com/siraajul/daur/actions/runs/39114333609)
+confirmed the stored GitHub private key matches the local Mac key (SHA-256
+`9939df1696b3ca76447117e5d2a9608fc8e140deef16ed519884337dbf5a9fd3`).
+Previous implicit debug signing bypassed the restored key. Family signing now uses
+an explicit store path, with a private temporary keystore path in CI and cleanup.
+The legacy build-112 guard remains in place pending an explicit migration decision.
+
+No build-112 private key was found in the available local key files or GitHub signing
+secret. An in-place update requires that key. Alternatives are a separate preview
+package that preserves the old installation, or a one-time backup/reinstall migration
+to the stable key. Do not distribute a mismatched same-package APK without an
+explicit migration decision.
+
+A local candidate `1.0.0 (120)` was built after the explicit signing fix. APK signature
+verification confirms it uses the stable local/GitHub key, and the existing Family App
+Check configuration is included. The candidate is at
+`build/app/outputs/flutter-apk/app-release.apk`. It has NOT been distributed because
+it cannot replace the differently-signed build 112 without a migration.

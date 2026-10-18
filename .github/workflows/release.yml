@@ -113,12 +113,13 @@ jobs:
           KEYSTORE: ${{ secrets.ANDROID_SIGNING_KEYSTORE }}
         run: |
           test -n "$KEYSTORE" || { echo "Missing family signing key"; exit 1; }
-          mkdir -p ~/.android
-          echo "$KEYSTORE" | base64 -d > ~/.android/debug.keystore
+          umask 077
+          printf '%s' "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/daur-family.keystore"
 
       - name: Build the release APK
         env:
           TOKEN: ${{ secrets.APPCHECK_DEBUG_TOKEN }}
+          DAUR_FAMILY_KEYSTORE: ${{ runner.temp }}/daur-family.keystore
         run: |
           test -n "$TOKEN" || { echo "Missing family App Check token"; exit 1; }
           printf '{"APPCHECK_DEBUG_TOKEN": "%s"}' "$TOKEN" > dart_defines.json
@@ -151,3 +152,7 @@ jobs:
             --release-notes-file release-notes.txt \
             --project daurfit
           rm -f "$RUNNER_TEMP/sa.json"
+
+      - name: Remove temporary release credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/daur-family.keystore" "$RUNNER_TEMP/sa.json" dart_defines.json
