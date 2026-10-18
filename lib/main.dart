@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'l10n.dart';
+import 'build_channel.dart';
 
 import 'dart:async';
 
@@ -180,7 +181,7 @@ class DaurApp extends StatelessWidget {
       locale: Locale(store.appLanguage),
       supportedLocales: const [Locale('en'), Locale('bn')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      title: 'Daur',
+      title: appDisplayName,
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),

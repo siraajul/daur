@@ -2,6 +2,7 @@
 import 'dart:convert';
 
 import 'package:daur/onboarding.dart';
+import 'package:daur/build_channel.dart';
 import 'package:daur/l10n.dart';
 import 'package:daur/plan.dart';
 import 'package:daur/preferences.dart';
@@ -95,6 +96,21 @@ void main() {
     await Firebase.initializeApp();
     FirebaseAuthPlatform.instance = SignedOutAuth();
   });
+
+  testWidgets(
+    'welcome identifies Preview and explains shared cloud before sign-in',
+    (tester) async {
+      await openSetup(tester, screen: (s) => WelcomeScreen(store: s));
+      expect(find.text(appDisplayName), findsOneWidget);
+      expect(
+        find.text(
+          'Preview keeps its own phone data. Signing in uses your existing Daur cloud backup.',
+        ),
+        isPreview ? findsOneWidget : findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'numbered progress and Back work; no global Skip or swipe bypass',

@@ -189,4 +189,5 @@ const banglaServices = <String, String>{
   "New workout from {name}": "{name}-এর কাছ থেকে নতুন ব্যায়ামসূচি",
   "{name} is cooking · {meals}": "{name} রান্না করছেন · {meals}",
   "Your helper": "আপনার সহায়তাকারী",
+  'Preview keeps its own phone data. Signing in uses your existing Daur cloud backup.': 'প্রিভিউতে ফোনের তথ্য আলাদা থাকে। সাইন ইন করলে Daur-এর আগের ক্লাউড ব্যাকআপ ব্যবহার হবে।',
 };

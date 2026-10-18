@@ -17,6 +17,13 @@ plugins {
 val productionRelease = providers.gradleProperty("daurProductionRelease")
     .orElse(providers.environmentVariable("DAUR_PRODUCTION_RELEASE"))
     .map { it.toBooleanStrict() }.getOrElse(false)
+// One build flag drives both Dart Firebase options and the Android identity.
+val dartValues = providers.gradleProperty("dart-defines").getOrElse("")
+    .split(',').filter { it.isNotBlank() }
+    .map { String(Base64.getDecoder().decode(it)) }
+val previewRelease = dartValues.contains("DAUR_PREVIEW=true")
+require(!(productionRelease && previewRelease)) { "Preview is an internal Family build, not a production bundle" }
+
 val releaseKeys = Properties().apply {
     val keyFile = rootProject.file("key.properties")
     if (keyFile.exists()) keyFile.inputStream().use { load(it) }
@@ -47,7 +54,8 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.siraj.daur"
+        applicationId = if (previewRelease) "com.siraj.daur.preview" else "com.siraj.daur"
+        manifestPlaceholders["daurAppLabel"] = if (previewRelease) "Daur Preview" else "Daur"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 26 // Health Connect needs Android 8+

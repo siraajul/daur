@@ -123,3 +123,28 @@ verification confirms it uses the stable local/GitHub key, and the existing Fami
 Check configuration is included. The candidate is at
 `build/app/outputs/flutter-apk/app-release.apk`. It has NOT been distributed because
 it cannot replace the differently-signed build 112 without a migration.
+
+## Separate Preview release
+
+The owner chose a separate preview package for this release to preserve old installations.
+
+- Android package: `com.siraj.daur.preview`; launcher label: **Daur Preview**.
+- Firebase Android app: `1:179925532044:android:48c933d60808134954aaa9`.
+- Build flag: `--dart-define=DAUR_PREVIEW=true` drives both native app identity and Dart Firebase options.
+- Stable signing key: existing local/GitHub Family key, SHA-256 `9939df1696b3ca76447117e5d2a9608fc8e140deef16ed519884337dbf5a9fd3`.
+- SHA-1/SHA-256 and Google Android OAuth client registered; Family App Check token registered for this app.
+- Phone storage and Android permissions are separate. Google sign-in uses the same Daur Firebase project and cloud account. The welcome screen explains this before sign-in.
+
+Normal builds and automatic release defaults retain the original identity. Preview must
+be selected explicitly for a manual run with `preview=true`. The original package
+remains protected by the build-112 certificate guard.
+
+Both channels are checked by `test/build_channel_test.dart`, including a Preview-flag
+run in CI. The upload guard checks package name and certificate before distribution.
+
+Preview `1.0.0 (121)` passed APK certificate/package/launcher/Firebase resource checks.
+A real App Check debug-token exchange returned a valid one-hour token (token not logged).
+Analysis passed; 84 normal tests and 13 Preview/setup tests passed. The Pixel installed
+Preview alongside the original: separate package UIDs and a valid launcher component
+were confirmed without uninstalling or resetting the original app.
+APK SHA-256: `7c8701d2a6b3fd228e0e4325c9873565d8b171d32e003ffd75eb93a0441c5a53`.

@@ -1,4 +1,5 @@
 import 'l10n.dart';
+import 'build_channel.dart';
 
 import 'dart:convert';
 
@@ -86,7 +87,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
                     children: [
                       Text(
-                        tr(context, 'Daur'),
+                        appDisplayName,
                         style: t.x(40, weight: FontWeight.w900),
                       ),
                       const SizedBox(height: 4),
@@ -94,6 +95,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         tr(context, '12 weeks of meals, walks and the gym'),
                         style: t.sec(),
                       ),
+                      if (isPreview) ...[
+                        const SizedBox(height: 12),
+                        Tip(
+                          Icons.science_outlined,
+                          tr(
+                            context,
+                            'Preview keeps its own phone data. Signing in uses your existing Daur cloud backup.',
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       // the lap closes once there's an account; smaller then, to leave room for the choice
                       AnimatedContainer(

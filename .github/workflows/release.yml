@@ -16,6 +16,10 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
+      preview:
+        description: Release the separate Daur Preview app alongside the original
+        type: boolean
+        default: false
       signing_only:
         description: Check the stored Family certificate without building or distributing
         type: boolean
@@ -71,6 +75,8 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+      - name: Preview Firebase identity
+        run: flutter test test/build_channel_test.dart test/onboarding_test.dart --dart-define=DAUR_PREVIEW=true
       - name: Account cleanup function tests
         working-directory: functions
         run: |
@@ -91,6 +97,9 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      RELEASE_CHANNEL: ${{ inputs.preview && 'preview' || 'family' }}
+      FIREBASE_APP_ID: ${{ inputs.preview && '1:179925532044:android:48c933d60808134954aaa9' || '1:179925532044:android:6756796d5a2804a454aaa9' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -126,15 +135,26 @@ jobs:
           # 100 + commits on main: always higher than the last build, the same rule as release.sh
           BUILD=$((100 + $(git rev-list --count HEAD)))
           echo "BUILD=$BUILD" >> "$GITHUB_ENV"
-          flutter build apk --release --build-number="$BUILD" --dart-define-from-file=dart_defines.json
+          channel_defines=()
+          if [[ "$RELEASE_CHANNEL" == preview ]]; then
+            channel_defines+=(--dart-define=DAUR_PREVIEW=true)
+          fi
+          flutter build apk --release --build-number="$BUILD" --dart-define-from-file=dart_defines.json "${channel_defines[@]}"
 
       - name: Verify installed testers can update safely
-        run: bash scripts/verify-family-signing.sh build/app/outputs/flutter-apk/app-release.apk
+        run: bash scripts/verify-family-signing.sh build/app/outputs/flutter-apk/app-release.apk "$RELEASE_CHANNEL"
 
       - name: Release notes from the merged commit
         run: |
           {
-            git log -1 --pretty=%B | sed '/^Merge pull request/d; /^Co-Authored-By/d; /^$/d' | head -6
+            if [[ "$RELEASE_CHANNEL" == preview ]]; then
+              printf '%s\n' 'Daur Preview — installs alongside your original Daur.' '' \
+                'Warm ivory and muted teal themes; guided onboarding; Bangla across main flows, reminders and widgets; safer backup and sharing controls.' '' \
+                'Phone data stays separate. Signing in uses your existing Daur cloud backup. Keep the original app installed.' '' \
+                'Known limitation: cloud account deletion remains unavailable on the current Firebase plan.'
+            else
+              git log -1 --pretty=%B | sed '/^Merge pull request/d; /^Co-Authored-By/d; /^$/d' | head -6
+            fi
             echo
             echo "Build $BUILD · ${GITHUB_SHA::7}"
           } > release-notes.txt
@@ -147,7 +167,7 @@ jobs:
           echo "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
           GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" npx -y firebase-tools@14.17.0 \
             appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
-            --app 1:179925532044:android:6756796d5a2804a454aaa9 \
+            --app "$FIREBASE_APP_ID" \
             --groups family \
             --release-notes-file release-notes.txt \
             --project daurfit
