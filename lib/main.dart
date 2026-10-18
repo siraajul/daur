@@ -54,28 +54,44 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(_systemBars(PlatformDispatcher.instance.platformBrightness));
+  SystemChrome.setSystemUIOverlayStyle(
+    _systemBars(PlatformDispatcher.instance.platformBrightness),
+  );
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform).timeout(const Duration(seconds: 20));
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    ).timeout(const Duration(seconds: 20));
     final store = await Store.load();
     if (!kIsWeb) {
       try {
-        await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(store.crashReports);
+        await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+          store.crashReports,
+        );
         var lastConsent = store.crashReports;
         store.addListener(() {
-          if (store.crashReports == lastConsent) return;
+          if (store.crashReports == lastConsent) {
+            return;
+          }
           lastConsent = store.crashReports;
-          FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(lastConsent).catchError((Object e) {
-            debugPrint('Could not update crash-report preference: $e');
-          });
-          if (!lastConsent) FirebaseCrashlytics.instance.deleteUnsentReports();
+          FirebaseCrashlytics.instance
+              .setCrashlyticsCollectionEnabled(lastConsent)
+              .catchError((Object e) {
+                debugPrint('Could not update crash-report preference: $e');
+              });
+          if (!lastConsent) {
+            FirebaseCrashlytics.instance.deleteUnsentReports();
+          }
         });
         FlutterError.onError = (details) {
           FlutterError.presentError(details);
-          if (store.crashReports) FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+          if (store.crashReports) {
+            FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+          }
         };
         PlatformDispatcher.instance.onError = (error, stack) {
-          if (store.crashReports) FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+          if (store.crashReports) {
+            FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+          }
           return false;
         };
       } catch (e) {
@@ -94,23 +110,42 @@ Future<void> main() async {
     debugPrint('Daur startup: $e');
     runApp(
       MaterialApp(
+        locale: WidgetsBinding.instance.platformDispatcher.locale,
+        supportedLocales: const [Locale('en'), Locale('bn')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         theme: buildTheme(Brightness.light),
-        home: Scaffold(
-          body: SafeArea(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.refresh, size: 48),
-                    const SizedBox(height: 16),
-                    const Text('Daur could not start', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    const Text('Your saved data has not been erased. Check your connection and try again.'),
-                    const SizedBox(height: 20),
-                    FilledButton(onPressed: main, child: const Text('Try again')),
-                  ],
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.refresh, size: 48),
+                      const SizedBox(height: 16),
+                      Text(
+                        tr(context, 'Daur could not start'),
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        tr(
+                          context,
+                          'Your saved data has not been erased. Check your connection and try again.',
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      FilledButton(
+                        onPressed: main,
+                        child: Text(tr(context, 'Try again')),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -124,10 +159,14 @@ Future<void> main() async {
 /// System chrome follows the actual surface brightness in both appearances.
 SystemUiOverlayStyle _systemBars(Brightness brightness) => SystemUiOverlayStyle(
   statusBarColor: Colors.transparent,
-  statusBarIconBrightness: brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+  statusBarIconBrightness: brightness == Brightness.dark
+      ? Brightness.light
+      : Brightness.dark,
   statusBarBrightness: brightness,
   systemNavigationBarColor: Colors.transparent,
-  systemNavigationBarIconBrightness: brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+  systemNavigationBarIconBrightness: brightness == Brightness.dark
+      ? Brightness.light
+      : Brightness.dark,
 );
 
 class DaurApp extends StatelessWidget {
@@ -153,7 +192,9 @@ class DaurApp extends StatelessWidget {
               listenable: Cloud.instance,
               builder: (context, _) {
                 final c = Cloud.instance;
-                if (c.error == null) return const SizedBox.shrink();
+                if (c.error == null) {
+                  return const SizedBox.shrink();
+                }
                 return SafeArea(
                   bottom: false,
                   child: Material(
@@ -164,12 +205,16 @@ class DaurApp extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              c.error!,
-                              style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+                              tr(context, c.error!),
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onErrorContainer,
+                              ),
                             ),
                           ),
                           IconButton(
-                            tooltip: 'Dismiss message',
+                            tooltip: tr(context, 'Dismiss message'),
                             onPressed: c.dismissError,
                             icon: const Icon(Icons.close),
                           ),
@@ -184,7 +229,10 @@ class DaurApp extends StatelessWidget {
               SafeArea(
                 bottom: false,
                 child: Material(
-                  child: Padding(padding: const EdgeInsets.all(12), child: Text(store.recoveryNotice!)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(tr(context, store.recoveryNotice!)),
+                  ),
                 ),
               ),
             Expanded(child: SplashIntro(child: child!)),
@@ -242,7 +290,9 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   /// 2+ days away → a calm "welcome back, today is lap N" with a weigh-in.
   void _checkWelcomeBack() {
     final days = widget.store.markOpened();
-    if (days >= 2 && mounted && widget.store.onboarded) welcomeBack(context, widget.store, days);
+    if (days >= 2 && mounted && widget.store.onboarded) {
+      welcomeBack(context, widget.store, days);
+    }
   }
 
   /// The 4th meal closes the lap: once the track's light-up has played, mint any medals earned
@@ -254,13 +304,17 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     // a day turning perfect (often the last glass or the steps) can mint a medal too
     if (perfect && !_perfect) {
       Future.delayed(const Duration(milliseconds: 600), () {
-        if (mounted) checkBadges(context, widget.store);
+        if (mounted) {
+          checkBadges(context, widget.store);
+        }
       });
     }
     _perfect = perfect;
     if (now == 4 && _meals < 4) {
       Future.delayed(const Duration(milliseconds: 2400), () {
-        if (mounted) checkBadges(context, widget.store);
+        if (mounted) {
+          checkBadges(context, widget.store);
+        }
       });
     }
     _meals = now;
@@ -268,14 +322,19 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
 
   void _notificationRoute() {
     final r = Reminders.route.value;
-    if (r == null || !mounted) return;
+    if (r == null || !mounted) {
+      return;
+    }
     Reminders.route.value = null;
     final s = widget.store;
-    void push(Widget w) => Navigator.push(context, MaterialPageRoute(builder: (_) => w));
+    void push(Widget w) =>
+        Navigator.push(context, MaterialPageRoute(builder: (_) => w));
     if (r.startsWith('meal:')) {
       final m = meals.where((m) => m.id == r.substring(5)).firstOrNull;
       setState(() => _tab = 0);
-      if (m != null) showMealSheet(context, s, meal: m, n: (meals.indexOf(m) + 1) * 100);
+      if (m != null) {
+        showMealSheet(context, s, meal: m, n: (meals.indexOf(m) + 1) * 100);
+      }
     } else if (r == 'weigh') {
       setState(() => _tab = 2);
       ProgressScreen.logWeight(context, s);
@@ -284,7 +343,9 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     } else if (r == 'walk') {
       push(WalkScreen(store: s, steps: _steps, onRefresh: _refreshSteps));
     } else if (r == 'students') {
-      if (s.helps) setState(() => _tab = 3);
+      if (s.helps) {
+        setState(() => _tab = 3);
+      }
     } else if (r == 'burn') {
       push(BurnScreen(store: s));
     } else if (r == 'fasting') {
@@ -312,42 +373,70 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   Timer? _stepsTimer;
   void _startStepsTimer() {
     _stepsTimer?.cancel();
-    _stepsTimer = Timer.periodic(const Duration(minutes: 2), (_) => _refreshSteps());
+    _stepsTimer = Timer.periodic(
+      const Duration(minutes: 2),
+      (_) => _refreshSteps(),
+    );
   }
 
   Future<void> _refreshSteps() async {
     final v = await Steps.today();
     WidgetSync.steps = v;
-    if (v != null) widget.store.noteSteps(v); // kept per day: perfect days, the weekly recap
+    if (v != null) {
+      widget.store.noteSteps(v);
+    } // kept per day: perfect days, the weekly recap
     WidgetSync.schedule(widget.store);
-    Reminders.schedule(widget.store); // the evening-walk reminder depends on steps
+    Reminders.schedule(
+      widget.store,
+    ); // the evening-walk reminder depends on steps
     // iOS hides read access: 0 steps by 15:00 usually means Health sharing is off
-    if (defaultTargetPlatform == TargetPlatform.iOS && v == 0 && DateTime.now().hour >= 15) {
+    if (defaultTargetPlatform == TargetPlatform.iOS &&
+        v == 0 &&
+        DateTime.now().hour >= 15) {
       widget.store.showHintNow('steps-ios');
     }
-    if (mounted) setState(() => _steps = v);
+    if (mounted) {
+      setState(() => _steps = v);
+    }
     // steps work: ask once to read them in the background too, for the 30-minute widget refresh
     if (v != null && !widget.store.seenHints.contains('bg-steps')) {
       widget.store.dismissHint('bg-steps');
       await Steps.allowBackground();
     }
     final sleep = await Steps.sleepLastNight(); // never asks; the Sleep row's Connect does
-    if (sleep != null) widget.store.setSleep(sleep);
+    if (sleep != null) {
+      widget.store.setSleep(sleep);
+    }
   }
 
   void _widgetLink(Uri? uri) {
     final s = widget.store;
-    if (uri == null || !mounted) return;
+    if (uri == null || !mounted) {
+      return;
+    }
     final snap = s.snapshot();
     switch (uri.host) {
       case 'water':
         s.setWater(s.water + 1);
-        undoToast(context, 'Glass ${s.water} logged', () => s.restore(snap));
+        undoToast(
+          context,
+          tr(context, 'Glass {count} logged', {'count': s.water}),
+          () => s.restore(snap),
+        );
       case 'meal':
         final m = s.nextMeal;
-        if (m == null) return;
+        if (m == null) {
+          return;
+        }
         s.logMeal(m);
-        undoToast(context, '${m.name} logged: ${s.chosen(m).name}', () => s.restore(snap));
+        undoToast(
+          context,
+          tr(context, '{meal} logged: {food}', {
+            'meal': tr(context, m.name),
+            'food': s.chosen(m).name,
+          }),
+          () => s.restore(snap),
+        );
     }
     setState(() => _tab = 0);
   }
@@ -370,7 +459,9 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   /// A new diet chart from the trainer, or a helper's cooking picks, just applied: say so, with Undo.
   void _planEvent() {
     final e = Cloud.instance.planEvents.value;
-    if (e == null || !mounted) return;
+    if (e == null || !mounted) {
+      return;
+    }
     Cloud.instance.planEvents.value = null;
     final s = widget.store;
     undoToast(context, e.text, () {
@@ -386,25 +477,62 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     return [
       [
         (Icons.restaurant_outlined, 'Food guide', () => FoodScreen(store: s)),
-        (Icons.menu_book_outlined, 'Food database', () => FoodDbScreen(store: s)),
+        (
+          Icons.menu_book_outlined,
+          'Food database',
+          () => FoodDbScreen(store: s),
+        ),
       ],
       [
         (Icons.flag_outlined, 'Your targets', () => TargetsScreen(store: s)),
-        (Icons.local_fire_department_outlined, 'Burn', () => BurnScreen(store: s)),
+        (
+          Icons.local_fire_department_outlined,
+          'Burn',
+          () => BurnScreen(store: s),
+        ),
         if (s.enabledModules.contains('fasting'))
-          (Icons.hourglass_bottom_rounded, 'Fasting', () => FastingScreen(store: s)),
+          (
+            Icons.hourglass_bottom_rounded,
+            'Fasting',
+            () => FastingScreen(store: s),
+          ),
         if (s.enabledModules.contains('spending'))
-          (Icons.account_balance_wallet_outlined, 'Spending', () => SpendingScreen(store: s)),
-        if (s.enabledModules.contains('social')) (Icons.groups_outlined, 'Family', () => FamilyScreen(store: s)),
+          (
+            Icons.account_balance_wallet_outlined,
+            'Spending',
+            () => SpendingScreen(store: s),
+          ),
         if (s.enabledModules.contains('social'))
-          (Icons.favorite_outline_rounded, 'Couple', () => CoupleScreen(store: s)),
+          (Icons.groups_outlined, 'Family', () => FamilyScreen(store: s)),
         if (s.enabledModules.contains('social'))
-          (Icons.emoji_events_outlined, 'Friends', () => FriendsScreen(store: s)),
-        (Icons.family_restroom_rounded, 'Coaches', () => CoachesScreen(store: s)),
-        (Icons.tune, 'Preferences & programme', () => PreferencesScreen(store: s)),
+          (
+            Icons.favorite_outline_rounded,
+            'Couple',
+            () => CoupleScreen(store: s),
+          ),
+        if (s.enabledModules.contains('social'))
+          (
+            Icons.emoji_events_outlined,
+            'Friends',
+            () => FriendsScreen(store: s),
+          ),
+        (
+          Icons.family_restroom_rounded,
+          'Coaches',
+          () => CoachesScreen(store: s),
+        ),
+        (
+          Icons.tune,
+          'Preferences & programme',
+          () => PreferencesScreen(store: s),
+        ),
         (Icons.info_outline, 'Privacy & support', () => const AboutScreen()),
         (Icons.shield_outlined, 'Your data', () => DataScreen(store: s)),
-        (Icons.notifications_outlined, 'Reminders', () => RemindersScreen(store: s)),
+        (
+          Icons.notifications_outlined,
+          'Reminders',
+          () => RemindersScreen(store: s),
+        ),
       ],
     ];
   }
@@ -415,16 +543,23 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
       _scaffold.currentState?.openDrawer();
       return;
     }
-    if (widget.store.drawerDot) widget.store.dismissHint('drawer');
-    Navigator.push(context, CupertinoPageRoute(builder: (_) => _MorePage(shell: this)));
+    if (widget.store.drawerDot) {
+      widget.store.dismissHint('drawer');
+    }
+    Navigator.push(
+      context,
+      CupertinoPageRoute(builder: (_) => _MorePage(shell: this)),
+    );
   }
 
   Future<void> _addWidget(BuildContext context) async {
     if (defaultTargetPlatform != TargetPlatform.android) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Hold the home screen → Edit → Add Widget → Daur'),
+          content: Text(
+            tr(context, 'Hold the home screen → Edit → Add Widget → Daur'),
+          ),
         ),
       );
       return;
@@ -438,8 +573,8 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
             for (final (cls, name, sub) in WidgetSync.catalog)
               ListTile(
                 leading: const Icon(Icons.add_to_home_screen),
-                title: Text(name),
-                subtitle: Text(sub),
+                title: Text(tr(context, name)),
+                subtitle: Text(tr(context, sub)),
                 onTap: () async {
                   Navigator.pop(ctx);
                   await WidgetSync.pin(cls);
@@ -458,9 +593,11 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
       initial: DateTime.parse(s.startDay),
       first: DateTime.now().subtract(const Duration(days: laps * 2)),
       last: DateTime.now(),
-      help: 'Day 1 of the 12-week plan',
+      help: tr(context, 'Day 1 of the 12-week plan'),
     );
-    if (d != null) s.setStartDay(d);
+    if (d != null) {
+      s.setStartDay(d);
+    }
   }
 
   Widget _drawer(BuildContext context) {
@@ -468,10 +605,14 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     final pages = _pages.expand((g) => g).toList();
     return NavigationDrawer(
       backgroundColor: t.sheet,
-      selectedIndex: null, // Today, Gym and Progress live on the bottom bar only
+      selectedIndex:
+          null, // Today, Gym and Progress live on the bottom bar only
       onDestinationSelected: (i) {
         Navigator.pop(context); // close the drawer
-        Navigator.push(context, MaterialPageRoute(builder: (_) => pages[i].$3()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => pages[i].$3()),
+        );
       },
       children: [
         Padding(
@@ -479,9 +620,19 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Daur', style: t.x(28, color: t.sheetRed)),
+              Text(tr(context, 'Daur'), style: t.x(28, color: t.sheetRed)),
               const SizedBox(height: 4),
-              Text('Day ${s.lap} of $laps · week ${s.cutWeek}', style: t.sec(t.sheetInk2)),
+              Text(
+                tr(
+                  context,
+                  tr(context, 'Day {day} of {total} · week {week}', {
+                    'day': s.lap,
+                    'total': laps,
+                    'week': s.cutWeek,
+                  }),
+                ),
+                style: t.sec(t.sheetInk2),
+              ),
             ],
           ),
         ),
@@ -489,14 +640,17 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
         for (final (i, group) in _pages.indexed) ...[
           if (i > 0) const Divider(indent: 28, endIndent: 28),
           for (final (icon, label, _) in group)
-            NavigationDrawerDestination(icon: Icon(icon), label: Text(navLabel(s.appLanguage, label))),
+            NavigationDrawerDestination(
+              icon: Icon(icon),
+              label: Text(navLabel(s.appLanguage, label)),
+            ),
         ],
         const Divider(indent: 28, endIndent: 28),
         ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 28),
           leading: const Icon(Icons.widgets_outlined),
-          title: const Text('Add home-screen widget'),
-          subtitle: const Text('Meals, kcal, water, steps'),
+          title: Text(tr(context, 'Add home-screen widget')),
+          subtitle: Text(tr(context, 'Meals, kcal, water, steps')),
           onTap: () {
             Navigator.pop(context);
             _addWidget(context);
@@ -505,8 +659,17 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
         ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 28),
           leading: const Icon(Icons.flag_outlined),
-          title: const Text('Plan start date'),
-          subtitle: Text('${niceDate(DateTime.parse(s.startDay))} · today is day ${s.lap}'),
+          title: Text(tr(context, 'Plan start date')),
+          subtitle: Text(
+            tr(
+              context,
+              tr(context, '{date} · today is day {day}', {
+                'date': MaterialLocalizations.of(context)
+                    .formatMediumDate(DateTime.parse(s.startDay)),
+                'day': s.lap,
+              }),
+            ),
+          ),
           onTap: () => _pickStart(context),
         ),
       ],
@@ -520,37 +683,60 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     builder: (context, _) => PopScope(
       canPop: _tab == 0 && !_drawerOpen,
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        _drawerOpen ? _scaffold.currentState?.closeDrawer() : setState(() => _tab = 0);
+        if (didPop) {
+          return;
+        }
+        _drawerOpen
+            ? _scaffold.currentState?.closeDrawer()
+            : setState(() => _tab = 0);
       },
       child: Scaffold(
         key: _scaffold,
         onDrawerChanged: (open) {
           setState(() => _drawerOpen = open);
-          if (open && widget.store.drawerDot) widget.store.dismissHint('drawer');
+          if (open && widget.store.drawerDot) {
+            widget.store.dismissHint('drawer');
+          }
         },
         drawer: isIOS(context) ? null : _drawer(context),
         body: IndexedStack(
           index: _shown,
           children: [
-            TodayScreen(store: widget.store, steps: _steps, onRefreshSteps: _refreshSteps),
+            TodayScreen(
+              store: widget.store,
+              steps: _steps,
+              onRefreshSteps: _refreshSteps,
+            ),
             GymScreen(store: widget.store),
             ProgressScreen(store: widget.store),
             if (widget.store.helps) PeopleScreen(store: widget.store),
           ],
         ),
-        extendBody: isIOS(context), // pages run under the floating glass tab bar
+        extendBody: isIOS(
+          context,
+        ), // pages run under the floating glass tab bar
         bottomNavigationBar: Tabs(
           index: _shown,
           onTap: (i) => setState(() => _tab = i),
           items: [
-            (Icons.track_changes_outlined, Icons.track_changes, navLabel(widget.store.appLanguage, 'Today')),
+            (
+              Icons.track_changes_outlined,
+              Icons.track_changes,
+              navLabel(widget.store.appLanguage, 'Today'),
+            ),
             (
               Icons.fitness_center_outlined,
               Icons.fitness_center,
-              navLabel(widget.store.appLanguage, widget.store.trainingSetup == 'gym' ? 'Gym' : 'Train'),
+              navLabel(
+                widget.store.appLanguage,
+                widget.store.trainingSetup == 'gym' ? 'Gym' : 'Train',
+              ),
             ),
-            (Icons.show_chart_outlined, Icons.show_chart, navLabel(widget.store.appLanguage, 'Progress')),
+            (
+              Icons.show_chart_outlined,
+              Icons.show_chart,
+              navLabel(widget.store.appLanguage, 'Progress'),
+            ),
             // trainers and family helpers: the people they follow, a tap away
             if (widget.store.helps)
               (
@@ -580,43 +766,61 @@ class _MorePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context), s = shell.widget.store;
-    Widget group(List<(IconData, String, String?, VoidCallback)> rows) => Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(14)),
-      child: Column(
-        children: [
-          for (final (i, (icon, label, sub, onTap)) in rows.indexed)
-            InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                constraints: const BoxConstraints(minHeight: 50),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  border: i == 0 ? null : Border(top: BorderSide(color: t.rule, width: .5)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(icon, size: 22, color: t.ink),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(navLabel(s.appLanguage, label), style: t.body(weight: FontWeight.w500)),
-                          if (sub != null) Text(sub, style: t.meta()),
-                        ],
-                      ),
+    Widget group(List<(IconData, String, String?, VoidCallback)> rows) =>
+        Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          decoration: BoxDecoration(
+            color: t.infield,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            children: [
+              for (final (i, (icon, label, sub, onTap)) in rows.indexed)
+                InkWell(
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 50),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
                     ),
-                    Icon(CupertinoIcons.chevron_forward, size: 16, color: t.ink2),
-                  ],
+                    decoration: BoxDecoration(
+                      border: i == 0
+                          ? null
+                          : Border(top: BorderSide(color: t.rule, width: .5)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(icon, size: 22, color: t.ink),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                navLabel(s.appLanguage, label),
+                                style: t.body(weight: FontWeight.w500),
+                              ),
+                              if (sub != null)
+                                Text(tr(context, sub), style: t.meta()),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          CupertinoIcons.chevron_forward,
+                          size: 16,
+                          color: t.ink2,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-        ],
-      ),
-    );
-    void open(Widget Function() page) => Navigator.push(context, CupertinoPageRoute(builder: (_) => page()));
+            ],
+          ),
+        );
+    void open(Widget Function() page) =>
+        Navigator.push(context, CupertinoPageRoute(builder: (_) => page()));
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
@@ -624,16 +828,29 @@ class _MorePage extends StatelessWidget {
           builder: (context, _) => ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
             children: [
-              PageHeader(navLabel(s.appLanguage, 'More'), sub: 'Day ${s.lap} of $laps · week ${s.cutWeek}'),
+              PageHeader(
+                navLabel(s.appLanguage, 'More'),
+                sub: tr(context, 'Day {day} of {total} · week {week}', {
+                  'day': s.lap,
+                  'total': laps,
+                  'week': s.cutWeek,
+                }),
+              ),
               const SizedBox(height: 16),
               Container(
                 margin: const EdgeInsets.only(bottom: 20),
                 padding: const EdgeInsets.only(top: 12),
-                decoration: BoxDecoration(color: t.sheet, borderRadius: BorderRadius.circular(14)),
+                decoration: BoxDecoration(
+                  color: t.sheet,
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 child: const _AccountTile(),
               ),
               for (final g in shell._pages)
-                group([for (final (icon, label, page) in g) (icon, label, null, () => open(page))]),
+                group([
+                  for (final (icon, label, page) in g)
+                    (icon, label, null, () => open(page)),
+                ]),
               group([
                 (
                   Icons.widgets_outlined,
@@ -644,7 +861,11 @@ class _MorePage extends StatelessWidget {
                 (
                   Icons.flag_outlined,
                   'Plan start date',
-                  '${niceDate(DateTime.parse(s.startDay))} · today is day ${s.lap}',
+                  tr(context, '{date} · today is day {day}', {
+                    'date': MaterialLocalizations.of(context)
+                        .formatMediumDate(DateTime.parse(s.startDay)),
+                    'day': s.lap,
+                  }),
                   () => shell._pickStart(context),
                 ),
               ]),
@@ -678,8 +899,12 @@ class _AccountTile extends StatelessWidget {
                   onPressed: () async {
                     final msg = await c.signInWithGoogle();
                     if (msg != null && context.mounted) {
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(SnackBar(behavior: SnackBarBehavior.floating, content: Text(msg)));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          behavior: SnackBarBehavior.floating,
+                          content: Text(tr(context, msg)),
+                        ),
+                      );
                     }
                   },
                 ),
@@ -687,9 +912,18 @@ class _AccountTile extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
                   child: Row(
                     children: [
-                      Icon(Icons.cloud_upload_outlined, size: 16, color: t.sheetInk2),
+                      Icon(
+                        Icons.cloud_upload_outlined,
+                        size: 16,
+                        color: t.sheetInk2,
+                      ),
                       const SizedBox(width: 6),
-                      Expanded(child: Text(c.error ?? 'Back up and sync your data', style: t.meta(t.sheetInk2))),
+                      Expanded(
+                        child: Text(
+                          tr(context, c.error ?? 'Back up and sync your data'),
+                          style: t.meta(t.sheetInk2),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -704,7 +938,9 @@ class _AccountTile extends StatelessWidget {
             color: t.sheetRule.withValues(alpha: .6),
             borderRadius: BorderRadius.circular(16),
             child: ListTile(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               leading: Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -717,11 +953,19 @@ class _AccountTile extends StatelessWidget {
                   const Positioned(
                     right: -4,
                     bottom: -4,
-                    child: CircleAvatar(radius: 10, backgroundColor: Colors.white, child: GoogleG(size: 13)),
+                    child: CircleAvatar(
+                      radius: 10,
+                      backgroundColor: Colors.white,
+                      child: GoogleG(size: 13),
+                    ),
                   ),
                 ],
               ),
-              title: Text(u.displayName ?? u.email ?? 'Signed in', maxLines: 1, overflow: TextOverflow.ellipsis),
+              title: Text(
+                u.displayName ?? u.email ?? tr(context, 'Signed in'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               subtitle: Row(
                 children: [
                   Icon(
@@ -736,17 +980,26 @@ class _AccountTile extends StatelessWidget {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      c.error ?? (synced ? TimeOfDay.fromDateTime(c.lastSync!).format(context) : 'Syncing…'),
+                      tr(
+                        context,
+                        c.error ??
+                            (synced
+                                ? TimeOfDay.fromDateTime(c.lastSync!)
+                                      .format(context)
+                                : 'Syncing…'),
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: c.error != null ? t.sheetRed : null),
+                      style: TextStyle(
+                        color: c.error != null ? t.sheetRed : null,
+                      ),
                     ),
                   ),
                 ],
               ),
               trailing: IconButton(
                 icon: const Icon(Icons.logout),
-                tooltip: 'Sign out',
+                tooltip: tr(context, 'Sign out'),
                 onPressed: () => _signOut(context),
               ),
             ),
@@ -759,16 +1012,19 @@ class _AccountTile extends StatelessWidget {
   Future<void> _signOut(BuildContext context) async {
     final ok = await confirmPop(
       context,
-      'Sign out?',
-      'Your data stays here and in the cloud.',
-      'Sign out',
+      tr(context, 'Sign out?'),
+      tr(context, 'Your data stays here and in the cloud.'),
+      tr(context, 'Sign out'),
       destructive: true,
     );
     if (ok) {
       try {
         await Cloud.instance.signOut();
       } catch (e) {
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(tr(context, '$e'))));
+        }
       }
     }
   }

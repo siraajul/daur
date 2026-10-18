@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'package:flutter/material.dart';
 
 import 'adaptive.dart';
@@ -54,7 +56,10 @@ class _FoodScreenState extends State<FoodScreen> {
     decoration: ShapeDecoration(
       shape: StadiumBorder(side: BorderSide(color: t.lane, width: 1.5)),
     ),
-    child: Text(sometimes ? '$s · sometimes' : s, style: t.sec(sometimes ? t.ink2 : t.ink)),
+    child: Text(
+      sometimes ? tr(context, '{value1} · sometimes', {'value1': s}) : s,
+      style: t.sec(sometimes ? t.ink2 : t.ink),
+    ),
   );
 
   Widget _label(Daur t, String s, IconData icon) => Padding(
@@ -63,7 +68,7 @@ class _FoodScreenState extends State<FoodScreen> {
       children: [
         Icon(icon, size: 18, color: t.ink),
         const SizedBox(width: 8),
-        Text(s, style: t.meta()),
+        Text(tr(context, s), style: t.meta()),
       ],
     ),
   );
@@ -76,14 +81,17 @@ class _FoodScreenState extends State<FoodScreen> {
         Expanded(
           child: Container(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-            decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(18)),
+            decoration: BoxDecoration(
+              color: t.infield,
+              borderRadius: BorderRadius.circular(18),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(n, style: t.x(32, weight: FontWeight.w900)),
                 const SizedBox(height: 6),
-                Text(what, style: t.body()),
-                Text(sub, style: t.meta(), maxLines: 2),
+                Text(tr(context, what), style: t.body()),
+                Text(tr(context, sub), style: t.meta(), maxLines: 2),
               ],
             ),
           ),
@@ -94,19 +102,35 @@ class _FoodScreenState extends State<FoodScreen> {
 
   List<Widget> _plate(Daur t) => [
     _label(t, 'Rice is not banned', Icons.rice_bowl_outlined),
-    _tiles(t, [('1', 'cup at lunch', 'cooked rice'), ('½', 'cup at dinner', 'or roti instead')]),
+    _tiles(t, [
+      ('1', 'cup at lunch', 'cooked rice'),
+      ('½', 'cup at dinner', 'or roti instead'),
+    ]),
     const SizedBox(height: 8),
-    _tiles(t, [('½', 'cup of dal', 'per meal'), ('1', 'serving', 'no second plate')]),
+    _tiles(t, [
+      ('½', 'cup of dal', 'per meal'),
+      ('1', 'serving', 'no second plate'),
+    ]),
     const SizedBox(height: 4),
-    const Tip(Icons.opacity_rounded, 'Measure the oil: the biggest hidden calories'),
+    const Tip(
+      Icons.opacity_rounded,
+      'Measure the oil: the biggest hidden calories',
+    ),
     _label(t, 'Fish', Icons.set_meal_outlined),
     Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: [for (final f in fish) _chip(t, f), for (final f in fishSometimes) _chip(t, f, sometimes: true)],
+      children: [
+        for (final f in fish) _chip(t, f),
+        for (final f in fishSometimes) _chip(t, f, sometimes: true),
+      ],
     ),
     _label(t, 'Vegetables', Icons.eco_outlined),
-    Wrap(spacing: 8, runSpacing: 8, children: [for (final v in vegetables) _chip(t, v)]),
+    Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [for (final v in vegetables) _chip(t, v)],
+    ),
   ];
 
   List<Widget> _rules(Daur t) => [
@@ -120,14 +144,20 @@ class _FoodScreenState extends State<FoodScreen> {
           children: [
             SizedBox(
               width: 44,
-              child: Text('${i + 1}', style: t.x(20, color: t.ink2)),
+              child: Text(
+                tr(context, '{value1}', {'value1': i + 1}),
+                style: t.x(20, color: t.ink2),
+              ),
             ),
-            Expanded(child: Text(r, style: t.body())),
+            Expanded(child: Text(tr(context, r), style: t.body())),
           ],
         ),
       ),
     const SizedBox(height: 16),
-    const Tip(Icons.calendar_month_outlined, 'Twelve weeks of these, not one perfect day'),
+    const Tip(
+      Icons.calendar_month_outlined,
+      'Twelve weeks of these, not one perfect day',
+    ),
     const Tip(Icons.egg_alt_outlined, 'Enough protein, real food'),
     const Tip(Icons.no_food_outlined, 'Not as little as possible'),
   ];
@@ -138,7 +168,10 @@ class _FoodScreenState extends State<FoodScreen> {
     return [
       Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(18)),
+        decoration: BoxDecoration(
+          color: t.infield,
+          borderRadius: BorderRadius.circular(18),
+        ),
         child: Row(
           children: [
             Icon(Icons.warning_amber_rounded, color: t.ink, size: 28),
@@ -148,7 +181,13 @@ class _FoodScreenState extends State<FoodScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title, style: t.body()),
-                  Text('Week ${s.cutWeek} · $sub', style: t.meta()),
+                  Text(
+                    tr(context, 'Week {value1} · {value2}', {
+                      'value1': s.cutWeek,
+                      'value2': sub,
+                    }),
+                    style: t.meta(),
+                  ),
                 ],
               ),
             ),
@@ -157,7 +196,10 @@ class _FoodScreenState extends State<FoodScreen> {
       ),
       const SizedBox(height: 8),
       const Tip(Icons.calendar_month_outlined, 'Month 1: keep it to a minimum'),
-      const Tip(Icons.lunch_dining_outlined, 'Then 1 a week: a burger, 2 pizza slices or a small biryani'),
+      const Tip(
+        Icons.lunch_dining_outlined,
+        'Then 1 a week: a burger, 2 pizza slices or a small biryani',
+      ),
       const Tip(Icons.do_not_disturb_on_outlined, 'Never a whole cheat day'),
       for (final e in keepRare.entries) ...[
         _label(t, e.key, switch (e.key) {
@@ -170,7 +212,10 @@ class _FoodScreenState extends State<FoodScreen> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: [for (final f in e.value.split(', ')) _chip(t, f[0].toUpperCase() + f.substring(1))],
+          children: [
+            for (final f in e.value.split(', '))
+              _chip(t, f[0].toUpperCase() + f.substring(1)),
+          ],
         ),
       ],
     ];

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'l10n.dart';
 import 'food_search.dart';
 import 'foods.dart';
 import 'plan.dart';
@@ -1320,10 +1321,10 @@ class Store extends ChangeNotifier {
       plans[ex] = next;
       final kgS = next.kg == next.kg.roundToDouble() ? '${next.kg.toInt()}' : '${next.kg}';
       msg = p.timed
-          ? 'All sets hit. Next time: ${next.reps} s'
+          ? trLanguage(appLanguage, 'All sets hit. Next time: {seconds} s', {'seconds': next.reps})
           : next.kg == 0
-          ? 'All sets hit. Next time: ${next.reps} reps'
-          : 'All sets hit. Next time: $kgS kg';
+          ? trLanguage(appLanguage, 'All sets hit. Next time: {reps} reps', {'reps': next.reps})
+          : trLanguage(appLanguage, 'All sets hit. Next time: {weight} kg', {'weight': kgS});
     }
     _save();
     return msg;
@@ -1370,7 +1371,7 @@ class Store extends ChangeNotifier {
     _planBefore[ex] = p;
     plans[ex] = eased;
     final kgS = eased.kg == eased.kg.roundToDouble() ? '${eased.kg.toInt()}' : '${eased.kg}';
-    return p.timed ? 'Two short sessions · next time ${eased.reps} s' : 'Two short sessions · next time $kgS kg';
+    return p.timed ? trLanguage(appLanguage, 'Two short sessions · next time {seconds} s', {'seconds': eased.reps}) : trLanguage(appLanguage, 'Two short sessions · next time {weight} kg', {'weight': kgS});
   }
 
   /// The best set of a session: longest hold, most reps at bodyweight, else the heaviest weight

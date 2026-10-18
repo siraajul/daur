@@ -58,6 +58,7 @@ class DaurWaterWidget : DaurFaceWidget(R.layout.daur_widget_water, "water", 160f
     override fun extras(context: Context, views: RemoteViews, data: SharedPreferences, h: Float) {
         val full = data.getIntSafe("water_glasses") >= data.getIntSafe("water_goal", 14)
         views.setOnClickPendingIntent(R.id.water_btn, context.action("water"))
+        views.setContentDescription(R.id.water_btn, if (data.getString("language", "en") == "bn") "এক গ্লাস পানি যোগ করুন" else "Add a glass")
         views.setViewVisibility(R.id.water_btn, if (full) View.GONE else View.VISIBLE)
     }
 }
@@ -73,8 +74,8 @@ class DaurMealWidget : DaurFaceWidget(R.layout.daur_widget_meal, "meal", 320f to
     override fun face(context: Context, w: Float, h: Float, data: SharedPreferences) = WidgetFace.meal(context, w, h, data, slim(h))
     override fun extras(context: Context, views: RemoteViews, data: SharedPreferences, h: Float) {
         val done = data.getIntSafe("meal_done") == 1
-        val btn = data.getString("meal_btn", null) ?: "Log"
-        views.setOnClickPendingIntent(R.id.meal_btn, if (btn == "Open") context.openApp() else context.action("meal"))
+        views.setOnClickPendingIntent(R.id.meal_btn, if (done) context.openApp() else context.action("meal"))
+        views.setContentDescription(R.id.meal_btn, if (data.getString("language", "en") == "bn") "এই খাবার লিখুন" else "Log this meal")
         views.setViewVisibility(R.id.meal_btn, if (done) View.GONE else View.VISIBLE)
     }
 }

@@ -5,6 +5,7 @@ import 'activity_anim.dart';
 import 'cloud.dart';
 import 'store.dart';
 import 'theme.dart';
+import 'l10n.dart';
 import 'today.dart' show Cta, thousands;
 import 'visuals.dart';
 
@@ -52,22 +53,43 @@ class _FamilyScreenState extends State<FamilyScreen> {
         return Scaffold(
           body: SafeArea(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
-                const PageHeader('Family'),
-                const SizedBox(height: 16),
+                PageHeader(tr(context, 'Family')),
+                SizedBox(height: 16),
 
                 if (!c.signedIn) ...[
-                  const Tip(Icons.groups_outlined, 'See who has closed today, and everyone\'s streak'),
-                  const SizedBox(height: 16),
-                  GoogleButton(busy: c.busy, onPressed: () => c.signInWithGoogle()),
+                  Tip(
+                    Icons.groups_outlined,
+                    tr(
+                      context,
+                      'See who has closed today, and everyone\'s streak',
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  GoogleButton(
+                    busy: c.busy,
+                    onPressed: () => c.signInWithGoogle(),
+                  ),
                 ] else if (code == null) ...[
-                  const Tip(Icons.groups_outlined, 'See who has closed today, and everyone\'s streak'),
-                  const Tip(Icons.lock_outline_rounded, 'Only people with the code can see the board'),
-                  const SizedBox(height: 16),
-                  Cta(label: 'Start a family board', onTap: _busy ? null : () => _run(c.createFamily)),
-                  const SizedBox(height: 24),
-                  Text('Or join one', style: t.meta()),
+                  Tip(
+                    Icons.groups_outlined,
+                    tr(
+                      context,
+                      'See who has closed today, and everyone\'s streak',
+                    ),
+                  ),
+                  Tip(
+                    Icons.lock_outline_rounded,
+                    tr(context, 'Only people with the code can see the board'),
+                  ),
+                  SizedBox(height: 16),
+                  Cta(
+                    label: tr(context, 'Start a family board'),
+                    onTap: _busy ? null : () => _run(c.createFamily),
+                  ),
+                  SizedBox(height: 24),
+                  Text(tr(context, 'Or join one'), style: t.meta()),
                   Row(
                     children: [
                       Expanded(
@@ -75,14 +97,21 @@ class _FamilyScreenState extends State<FamilyScreen> {
                           controller: _code,
                           textCapitalization: TextCapitalization.characters,
                           style: t.x(20),
-                          decoration: const InputDecoration(hintText: 'CODE'),
+                          decoration: InputDecoration(
+                            hintText: tr(context, 'CODE'),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12),
                       FilledButton(
-                        onPressed: _busy ? null : () => _run(() => c.joinFamily(_code.text)),
-                        style: FilledButton.styleFrom(backgroundColor: t.accent, foregroundColor: t.onAccent),
-                        child: const Text('Join'),
+                        onPressed: _busy
+                            ? null
+                            : () => _run(() => c.joinFamily(_code.text)),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: t.accent,
+                          foregroundColor: t.onAccent,
+                        ),
+                        child: Text(tr(context, 'Join')),
                       ),
                     ],
                   ),
@@ -92,21 +121,33 @@ class _FamilyScreenState extends State<FamilyScreen> {
                     borderRadius: BorderRadius.circular(18),
                     onTap: () {
                       Clipboard.setData(ClipboardData(text: code));
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(const SnackBar(behavior: SnackBarBehavior.floating, content: Text('Code copied')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          behavior: SnackBarBehavior.floating,
+                          content: Text(tr(context, 'Code copied')),
+                        ),
+                      );
                     },
                     child: Container(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                      decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(18)),
+                      padding: EdgeInsets.fromLTRB(16, 12, 16, 12),
+                      decoration: BoxDecoration(
+                        color: t.infield,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
                       child: Row(
                         children: [
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Family code · tap to copy', style: t.meta()),
-                                Text(code, style: t.x(26, weight: FontWeight.w900)),
+                                Text(
+                                  tr(context, 'Family code · tap to copy'),
+                                  style: t.meta(),
+                                ),
+                                Text(
+                                  code,
+                                  style: t.x(26, weight: FontWeight.w900),
+                                ),
                               ],
                             ),
                           ),
@@ -115,18 +156,32 @@ class _FamilyScreenState extends State<FamilyScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   StreamBuilder<List<Map<String, dynamic>>>(
                     stream: c.board(code),
                     builder: (context, snap) {
                       final rows = [...?snap.data];
-                      int legs(Map r) => r['day'] == s.today ? (r['legs'] as int? ?? 0) : 0;
+                      int legs(Map r) =>
+                          r['day'] == s.today ? (r['legs'] as int? ?? 0) : 0;
                       rows.sort((a, b) {
                         final l = legs(b).compareTo(legs(a));
-                        return l != 0 ? l : (b['streak'] as int? ?? 0).compareTo(a['streak'] as int? ?? 0);
+                        return l != 0
+                            ? l
+                            : (b['streak'] as int? ?? 0).compareTo(
+                                a['streak'] as int? ?? 0,
+                              );
                       });
-                      if (snap.hasError) return Text('Couldn\'t load the board.', style: t.sec());
-                      if (!snap.hasData) return const Center(child: CircularProgressIndicator.adaptive());
+                      if (snap.hasError) {
+                        return Text(
+                          tr(context, 'Couldn\'t load the board.'),
+                          style: t.sec(),
+                        );
+                      }
+                      if (!snap.hasData) {
+                        return Center(
+                          child: CircularProgressIndicator.adaptive(),
+                        );
+                      }
                       return Column(
                         children: [
                           for (final (i, r) in rows.indexed)
@@ -143,13 +198,19 @@ class _FamilyScreenState extends State<FamilyScreen> {
                       );
                     },
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
                   TextButton(
                     onPressed: () => c.leaveFamily(),
-                    child: Text('Leave this board', style: t.sec(t.ink)),
+                    child: Text(
+                      tr(context, 'Leave this board'),
+                      style: t.sec(t.ink),
+                    ),
                   ),
                 ],
-                if (_error != null) ...[const SizedBox(height: 12), Text(_error!, style: t.body())],
+                if (_error != null) ...[
+                  SizedBox(height: 12),
+                  Text(_error!, style: t.body()),
+                ],
               ],
             ),
           ),
@@ -160,7 +221,12 @@ class _FamilyScreenState extends State<FamilyScreen> {
 }
 
 class _Member extends StatelessWidget {
-  const _Member({required this.row, required this.legs, required this.me, required this.week});
+  const _Member({
+    required this.row,
+    required this.legs,
+    required this.me,
+    required this.week,
+  });
   final Map<String, dynamic> row;
   final int legs;
   final bool me;
@@ -174,7 +240,7 @@ class _Member extends StatelessWidget {
     final streak = row['streak'] as int? ?? 0;
     final extra = row['week'] == week ? (row['extra'] as num? ?? 0).toInt() : 0;
     return Container(
-      constraints: const BoxConstraints(minHeight: 64),
+      constraints: BoxConstraints(minHeight: 64),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: t.rule, width: .5)),
       ),
@@ -186,12 +252,17 @@ class _Member extends StatelessWidget {
             foregroundImage: photo == null ? null : NetworkImage(photo),
             child: Text(name.isEmpty ? '?' : name[0], style: t.body()),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(me ? '$name (you)' : name, style: t.body(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  me ? tr(context, "{name} (you)", {"name": name}) : name,
+                  style: t.body(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 // today's four meals as dots
                 Row(
                   children: [
@@ -199,24 +270,37 @@ class _Member extends StatelessWidget {
                       Container(
                         width: 12,
                         height: 12,
-                        margin: const EdgeInsets.only(right: 4, top: 4),
+                        margin: EdgeInsets.only(right: 4, top: 4),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: i < legs ? (legs == 4 ? t.accent : t.ink) : null,
-                          border: Border.all(color: i < legs ? (legs == 4 ? t.accent : t.ink) : t.lane, width: 1.5),
+                          color: i < legs
+                              ? (legs == 4 ? t.accent : t.ink)
+                              : null,
+                          border: Border.all(
+                            color: i < legs
+                                ? (legs == 4 ? t.accent : t.ink)
+                                : t.lane,
+                            width: 1.5,
+                          ),
                         ),
                       ),
                     if (row['perfect'] == true && legs == 4) ...[
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       Icon(Icons.star_rounded, size: 16, color: t.accent),
                     ],
                     // kcal over their own target this week
                     if (extra > 0) ...[
-                      const SizedBox(width: 8),
-                      Icon(Icons.local_fire_department_rounded, size: 14, color: t.accent),
+                      SizedBox(width: 8),
+                      Icon(
+                        Icons.local_fire_department_rounded,
+                        size: 14,
+                        color: t.accent,
+                      ),
                       Flexible(
                         child: Text(
-                          '+${thousands(extra)} kcal this week',
+                          tr(context, "+{amount} kcal this week", {
+                            "amount": thousands(extra),
+                          }),
                           style: t.meta(),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -228,8 +312,11 @@ class _Member extends StatelessWidget {
               ],
             ),
           ),
-          Icon(Icons.local_fire_department_rounded, color: streak > 0 ? t.accent : t.faint),
-          const SizedBox(width: 2),
+          Icon(
+            Icons.local_fire_department_rounded,
+            color: streak > 0 ? t.accent : t.faint,
+          ),
+          SizedBox(width: 2),
           Text('$streak', style: t.x(20)),
         ],
       ),

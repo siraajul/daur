@@ -10,6 +10,7 @@ import 'coaching.dart';
 import 'dau.dart';
 import 'store.dart';
 import 'theme.dart';
+import 'l10n.dart';
 import 'track.dart';
 import 'today.dart' show Cta, thousands;
 import 'visuals.dart';
@@ -50,52 +51,93 @@ class _CoupleScreenState extends State<CoupleScreen> {
       listenable: Listenable.merge([widget.store, c]),
       builder: (context, _) {
         final s = widget.store;
-        final partner = s.helping.where((h) => h['role'] == 'partner').firstOrNull;
+        final partner = s.helping
+            .where((h) => h['role'] == 'partner')
+            .firstOrNull;
         return Scaffold(
           body: SafeArea(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
-                const PageHeader('Couple', sub: 'You see each other\'s day'),
-                const SizedBox(height: 16),
+                PageHeader(
+                  tr(context, 'Couple'),
+                  sub: tr(context, 'You see each other\'s day'),
+                ),
+                SizedBox(height: 16),
                 if (!c.signedIn) ...[
-                  const Tip(Icons.favorite_outline_rounded, 'Meals, water, steps, gym and weight, side by side'),
-                  const SizedBox(height: 16),
-                  GoogleButton(busy: c.busy, onPressed: () => c.signInWithGoogle()),
+                  Tip(
+                    Icons.favorite_outline_rounded,
+                    tr(
+                      context,
+                      'Meals, water, steps, gym and weight, side by side',
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  GoogleButton(
+                    busy: c.busy,
+                    onPressed: () => c.signInWithGoogle(),
+                  ),
                 ] else if (partner == null) ...[
-                  SideBySide(me: s.coachSummary(), them: null, name: '', myPhoto: c.user?.photoURL),
-                  const SizedBox(height: 20),
+                  SideBySide(
+                    me: s.coachSummary(),
+                    them: null,
+                    name: '',
+                    myPhoto: c.user?.photoURL,
+                  ),
+                  SizedBox(height: 20),
                   InviteCard(
                     role: 'partner',
                     icon: Icons.favorite_outline_rounded,
-                    sees: 'Share it with your partner',
+                    sees: tr(context, 'Share it with your partner'),
                     code: s.inviteCodes['partner'],
                     busy: _busy,
                     onMake: _invite,
                     onRevoke: () => c.revokeInvite('partner'),
                   ),
                   if (s.inviteCodes['partner'] != null)
-                    const Tip(Icons.schedule_rounded, 'Linked once they enter it in their Daur'),
-                  const SizedBox(height: 24),
-                  Text('Got their code?', style: t.meta()),
+                    Tip(
+                      Icons.schedule_rounded,
+                      tr(context, 'Linked once they enter it in their Daur'),
+                    ),
+                  SizedBox(height: 24),
+                  Text(tr(context, 'Got their code?'), style: t.meta()),
                   JoinByCode(store: s),
                 ] else ...[
                   _Together(store: s, partner: partner),
-                  const SizedBox(height: 28),
-                  Text('What ${partner['name']!.split(' ').first} sees', style: t.meta()),
-                  for (final (what, label, sub) in const [
-                    ('weight', 'My weight', 'kg and the change since day 1'),
-                    ('meals', 'What I eat', 'the food itself; meals done and kcal still show'),
+                  SizedBox(height: 28),
+                  Text(
+                    tr(context, "What {name} sees", {
+                      "name": partner['name']!.split(' ').first,
+                    }),
+                    style: t.meta(),
+                  ),
+                  for (final (what, label, sub) in [
+                    (
+                      'weight',
+                      tr(context, 'My weight'),
+                      tr(context, 'kg and the change since day 1'),
+                    ),
+                    (
+                      'meals',
+                      tr(context, 'What I eat'),
+                      tr(
+                        context,
+                        'the food itself; meals done and kcal still show',
+                      ),
+                    ),
                   ])
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
-                      title: Text(label, style: t.body()),
-                      subtitle: Text(sub, style: t.meta()),
+                      title: Text(tr(context, label), style: t.body()),
+                      subtitle: Text(tr(context, sub), style: t.meta()),
                       value: !s.partnerHides.contains(what),
                       onChanged: (v) => s.setPartnerHide(what, !v),
                     ),
                 ],
-                if (_error != null) ...[const SizedBox(height: 12), Text(_error!, style: t.body())],
+                if (_error != null) ...[
+                  SizedBox(height: 12),
+                  Text(_error!, style: t.body()),
+                ],
               ],
             ),
           ),
@@ -128,17 +170,30 @@ class _Together extends StatelessWidget {
             loading: snap.connectionState == ConnectionState.waiting,
             onStake: store.setStake,
             onNudge: (text) async {
-              final msg = await Cloud.instance.addNote(partner['owner']!, text, 'partner');
+              final msg = await Cloud.instance.addNote(
+                partner['owner']!,
+                text,
+                'partner',
+              );
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg ?? 'Sent to $name')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      msg ?? tr(context, "Sent to {name}", {"name": name}),
+                    ),
+                  ),
+                );
               }
             },
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Cta(
-            label: '$name\'s day',
-            trailing: 'meals, gym, notes',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => helperPage(partner, store))),
+            label: tr(context, "{name}'s day", {"name": name}),
+            trailing: tr(context, 'meals, gym, notes'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => helperPage(partner, store)),
+            ),
           ),
         ],
       ),
@@ -168,17 +223,19 @@ class SideBySide extends StatelessWidget {
   final String? myPhoto, photo;
   final bool loading;
   final ValueChanged<String>? onNudge;
-  final ValueChanged<String?>? onStake; // set the race's stake (null where it can't be set)
+  final ValueChanged<String?>?
+  onStake; // set the race's stake (null where it can't be set)
 
   static int _n(Map d, String k) => (d[k] as num?)?.toInt() ?? 0;
 
   /// Meals logged or skipped today: 100 m of the lap each, like Today's track.
-  static int legs(Map d) =>
-      (d['meals'] as List? ?? const []).where((m) => const ['done', 'skipped'].contains((m as Map)['status'])).length;
+  static int legs(Map d) => (d['meals'] as List? ?? [])
+      .where((m) => ['done', 'skipped'].contains((m as Map)['status']))
+      .length;
 
   /// The last 7 days, day → (meals, steps, step target, water glasses).
   static Map<String, (int, int, int, int)> days(Map? d) => {
-    for (final x in (d?['days'] as List? ?? const []).cast<List>())
+    for (final x in (d?['days'] as List? ?? []).cast<List>())
       x[0] as String: (
         (x[1] as num).toInt(),
         (x[2] as num).toInt(),
@@ -187,43 +244,77 @@ class SideBySide extends StatelessWidget {
       ),
   };
 
-  static double _of(Map d, String k, String goal) => _n(d, k) / math.max(1, _n(d, goal));
+  static double _of(Map d, String k, String goal) =>
+      _n(d, k) / math.max(1, _n(d, goal));
 
   static double _lost(Map d) {
-    final now = (d['nowKg'] as num?)?.toDouble(), start = (d['startKg'] as num?)?.toDouble();
+    final now = (d['nowKg'] as num?)?.toDouble(),
+        start = (d['startKg'] as num?)?.toDouble();
     return now == null || start == null ? 0 : start - now;
   }
 
   static String _kg(Map d) {
-    if ((d['hidden'] as List? ?? const []).contains('weight')) return 'Private';
-    final now = (d['nowKg'] as num?)?.toDouble(), start = (d['startKg'] as num?)?.toDouble();
+    if ((d['hidden'] as List? ?? []).contains('weight')) return 'Private';
+    final now = (d['nowKg'] as num?)?.toDouble(),
+        start = (d['startKg'] as num?)?.toDouble();
     if (now == null || start == null) return '–';
     return '${now <= start ? '−' : '+'}${(now - start).abs().toStringAsFixed(1)} kg';
   }
 
   /// (icon, label, value, bar 0..1 given the other person's map). Targets are each person's own;
   /// weight lost is measured against whoever has lost more.
-  static final rows = <(IconData, String, String Function(Map), double Function(Map, Map))>[
-    (Icons.restaurant_outlined, 'Food', (d) => thousands(_n(d, 'kcal')), (d, _) => _of(d, 'kcal', 'kcalGoal')),
-    // kcal over their own target, added up this week: the longer bar ate more extra
-    (
-      Icons.local_fire_department_outlined,
-      'Extra kcal',
-      (d) => '${_n(d, 'weekExtra') > 0 ? '+' : ''}${thousands(_n(d, 'weekExtra'))}',
-      (d, o) => _n(d, 'weekExtra') / math.max(1, math.max(_n(d, 'weekExtra'), _n(o, 'weekExtra'))),
-    ),
-    (Icons.water_drop_outlined, 'Water', (d) => '${litres(_n(d, 'water'))} L', (d, _) => _of(d, 'water', 'waterGoal')),
-    (Icons.directions_walk_rounded, 'Steps', (d) => thousands(_n(d, 'steps')), (d, _) => _of(d, 'steps', 'stepTarget')),
-    (Icons.fitness_center_rounded, 'Gym', (d) => '${_n(d, 'gymThisWeek')} of 3', (d, _) => _n(d, 'gymThisWeek') / 3),
-    (
-      Icons.monitor_weight_outlined,
-      'Since day 1',
-      _kg,
-      (d, o) => math.max(0, _lost(d)) / math.max(.1, math.max(_lost(d), _lost(o))),
-    ),
-  ];
+  static final rows =
+      <(IconData, String, String Function(Map), double Function(Map, Map))>[
+        (
+          Icons.restaurant_outlined,
+          'Food',
+          (d) => thousands(_n(d, 'kcal')),
+          (d, _) => _of(d, 'kcal', 'kcalGoal'),
+        ),
+        // kcal over their own target, added up this week: the longer bar ate more extra
+        (
+          Icons.local_fire_department_outlined,
+          'Extra kcal',
+          (d) =>
+              '${_n(d, 'weekExtra') > 0 ? '+' : ''}${thousands(_n(d, 'weekExtra'))}',
+          (d, o) =>
+              _n(d, 'weekExtra') /
+              math.max(1, math.max(_n(d, 'weekExtra'), _n(o, 'weekExtra'))),
+        ),
+        (
+          Icons.water_drop_outlined,
+          'Water',
+          (d) => '${litres(_n(d, 'water'))} L',
+          (d, _) => _of(d, 'water', 'waterGoal'),
+        ),
+        (
+          Icons.directions_walk_rounded,
+          'Steps',
+          (d) => thousands(_n(d, 'steps')),
+          (d, _) => _of(d, 'steps', 'stepTarget'),
+        ),
+        (
+          Icons.fitness_center_rounded,
+          'Gym',
+          (d) => '${_n(d, 'gymThisWeek')} of 3',
+          (d, _) => _n(d, 'gymThisWeek') / 3,
+        ),
+        (
+          Icons.monitor_weight_outlined,
+          'Since day 1',
+          _kg,
+          (d, o) =>
+              math.max(0, _lost(d)) /
+              math.max(.1, math.max(_lost(d), _lost(o))),
+        ),
+      ];
 
-  static const nudges = ['Proud of you', 'Gym together tonight?', 'Drink some water', 'Walk after dinner?'];
+  static const nudges = [
+    'Proud of you',
+    'Gym together tonight?',
+    'Drink some water',
+    'Walk after dinner?',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -233,39 +324,56 @@ class SideBySide extends StatelessWidget {
     final stale = them != null && them['day'] != me['day'];
     final mine = legs(me), theirs = them == null || stale ? 0 : legs(them);
     // a streak kept together: both had a full day on each of the last N days, so N is the shorter one
-    final together = them == null ? 0 : math.min(_n(me, 'streak'), _n(them, 'streak'));
+    final together = them == null
+        ? 0
+        : math.min(_n(me, 'streak'), _n(them, 'streak'));
     final gap = (mine - theirs).abs();
-    final meals = gap == 1 ? 'meal' : 'meals';
     final both = mine == 4 && theirs == 4;
     final line = !linked
-        ? 'Run today\'s lap together'
+        ? tr(context, 'Run today\'s lap together')
         : them == null
-        ? (loading ? '' : 'Their runner shows up once they open Daur')
+        ? (loading
+              ? ''
+              : tr(context, 'Their runner shows up once they open Daur'))
         : stale
-        ? '$name hasn\'t opened Daur today'
+        ? tr(context, "{name} has not opened Daur today", {"name": name})
         : both
-        ? 'You both closed today'
+        ? tr(context, 'You both closed today')
         : gap == 0
-        ? 'Level · keep pace'
+        ? tr(context, 'Level · keep pace')
         : mine > theirs
-        ? 'You\'re $gap $meals ahead · nudge $name'
-        : '$name is $gap $meals ahead · catch up';
-    final quick = MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 1200);
+        ? tr(context, "You are {count} meals ahead · nudge {name}", {
+            "count": gap,
+            "name": name,
+          })
+        : tr(context, "{name} is {count} meals ahead · catch up", {
+            "count": gap,
+            "name": name,
+          });
+    final quick = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : Duration(milliseconds: 1200);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _StreakCard(together: together, linked: linked, name: name, myPhoto: myPhoto, photo: photo),
-        const SizedBox(height: 20),
+        _StreakCard(
+          together: together,
+          linked: linked,
+          name: name,
+          myPhoto: myPhoto,
+          photo: photo,
+        ),
+        SizedBox(height: 20),
         _Week(mine: days(me), theirs: days(them), linked: linked),
         if (linked && them != null) ...[
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _Race(me: me, them: them, name: name, onStake: onStake),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _TeamSteps(mine: days(me), theirs: days(them)),
         ],
-        const SizedBox(height: 24),
-        Text('Today', style: t.meta()),
+        SizedBox(height: 24),
+        Text(tr(context, 'Today'), style: t.meta()),
         // two runners on one track: yellow is you on the inside lane, cream is them outside
         // both closed today: confetti, also when the page opens on such a day
         Confetti(
@@ -280,7 +388,13 @@ class SideBySide extends StatelessWidget {
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: CustomPaint(painter: _TwoRunners(mine * 100 * k, linked ? theirs * 100 * k : null, t)),
+                    child: CustomPaint(
+                      painter: _TwoRunners(
+                        mine * 100 * k,
+                        linked ? theirs * 100 * k : null,
+                        t,
+                      ),
+                    ),
                   ),
                   Center(
                     child: Row(
@@ -290,16 +404,19 @@ class SideBySide extends StatelessWidget {
                       children: [
                         Text('$mine', style: t.x(52, color: t.accent)),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          padding: EdgeInsets.symmetric(horizontal: 10),
                           child: Text('&', style: t.x(22, color: t.ink2)),
                         ),
-                        Text(linked && them != null ? '$theirs' : '–', style: t.x(52)),
+                        Text(
+                          linked && them != null ? '$theirs' : '–',
+                          style: t.x(52),
+                        ),
                       ],
                     ),
                   ),
                   Align(
-                    alignment: const Alignment(0, .42),
-                    child: Text('meals today', style: t.meta()),
+                    alignment: Alignment(0, .42),
+                    child: Text(tr(context, 'meals today'), style: t.meta()),
                   ),
                 ],
               ),
@@ -309,53 +426,74 @@ class SideBySide extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (both) const Dau(mood: DauMood.cheer, size: 56),
+            if (both) Dau(mood: DauMood.cheer, size: 56),
             Flexible(
               child: Text(line, style: t.body(), textAlign: TextAlign.center),
             ),
           ],
         ),
         if (linked) ...[
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           for (final (icon, label, value, frac) in rows)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 7),
+              padding: EdgeInsets.symmetric(vertical: 7),
               child: Row(
                 children: [
-                  Expanded(child: _Bar(value(me), frac(me, them ?? const {}), t.accent, toLeft: true)),
+                  Expanded(
+                    child: _Bar(
+                      tr(context, value(me)),
+                      frac(me, them ?? {}),
+                      t.accent,
+                      toLeft: true,
+                    ),
+                  ),
                   SizedBox(
                     width: 76,
                     child: Column(
                       children: [
                         Icon(icon, size: 22, color: t.ink),
-                        const SizedBox(height: 2),
-                        Text(label, style: t.meta(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        SizedBox(height: 2),
+                        Text(
+                          tr(context, label),
+                          style: t.meta(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ],
                     ),
                   ),
                   Expanded(
                     child: them == null
                         ? Text('–', style: t.body())
-                        : _Bar(value(them), frac(them, me), t.ink, toLeft: false),
+                        : _Bar(
+                            tr(context, value(them)),
+                            frac(them, me),
+                            t.ink,
+                            toLeft: false,
+                          ),
                   ),
                 ],
               ),
             ),
           if (onNudge != null) ...[
-            const SizedBox(height: 16),
-            Text('Nudge $name', style: t.meta()),
-            const SizedBox(height: 8),
+            SizedBox(height: 16),
+            Text(tr(context, "Nudge {name}", {"name": name}), style: t.meta()),
+            SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
                 for (final text in nudges)
                   ActionChip(
-                    avatar: Icon(Icons.favorite_rounded, size: 16, color: t.onAccent),
-                    label: Text(text, style: t.sec(t.onAccent)),
+                    avatar: Icon(
+                      Icons.favorite_rounded,
+                      size: 16,
+                      color: t.onAccent,
+                    ),
+                    label: Text(tr(context, text), style: t.sec(t.onAccent)),
                     backgroundColor: t.accent,
                     side: BorderSide.none,
-                    shape: const StadiumBorder(),
+                    shape: StadiumBorder(),
                     onPressed: () {
                       HapticFeedback.lightImpact();
                       onNudge!(text);
@@ -389,7 +527,7 @@ class _StreakCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     Widget face(String label, String? photo, {bool empty = false}) => Container(
-      padding: const EdgeInsets.all(3),
+      padding: EdgeInsets.all(3),
       decoration: BoxDecoration(color: t.accent, shape: BoxShape.circle),
       child: CircleAvatar(
         radius: 24,
@@ -399,7 +537,10 @@ class _StreakCard extends StatelessWidget {
             ? Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: t.onAccent.withValues(alpha: .5), width: 2),
+                  border: Border.all(
+                    color: t.onAccent.withValues(alpha: .5),
+                    width: 2,
+                  ),
                 ),
                 alignment: Alignment.center,
                 child: Icon(Icons.add_rounded, color: t.onAccent),
@@ -408,8 +549,11 @@ class _StreakCard extends StatelessWidget {
       ),
     );
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 20, 16),
-      decoration: BoxDecoration(color: t.accent, borderRadius: BorderRadius.circular(24)),
+      padding: EdgeInsets.fromLTRB(16, 16, 20, 16),
+      decoration: BoxDecoration(
+        color: t.accent,
+        borderRadius: BorderRadius.circular(24),
+      ),
       child: Row(
         children: [
           SizedBox(
@@ -417,19 +561,32 @@ class _StreakCard extends StatelessWidget {
             height: 54,
             child: Stack(
               children: [
-                face('You', myPhoto),
-                Positioned(left: 40, child: face(name.isEmpty ? '?' : name, photo, empty: !linked)),
+                face(tr(context, 'You'), myPhoto),
+                Positioned(
+                  left: 40,
+                  child: face(name.isEmpty ? '?' : name, photo, empty: !linked),
+                ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                FlameCount(count: together, color: t.onAccent, size: 30, textSize: 36),
+                FlameCount(
+                  count: together,
+                  color: t.onAccent,
+                  size: 30,
+                  textSize: 36,
+                ),
                 Text(
-                  linked ? 'days together · both close the day to keep it' : 'Invite your partner to start a streak',
+                  linked
+                      ? tr(
+                          context,
+                          'days together · both close the day to keep it',
+                        )
+                      : tr(context, 'Invite your partner to start a streak'),
                   style: t.meta(t.onAccent),
                 ),
               ],
@@ -451,7 +608,7 @@ class _Week extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     final ds = mine.keys.toList();
-    if (ds.isEmpty) return const SizedBox.shrink();
+    if (ds.isEmpty) return SizedBox.shrink();
     Widget dot(bool full, Color c) => Container(
       width: 12,
       height: 12,
@@ -472,40 +629,65 @@ class _Week extends StatelessWidget {
               return Column(
                 children: [
                   Text(
-                    'MTWTFSS'[DateTime.parse(d).weekday - 1],
-                    style: today ? t.meta(t.ink).copyWith(fontWeight: FontWeight.w800) : t.meta(),
+                    (Localizations.localeOf(context).languageCode == 'bn'
+                        ? [
+                            'সো',
+                            'ম',
+                            'বু',
+                            'বৃ',
+                            'শু',
+                            'শ',
+                            'র',
+                          ][DateTime.parse(d).weekday - 1]
+                        : 'MTWTFSS'[DateTime.parse(d).weekday - 1]),
+                    style: today
+                        ? t.meta(t.ink).copyWith(fontWeight: FontWeight.w800)
+                        : t.meta(),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                   // the days pop in left to right; each heart beats once as it lands
                   Play(
                     delay: Duration(milliseconds: 90 * i),
-                    duration: const Duration(milliseconds: 900),
+                    duration: Duration(milliseconds: 900),
                     curve: Curves.linear,
-                    builder: (context, v, child) =>
-                        Transform.scale(scale: Curves.elasticOut.transform((v / .6).clamp(0, 1)), child: child),
+                    builder: (context, v, child) => Transform.scale(
+                      scale: Curves.elasticOut.transform((v / .6).clamp(0, 1)),
+                      child: child,
+                    ),
                     child: Container(
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
                         color: a && b ? t.accent : t.infield,
                         shape: BoxShape.circle,
-                        border: today ? Border.all(color: t.ink, width: 2) : null,
+                        border: today
+                            ? Border.all(color: t.ink, width: 2)
+                            : null,
                       ),
                       alignment: Alignment.center,
                       child: a && b
                           ? Play(
                               delay: Duration(milliseconds: 90 * i + 450),
-                              duration: const Duration(milliseconds: 600),
+                              duration: Duration(milliseconds: 600),
                               curve: Curves.linear,
-                              builder: (context, v, child) =>
-                                  Transform.scale(scale: 1 + .35 * math.sin(math.pi * v), child: child),
-                              child: Icon(Icons.favorite_rounded, size: 20, color: t.onAccent),
+                              builder: (context, v, child) => Transform.scale(
+                                scale: 1 + .35 * math.sin(math.pi * v),
+                                child: child,
+                              ),
+                              child: Icon(
+                                Icons.favorite_rounded,
+                                size: 20,
+                                color: t.onAccent,
+                              ),
                             )
                           : Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 dot(a, t.accent),
-                                if (linked) ...[const SizedBox(width: 4), dot(b, t.ink)],
+                                if (linked) ...[
+                                  SizedBox(width: 4),
+                                  dot(b, t.ink),
+                                ],
                               ],
                             ),
                     ),
@@ -522,12 +704,23 @@ class _Week extends StatelessWidget {
 /// This week's race, Saturday to Friday: points for each of you, who leads, and the fun stake the
 /// loser pays (either of you sets it; the newer one counts).
 class _Race extends StatelessWidget {
-  const _Race({required this.me, required this.them, required this.name, required this.onStake});
+  const _Race({
+    required this.me,
+    required this.them,
+    required this.name,
+    required this.onStake,
+  });
   final Map<String, dynamic> me, them;
   final String name;
   final ValueChanged<String?>? onStake;
 
-  static const stakes = ['Makes tea', 'Cooks dinner', 'Gives a massage', 'Picks the movie', 'Does the dishes'];
+  static const stakes = [
+    'Makes tea',
+    'Cooks dinner',
+    'Gives a massage',
+    'Picks the movie',
+    'Does the dishes',
+  ];
 
   Future<void> _pick(BuildContext context, String? now) async {
     final t = Daur.of(context);
@@ -537,29 +730,44 @@ class _Race extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: t.sheet,
       builder: (context) => Padding(
-        padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.viewInsetsOf(context).bottom),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          20 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('The loser…', style: t.x(22, color: t.sheetInk)),
-            const SizedBox(height: 12),
+            Text(tr(context, 'The loser…'), style: t.x(22, color: t.sheetInk)),
+            SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
                 for (final x in stakes)
-                  ChoiceChip(label: Text(x), selected: x == now, onSelected: (_) => Navigator.pop(context, x)),
+                  ChoiceChip(
+                    label: Text(tr(context, x)),
+                    selected: x == now,
+                    onSelected: (_) => Navigator.pop(context, x),
+                  ),
               ],
             ),
             TextField(
               controller: text,
               maxLength: 40,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(hintText: 'Or your own, e.g. Buys fuchka'),
+              decoration: InputDecoration(
+                hintText: tr(context, 'Or your own, e.g. Buys fuchka'),
+              ),
               onSubmitted: (v) => Navigator.pop(context, v.trim()),
             ),
-            if (now != null) TextButton(onPressed: () => Navigator.pop(context, ''), child: const Text('No stake')),
+            if (now != null)
+              TextButton(
+                onPressed: () => Navigator.pop(context, ''),
+                child: Text(tr(context, 'No stake')),
+              ),
           ],
         ),
       ),
@@ -574,40 +782,65 @@ class _Race extends StatelessWidget {
     final today = me['day'] as String? ?? dayKey(DateTime.now());
     final from = raceWeekStart(today);
     final a = racePoints(me, from), b = racePoints(them, from);
-    final day = DateTime.parse(today).difference(DateTime.parse(from)).inDays + 1;
+    final day =
+        DateTime.parse(today).difference(DateTime.parse(from)).inDays + 1;
     final top = math.max(1, math.max(a, b));
     // the newer stake counts: either of you can change it
-    final mineNewer = (me['stakeAt'] as String? ?? '').compareTo(them['stakeAt'] as String? ?? '') >= 0;
+    final mineNewer =
+        (me['stakeAt'] as String? ?? '').compareTo(
+          them['stakeAt'] as String? ?? '',
+        ) >=
+        0;
     final stake = (mineNewer ? me['stake'] : them['stake']) as String?;
     Widget lane(String who, int pts, Color c, bool lead) => Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: EdgeInsets.only(top: 10),
       child: Row(
         children: [
           SizedBox(
             width: 70,
-            child: Text(who, style: t.body(), maxLines: 1, overflow: TextOverflow.ellipsis),
+            child: Text(
+              who,
+              style: t.body(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           Expanded(
             child: Container(
               height: 26,
-              decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(13)),
+              decoration: BoxDecoration(
+                color: t.infield,
+                borderRadius: BorderRadius.circular(13),
+              ),
               alignment: Alignment.centerLeft,
               // the bars race out; the leader's trophy drops in when they've stopped
               child: Play(
-                delay: const Duration(milliseconds: 200),
-                duration: const Duration(milliseconds: 1500),
+                delay: Duration(milliseconds: 200),
+                duration: Duration(milliseconds: 1500),
                 curve: Curves.linear,
                 builder: (context, v, _) => FractionallySizedBox(
                   widthFactor:
-                      math.max(.08, pts / top) * Curves.easeOutBack.transform((v / .7).clamp(0, 1)).clamp(.0, 1.1),
+                      math.max(.08, pts / top) *
+                      Curves.easeOutBack
+                          .transform((v / .7).clamp(0, 1))
+                          .clamp(.0, 1.1),
                   child: Container(
-                    decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(13)),
+                    decoration: BoxDecoration(
+                      color: c,
+                      borderRadius: BorderRadius.circular(13),
+                    ),
                     alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 4),
+                    padding: EdgeInsets.only(right: 4),
                     child: lead && v > .7
                         ? Transform.scale(
-                            scale: Curves.elasticOut.transform(((v - .7) / .3).clamp(0, 1)),
-                            child: Icon(Icons.emoji_events_rounded, size: 18, color: t.onAccent),
+                            scale: Curves.elasticOut.transform(
+                              ((v - .7) / .3).clamp(0, 1),
+                            ),
+                            child: Icon(
+                              Icons.emoji_events_rounded,
+                              size: 18,
+                              color: t.onAccent,
+                            ),
                           )
                         : null,
                   ),
@@ -627,47 +860,68 @@ class _Race extends StatelessWidget {
       ),
     );
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
-      decoration: BoxDecoration(color: t.infield.withValues(alpha: .5), borderRadius: BorderRadius.circular(20)),
+      padding: EdgeInsets.fromLTRB(16, 14, 16, 4),
+      decoration: BoxDecoration(
+        color: t.infield.withValues(alpha: .5),
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Expanded(child: Text('Race this week', style: t.body())),
-              Text(day >= 7 ? 'last day' : 'day $day of 7 · ends Friday', style: t.meta()),
+              Expanded(
+                child: Text(tr(context, 'Race this week'), style: t.body()),
+              ),
+              Text(
+                day >= 7
+                    ? tr(context, 'last day')
+                    : tr(context, "day {day} of 7 · ends Friday", {"day": day}),
+                style: t.meta(),
+              ),
             ],
           ),
-          lane('You', a, t.accent, a > b),
+          lane(tr(context, 'You'), a, t.accent, a > b),
           lane(name, b, t.ink, b > a),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             a == b
-                ? 'Tied'
+                ? tr(context, 'Tied')
                 : a > b
-                ? 'You lead by ${thousands(a - b)}'
-                : '$name leads by ${thousands(b - a)}',
+                ? tr(context, "You lead by {points}", {
+                    "points": thousands(a - b),
+                  })
+                : tr(context, "{name} leads by {points}", {
+                    "name": name,
+                    "points": thousands(b - a),
+                  }),
             style: t.meta(t.ink),
           ),
-          Text('Up to 300 a day: 100 each for meals, water and steps', style: t.meta()),
+          Text(
+            tr(context, 'Up to 300 a day: 100 each for meals, water and steps'),
+            style: t.meta(),
+          ),
           InkWell(
             onTap: onStake == null ? null : () => _pick(context, stake),
             borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              padding: EdgeInsets.symmetric(vertical: 10),
               child: Row(
                 children: [
                   Icon(Icons.redeem_rounded, color: t.accent),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       stake == null
-                          ? 'Add a fun stake for the loser'
-                          : 'Loser ${stake[0].toLowerCase()}${stake.substring(1)}',
+                          ? tr(context, 'Add a fun stake for the loser')
+                          : tr(context, "Loser: {stake}", {
+                              "stake": tr(context, stake),
+                            }),
                       style: t.body(color: stake == null ? t.ink2 : t.ink),
                     ),
                   ),
-                  if (onStake != null) Icon(Icons.edit_outlined, size: 18, color: t.ink2),
+                  if (onStake != null)
+                    Icon(Icons.edit_outlined, size: 18, color: t.ink2),
                 ],
               ),
             ),
@@ -686,8 +940,10 @@ class _TeamSteps extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
-    int sum(Map<String, (int, int, int, int)> m, int Function((int, int, int, int)) f) =>
-        m.values.fold(0, (a, x) => a + f(x));
+    int sum(
+      Map<String, (int, int, int, int)> m,
+      int Function((int, int, int, int)) f,
+    ) => m.values.fold(0, (a, x) => a + f(x));
     final a = sum(mine, (x) => x.$2), b = sum(theirs, (x) => x.$2);
     final goal = math.max(1, sum(mine, (x) => x.$3) + sum(theirs, (x) => x.$3));
     return Column(
@@ -695,20 +951,28 @@ class _TeamSteps extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: Text('Team goal · steps this week', style: t.meta())),
+            Expanded(
+              child: Text(
+                tr(context, 'Team goal · steps this week'),
+                style: t.meta(),
+              ),
+            ),
             Text('${(100 * (a + b) / goal).round()}%', style: t.meta(t.ink)),
           ],
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         Text.rich(
           TextSpan(
             children: [
               TextSpan(text: thousands(a + b), style: t.x(24)),
-              TextSpan(text: '  of ${thousands(goal)}', style: t.sec()),
+              TextSpan(
+                text: tr(context, "  of {count}", {"count": thousands(goal)}),
+                style: t.sec(),
+              ),
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         // yours, then theirs, in one bar
         ClipRRect(
           borderRadius: BorderRadius.circular(7),
@@ -716,13 +980,17 @@ class _TeamSteps extends StatelessWidget {
             height: 14,
             // yours fills first, then theirs pours in after it
             child: Play(
-              delay: const Duration(milliseconds: 300),
-              duration: const Duration(milliseconds: 1600),
+              delay: Duration(milliseconds: 300),
+              duration: Duration(milliseconds: 1600),
               curve: Curves.linear,
               builder: (context, v, _) => LayoutBuilder(
                 builder: (context, c) {
-                  final va = Curves.easeOutCubic.transform((v / .55).clamp(0, 1));
-                  final vb = Curves.easeOutCubic.transform(((v - .4) / .6).clamp(0, 1));
+                  final va = Curves.easeOutCubic.transform(
+                    (v / .55).clamp(0, 1),
+                  );
+                  final vb = Curves.easeOutCubic.transform(
+                    ((v - .4) / .6).clamp(0, 1),
+                  );
                   final wa = c.maxWidth * math.min(1, a / goal);
                   return Stack(
                     children: [
@@ -738,7 +1006,10 @@ class _TeamSteps extends StatelessWidget {
                         left: wa,
                         top: 0,
                         bottom: 0,
-                        width: c.maxWidth * math.max(0, math.min(1 - a / goal, b / goal)) * vb,
+                        width:
+                            c.maxWidth *
+                            math.max(0, math.min(1 - a / goal, b / goal)) *
+                            vb,
                         child: Container(color: t.ink),
                       ),
                     ],
@@ -765,23 +1036,33 @@ class _Bar extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     return Column(
-      crossAxisAlignment: toLeft ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: toLeft
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
         Text(value, style: t.x(17, color: color), maxLines: 1),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Container(
           height: 10,
-          decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(5)),
+          decoration: BoxDecoration(
+            color: t.infield,
+            borderRadius: BorderRadius.circular(5),
+          ),
           alignment: toLeft ? Alignment.centerRight : Alignment.centerLeft,
           // grows out from the middle
           child: Play(
-            delay: const Duration(milliseconds: 250),
-            duration: const Duration(milliseconds: 1100),
+            delay: Duration(milliseconds: 250),
+            duration: Duration(milliseconds: 1100),
             curve: Curves.easeOutBack,
-            builder: (context, v, child) =>
-                FractionallySizedBox(widthFactor: (frac.clamp(0, 1) * v).clamp(0, 1).toDouble(), child: child),
+            builder: (context, v, child) => FractionallySizedBox(
+              widthFactor: (frac.clamp(0, 1) * v).clamp(0, 1).toDouble(),
+              child: child,
+            ),
             child: Container(
-              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(5)),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(5),
+              ),
             ),
           ),
         ),
@@ -838,5 +1119,6 @@ class _TwoRunners extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_TwoRunners old) => old.mine != mine || old.theirs != theirs || old.t != t;
+  bool shouldRepaint(_TwoRunners old) =>
+      old.mine != mine || old.theirs != theirs || old.t != t;
 }

@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -14,7 +16,8 @@ import 'theme.dart';
 import 'today.dart' show Cta, thousands, niceDate;
 import 'visuals.dart';
 
-String litres(int glasses) => glasses % 4 == 0 ? '${glasses ~/ 4}' : '${glasses / 4}'; // 0, 0.25, 1.75, 2
+String litres(int glasses) =>
+    glasses % 4 == 0 ? '${glasses ~/ 4}' : '${glasses / 4}'; // 0, 0.25, 1.75, 2
 const _dayLetters = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 /// Water: a ring to today's goal, the glasses to tap, how far behind the day's pace you are.
@@ -30,13 +33,19 @@ class WaterScreen extends StatelessWidget {
         final s = store, g = s.water, goal = s.waterGoal;
         final days = s.lastDays(7);
         final full = g >= goal;
-        final values = [for (final d in days) d == s.today ? g : s.waterHistory[d] ?? 0];
+        final values = [
+          for (final d in days) d == s.today ? g : s.waterHistory[d] ?? 0,
+        ];
         final drank = values.where((v) => v > 0).toList();
-        final avg = drank.isEmpty ? 0 : drank.reduce((a, b) => a + b) / drank.length;
+        final avg = drank.isEmpty
+            ? 0
+            : drank.reduce((a, b) => a + b) / drank.length;
         final hit = values.where((v) => v >= goal).length;
         // pace: the goal spread evenly over 07:00–21:00
         final now = DateTime.now();
-        final due = (goal * ((now.hour + now.minute / 60 - 7) / 14).clamp(0.0, 1.0)).floor();
+        final due =
+            (goal * ((now.hour + now.minute / 60 - 7) / 14).clamp(0.0, 1.0))
+                .floor();
         final behind = (due - g).clamp(0, goal);
         final perRow = (goal / 2).ceil();
         return Scaffold(
@@ -48,11 +57,18 @@ class WaterScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                     children: [
                       _Header(
-                        title: 'Water',
-                        sub: '${niceDate(now)} · each glass is 250 ml',
+                        title: tr(context, 'Water'),
+                        sub: tr(context, '{date} · each glass is 250 ml', {'date': niceDate(now, language: Localizations.localeOf(context).languageCode)}),
                         menu: [
-                          MenuItem('Undo last glass', g > 0 ? () => s.setWater(g - 1) : null),
-                          MenuItem('Reset today', g > 0 ? () => s.setWater(0) : null, destructive: true),
+                          MenuItem(
+                            'Undo last glass',
+                            g > 0 ? () => s.setWater(g - 1) : null,
+                          ),
+                          MenuItem(
+                            'Reset today',
+                            g > 0 ? () => s.setWater(0) : null,
+                            destructive: true,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -60,22 +76,36 @@ class WaterScreen extends StatelessWidget {
                         frac: g / goal,
                         big: '${litres(g)} L',
                         small: 'of ${litres(goal)} L',
-                        pill: full ? 'Goal done' : '${goal - g} ${goal - g == 1 ? 'glass' : 'glasses'} to go',
+                        pill: full
+                            ? 'Goal done'
+                            : '${goal - g} ${goal - g == 1 ? 'glass' : 'glasses'} to go',
                         done: full,
-                        label: '${litres(g)} of ${litres(goal)} litres',
+                        label: tr(context, '{value1} of {value2} litres', {
+                          'value1': litres(g),
+                          'value2': litres(goal),
+                        }),
                         kind: RingKind.water,
                       ),
                       const SizedBox(height: 20),
                       Tiles([
                         (Icons.local_drink_outlined, '$g', 'of $goal glasses'),
-                        (Icons.schedule_rounded, '$behind', behind == 0 ? 'on pace' : 'behind pace'),
-                        (Icons.event_available_rounded, '$hit of 7', 'days on goal'),
+                        (
+                          Icons.schedule_rounded,
+                          '$behind',
+                          behind == 0 ? 'on pace' : 'behind pace',
+                        ),
+                        (
+                          Icons.event_available_rounded,
+                          '$hit of 7',
+                          'days on goal',
+                        ),
                       ]),
                       const SizedBox(height: 24),
                       _Head('Tap a glass', '${g * 250} ml'),
                       const SizedBox(height: 10),
                       GridView.count(
-                        clipBehavior: Clip.none, // droplets fly above the glasses
+                        clipBehavior:
+                            Clip.none, // droplets fly above the glasses
                         crossAxisCount: perRow,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -86,28 +116,47 @@ class WaterScreen extends StatelessWidget {
                           for (var i = 0; i < goal; i++)
                             Semantics(
                               button: true,
-                              label: 'Glass ${i + 1}, ${i < g ? 'drunk' : 'not yet'}',
+                              label: tr(context, 'Glass {value1}, {value2}', {
+                                'value1': i + 1,
+                                'value2': i < g ? 'drunk' : 'not yet',
+                              }),
                               child: GestureDetector(
                                 // tap glass n to set the count to n; tap the last full glass to empty it
                                 onTap: () {
                                   HapticFeedback.selectionClick();
                                   s.setWater(g == i + 1 ? i : i + 1);
                                 },
-                                child: WaterGlass(full: i < g, next: i == g, wave: full, index: i),
+                                child: WaterGlass(
+                                  full: i < g,
+                                  next: i == g,
+                                  wave: full,
+                                  index: i,
+                                ),
                               ),
                             ),
                         ],
                       ),
                       const SizedBox(height: 24),
-                      _Head('This week', 'avg ${litres((avg).round())} L a day'),
+                      _Head(
+                        'This week',
+                        'avg ${litres((avg).round())} L a day',
+                      ),
                       const SizedBox(height: 10),
-                      WeekBars(days: days, values: values, target: goal, max: goal + 3),
+                      WeekBars(
+                        days: days,
+                        values: values,
+                        target: goal,
+                        max: goal + 3,
+                      ),
                       const SizedBox(height: 24),
                       const _TipChips([
                         (Icons.fitness_center_rounded, 'Gym day: drink more'),
                         (Icons.wb_sunny_outlined, 'Hot day: drink more'),
                         (Icons.local_cafe_outlined, 'Plain tea counts'),
-                        (Icons.medical_services_outlined, 'Doctor limits fluids? Follow that'),
+                        (
+                          Icons.medical_services_outlined,
+                          'Doctor limits fluids? Follow that',
+                        ),
                       ]),
                     ],
                   ),
@@ -115,13 +164,20 @@ class WaterScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                   child: full
-                      ? Cta(label: '${litres(goal)} L done today', muted: true)
+                      ? Cta(
+                          label: tr(context, '{value1} L done today', {
+                            'value1': litres(goal),
+                          }),
+                          muted: true,
+                        )
                       : Cta(
-                          label: 'Drink a glass',
+                          label: tr(context, 'Drink a glass'),
                           trailing: 'glass ${g + 1} of $goal',
                           onTap: () {
                             s.setWater(g + 1);
-                            g + 1 == goal ? HapticFeedback.heavyImpact() : HapticFeedback.lightImpact();
+                            g + 1 == goal
+                                ? HapticFeedback.heavyImpact()
+                                : HapticFeedback.lightImpact();
                           },
                         ),
                 ),
@@ -139,7 +195,8 @@ class SleepScreen extends StatelessWidget {
   const SleepScreen({super.key, required this.store});
   final Store store;
 
-  static String hours(int min) => (min / 60).toStringAsFixed(min % 60 == 0 ? 0 : 1);
+  static String hours(int min) =>
+      (min / 60).toStringAsFixed(min % 60 == 0 ? 0 : 1);
 
   Future<void> _fromHealth(BuildContext context) async {
     final min = await Steps.sleepLastNight(ask: true);
@@ -147,9 +204,14 @@ class SleepScreen extends StatelessWidget {
       store.setSleep(min);
     } else if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('No sleep in Health yet · a watch or sleep app adds it'),
+          content: Text(
+            tr(
+              context,
+              'No sleep in Health yet · a watch or sleep app adds it',
+            ),
+          ),
         ),
       );
     }
@@ -166,23 +228,26 @@ class SleepScreen extends StatelessWidget {
         final days = s.lastDays(7);
         final values = [for (final d in days) s.sleepHistory[d] ?? 0];
         final slept = values.where((v) => v > 0).toList();
-        final avg = slept.isEmpty ? 0 : slept.reduce((a, b) => a + b) ~/ slept.length;
+        final avg = slept.isEmpty
+            ? 0
+            : slept.reduce((a, b) => a + b) ~/ slept.length;
         final hit = values.where((v) => v >= goal).length;
         void nudge(int by) {
           HapticFeedback.selectionClick();
           s.setSleep(((m ?? goal) + (m == null ? 0 : by)).clamp(60, 16 * 60));
         }
 
-        Widget round(IconData icon, String tip, VoidCallback f) => IconButton.filled(
-          tooltip: tip,
-          onPressed: f,
-          style: IconButton.styleFrom(
-            backgroundColor: t.infield,
-            foregroundColor: t.ink,
-            fixedSize: const Size(48, 48),
-          ),
-          icon: Icon(icon),
-        );
+        Widget round(IconData icon, String tip, VoidCallback f) =>
+            IconButton.filled(
+              tooltip: tip,
+              onPressed: f,
+              style: IconButton.styleFrom(
+                backgroundColor: t.infield,
+                foregroundColor: t.ink,
+                fixedSize: const Size(48, 48),
+              ),
+              icon: Icon(icon),
+            );
 
         return Scaffold(
           body: SafeArea(
@@ -193,10 +258,14 @@ class SleepScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                     children: [
                       _Header(
-                        title: 'Sleep',
+                        title: tr(context, 'Sleep'),
                         sub: 'Last night · aim for 7–8 hours',
                         menu: [
-                          MenuItem('Clear last night', m != null ? () => s.setSleep(null) : null, destructive: true),
+                          MenuItem(
+                            'Clear last night',
+                            m != null ? () => s.setSleep(null) : null,
+                            destructive: true,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -210,27 +279,56 @@ class SleepScreen extends StatelessWidget {
                             ? 'Enough sleep'
                             : '${hours(goal - m)} h short',
                         done: m != null && m >= goal,
-                        label: m == null ? 'Sleep not added' : '${hours(m)} hours slept',
+                        label: m == null
+                            ? tr(context, 'Sleep not added')
+                            : tr(context, '{value1} hours slept', {
+                                'value1': hours(m),
+                              }),
                         kind: RingKind.sleep,
                       ),
                       const SizedBox(height: 20),
                       Row(
                         children: [
                           Expanded(
-                            child: Text('Hours slept', style: t.body(weight: FontWeight.w400)),
+                            child: Text(
+                              tr(context, 'Hours slept'),
+                              style: t.body(weight: FontWeight.w400),
+                            ),
                           ),
-                          round(Icons.remove, 'Half an hour less', () => nudge(-30)),
+                          round(
+                            Icons.remove,
+                            'Half an hour less',
+                            () => nudge(-30),
+                          ),
                           SizedBox(
                             width: 84,
-                            child: Text(m == null ? '–' : hours(m), textAlign: TextAlign.center, style: t.x(24)),
+                            child: Text(
+                              m == null ? '–' : hours(m),
+                              textAlign: TextAlign.center,
+                              style: t.x(24),
+                            ),
                           ),
-                          round(Icons.add, 'Half an hour more', () => nudge(30)),
+                          round(
+                            Icons.add,
+                            'Half an hour more',
+                            () => nudge(30),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 24),
-                      _Head('This week', slept.isEmpty ? 'nothing yet' : 'avg ${hours(avg)} h · $hit of 7 enough'),
+                      _Head(
+                        'This week',
+                        slept.isEmpty
+                            ? 'nothing yet'
+                            : 'avg ${hours(avg)} h · $hit of 7 enough',
+                      ),
                       const SizedBox(height: 10),
-                      WeekBars(days: days, values: values, target: goal, max: 600),
+                      WeekBars(
+                        days: days,
+                        values: values,
+                        target: goal,
+                        max: 600,
+                      ),
                       const SizedBox(height: 24),
                       const _TipChips([
                         (Icons.restaurant_rounded, 'Short sleep = more hunger'),
@@ -244,7 +342,11 @@ class SleepScreen extends StatelessWidget {
                 if (Steps.supported)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                    child: Cta(label: 'Get from Health', muted: m != null, onTap: () => _fromHealth(context)),
+                    child: Cta(
+                      label: tr(context, 'Get from Health'),
+                      muted: m != null,
+                      onTap: () => _fromHealth(context),
+                    ),
                   ),
               ],
             ),
@@ -257,7 +359,12 @@ class SleepScreen extends StatelessWidget {
 
 /// Walk: today's steps against this week's target, the build-up ladder and the week.
 class WalkScreen extends StatefulWidget {
-  const WalkScreen({super.key, required this.store, required this.steps, required this.onRefresh});
+  const WalkScreen({
+    super.key,
+    required this.store,
+    required this.steps,
+    required this.onRefresh,
+  });
   final Store store;
   final int? steps; // from Health Connect / Apple Health, null if unavailable
   final Future<void> Function() onRefresh;
@@ -318,10 +425,17 @@ class _WalkScreenState extends State<WalkScreen> {
         final week = (s.lap - 1) ~/ 7 + 1;
         final days = s.lastDays(7);
 
-        final weekValues = [for (final d in days) d == s.today ? walked : _week?[d] ?? s.stepsHistory[d] ?? 0];
+        final weekValues = [
+          for (final d in days)
+            d == s.today ? walked : _week?[d] ?? s.stepsHistory[d] ?? 0,
+        ];
         final logged = weekValues.where((v) => v > 0).toList();
-        final avg = logged.isEmpty ? 0 : logged.reduce((a, b) => a + b) ~/ logged.length;
-        final hit = [for (final (i, d) in days.indexed) weekValues[i] >= s.stepTargetOn(d)].where((x) => x).length;
+        final avg = logged.isEmpty
+            ? 0
+            : logged.reduce((a, b) => a + b) ~/ logged.length;
+        final hit = [
+          for (final (i, d) in days.indexed) weekValues[i] >= s.stepTargetOn(d),
+        ].where((x) => x).length;
         final stage = s.lap <= 14
             ? 0
             : s.lap <= 28
@@ -338,43 +452,76 @@ class _WalkScreenState extends State<WalkScreen> {
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                       children: [
-                        _Header(title: 'Walk', sub: 'Week $week · target ${thousands(target)} steps'),
+                        _Header(
+                          title: tr(context, 'Walk'),
+                          sub: 'Week $week · target ${thousands(target)} steps',
+                        ),
                         const SizedBox(height: 16),
                         RingHero(
                           frac: walked / target,
                           big: thousands(walked),
                           small: 'of ${thousands(target)} steps',
-                          pill: togo == 0 ? 'Target done' : '${thousands(togo)} to go',
+                          pill: togo == 0
+                              ? 'Target done'
+                              : '${thousands(togo)} to go',
                           done: togo == 0,
-                          label: '${thousands(walked)} of ${thousands(target)} steps',
+                          label: tr(context, '{value1} of {value2} steps', {
+                            'value1': thousands(walked),
+                            'value2': thousands(target),
+                          }),
                           kind: RingKind.walk,
                         ),
                         const SizedBox(height: 20),
                         Tiles([
-                          (Icons.straighten_rounded, km.toStringAsFixed(1), 'km'),
-                          (Icons.local_fire_department_rounded, '${kcal.round()}', 'kcal'),
-                          (Icons.timer_outlined, togo == 0 ? '0' : '${(togo / 105).ceil()}', 'min to go'),
+                          (
+                            Icons.straighten_rounded,
+                            km.toStringAsFixed(1),
+                            'km',
+                          ),
+                          (
+                            Icons.local_fire_department_rounded,
+                            '${kcal.round()}',
+                            'kcal',
+                          ),
+                          (
+                            Icons.timer_outlined,
+                            togo == 0 ? '0' : '${(togo / 105).ceil()}',
+                            'min to go',
+                          ),
                         ]),
                         if (_hours != null && _hours!.any((h) => h > 0)) ...[
                           const SizedBox(height: 24),
-                          _Head('Today by the hour', 'most at ${_peak(_hours!)}:00'),
+                          _Head(
+                            'Today by the hour',
+                            'most at ${_peak(_hours!)}:00',
+                          ),
                           const SizedBox(height: 10),
                           SizedBox(
                             height: 84,
                             child: Play(
                               duration: const Duration(milliseconds: 1200),
                               curve: Curves.linear,
-                              builder: (context, v, _) =>
-                                  CustomPaint(painter: _HourBars(_hours!, t, v), size: Size.infinite),
+                              builder: (context, v, _) => CustomPaint(
+                                painter: _HourBars(_hours!, t, v),
+                                size: Size.infinite,
+                              ),
                             ),
                           ),
                         ],
                         const SizedBox(height: 24),
-                        _Head('This week', 'avg ${thousands(avg)} · $hit of 7 on target'),
+                        _Head(
+                          'This week',
+                          'avg ${thousands(avg)} · $hit of 7 on target',
+                        ),
                         const SizedBox(height: 10),
-                        WeekBars(days: days, values: weekValues, target: target, max: 12000),
+                        WeekBars(
+                          days: days,
+                          values: weekValues,
+                          target: target,
+                          max: 12000,
+                        ),
                         const SizedBox(height: 24),
-                        Text('The build-up', style: t.meta()),
+                        Text(tr(context, 'The build-up'), style: t.meta()),
                         const SizedBox(height: 10),
                         // three steps of the plan; the yellow one is where you are
                         Row(
@@ -401,8 +548,21 @@ class _WalkScreenState extends State<WalkScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 8),
-                                    Text(steps, style: t.x(18, color: i == stage ? t.ink : t.ink2)),
-                                    Text(i == stage ? '$weeks · now' : weeks, style: t.meta(i == stage ? t.ink : null)),
+                                    Text(
+                                      steps,
+                                      style: t.x(
+                                        18,
+                                        color: i == stage ? t.ink : t.ink2,
+                                      ),
+                                    ),
+                                    Text(
+                                      i == stage
+                                          ? tr(context, '{value1} · now', {
+                                              'value1': weeks,
+                                            })
+                                          : weeks,
+                                      style: t.meta(i == stage ? t.ink : null),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -432,11 +592,17 @@ class _WalkScreenState extends State<WalkScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                   child: fromHealth
                       ? Cta(
-                          label: _loading ? 'Refreshing…' : 'Refresh steps',
+                          label: _loading
+                              ? tr(context, 'Refreshing…')
+                              : tr(context, 'Refresh steps'),
                           muted: true,
                           onTap: _loading ? null : _load,
                         )
-                      : Cta(label: 'Enter today\'s steps', trailing: thousands(walked), onTap: _enter),
+                      : Cta(
+                          label: tr(context, 'Enter today\'s steps'),
+                          trailing: thousands(walked),
+                          onTap: _enter,
+                        ),
                 ),
               ],
             ),
@@ -465,7 +631,8 @@ class _Ring extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     const stroke = 16.0;
-    final c = size.center(Offset.zero), r = size.shortestSide / 2 - stroke / 2 - 4;
+    final c = size.center(Offset.zero),
+        r = size.shortestSide / 2 - stroke / 2 - 4;
     final f = frac.clamp(0.0, 1.0);
     canvas.drawCircle(
       c,
@@ -497,7 +664,10 @@ class _Ring extends CustomPainter {
         canvas.translate(at.dx, at.dy);
         canvas.rotate(a + 1.5708 * 2);
         final paint = Paint()..color = t.ink.withValues(alpha: .28);
-        canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: 4.5, height: 8), paint);
+        canvas.drawOval(
+          Rect.fromCenter(center: Offset.zero, width: 4.5, height: 8),
+          paint,
+        );
         canvas.drawCircle(const Offset(0, -6), 1.8, paint);
         canvas.restore();
       }
@@ -516,7 +686,8 @@ class _Ring extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_Ring o) => o.frac != frac || o.t != t || o.prints != prints;
+  bool shouldRepaint(_Ring o) =>
+      o.frac != frac || o.t != t || o.prints != prints;
 }
 
 /// Steps per hour from 5:00 to now; the busiest hour in yellow.
@@ -524,7 +695,8 @@ class _HourBars extends CustomPainter {
   _HourBars(this.h, this.t, [this.grow = 1]);
   final List<int> h;
   final Daur t;
-  final double grow; // 0..1: the bars rise left to right, like a wave going through
+  final double
+  grow; // 0..1: the bars rise left to right, like a wave going through
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -536,11 +708,20 @@ class _HourBars extends CustomPainter {
     for (var hr = first; hr <= last; hr++) {
       final v = hr < h.length ? h[hr] : 0;
       final x = (hr - first) * slot;
-      final k = Curves.easeOutBack.transform((grow * 1.6 - (hr - first) / (last - first + 1) * .6).clamp(0, 1));
-      final barH = v == 0 ? 2.0 : math.max(2.0, (size.height - labelH) * v / top * k);
+      final k = Curves.easeOutBack.transform(
+        (grow * 1.6 - (hr - first) / (last - first + 1) * .6).clamp(0, 1),
+      );
+      final barH = v == 0
+          ? 2.0
+          : math.max(2.0, (size.height - labelH) * v / top * k);
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromLTWH(x + slot * .18, size.height - labelH - barH, slot * .64, barH),
+          Rect.fromLTWH(
+            x + slot * .18,
+            size.height - labelH - barH,
+            slot * .64,
+            barH,
+          ),
           const Radius.circular(3),
         ),
         Paint()
@@ -555,7 +736,10 @@ class _HourBars extends CustomPainter {
           text: TextSpan(text: '$hr', style: t.meta()),
           textDirection: TextDirection.ltr,
         )..layout();
-        tp.paint(canvas, Offset(x + slot / 2 - tp.width / 2, size.height - tp.height));
+        tp.paint(
+          canvas,
+          Offset(x + slot / 2 - tp.width / 2, size.height - tp.height),
+        );
       }
     }
   }
@@ -570,7 +754,11 @@ class _Header extends StatelessWidget {
   final List<MenuItem> menu;
 
   @override
-  Widget build(BuildContext context) => PageHeader(title, sub: sub, actions: [if (menu.isNotEmpty) MoreButton(menu)]);
+  Widget build(BuildContext context) => PageHeader(
+    title,
+    sub: sub,
+    actions: [if (menu.isNotEmpty) MoreButton(menu)],
+  );
 }
 
 /// What lives inside a [RingHero]: liquid for water, footprints round the lane for steps, a night
@@ -600,7 +788,8 @@ class RingHero extends StatefulWidget {
   State<RingHero> createState() => _RingHeroState();
 }
 
-class _RingHeroState extends State<RingHero> with SingleTickerProviderStateMixin {
+class _RingHeroState extends State<RingHero>
+    with SingleTickerProviderStateMixin {
   late final _f = AnimationController.unbounded(vsync: this, value: 0);
   bool _started = false;
 
@@ -657,12 +846,24 @@ class _RingHeroState extends State<RingHero> with SingleTickerProviderStateMixin
                   ),
                 if (w.kind == RingKind.sleep && w.frac > 0) ...[
                   const Positioned.fill(child: _Stars()),
-                  const Positioned(left: 128, top: 30, width: 70, height: 60, child: Zzz(at: Offset(4, 34))),
+                  const Positioned(
+                    left: 128,
+                    top: 30,
+                    width: 70,
+                    height: 60,
+                    child: Zzz(at: Offset(4, 34)),
+                  ),
                 ],
                 Positioned.fill(
                   child: AnimatedBuilder(
                     animation: _f,
-                    builder: (context, _) => CustomPaint(painter: _Ring(_f.value, t, prints: w.kind == RingKind.walk)),
+                    builder: (context, _) => CustomPaint(
+                      painter: _Ring(
+                        _f.value,
+                        t,
+                        prints: w.kind == RingKind.walk,
+                      ),
+                    ),
                   ),
                 ),
                 Center(
@@ -683,12 +884,18 @@ class _RingHeroState extends State<RingHero> with SingleTickerProviderStateMixin
                           trigger: w.done,
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 5,
+                            ),
                             decoration: BoxDecoration(
                               color: w.done ? t.accent : t.infield,
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: Text(w.pill, style: t.meta(w.done ? t.onAccent : t.ink)),
+                            child: Text(
+                              w.pill,
+                              style: t.meta(w.done ? t.onAccent : t.ink),
+                            ),
                           ),
                         ),
                       ],
@@ -726,7 +933,15 @@ class _StarPainter extends CustomPainter {
   final double v;
   final Daur t;
 
-  static const _at = [(.32, .30), (.66, .26), (.24, .62), (.76, .66), (.5, .2), (.42, .78), (.62, .8)];
+  static const _at = [
+    (.32, .30),
+    (.66, .26),
+    (.24, .62),
+    (.76, .66),
+    (.5, .2),
+    (.42, .78),
+    (.62, .8),
+  ];
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -734,10 +949,15 @@ class _StarPainter extends CustomPainter {
       final k = ((v - i * .1) / .3).clamp(0.0, 1.0);
       if (k == 0) continue;
       final twinkle = 1 + .6 * math.sin(math.pi * k); // flares as it appears
-      final c = Offset(size.width * x, size.height * y), r = (i.isEven ? 2.2 : 1.6) * twinkle;
+      final c = Offset(size.width * x, size.height * y),
+          r = (i.isEven ? 2.2 : 1.6) * twinkle;
       final p = Paint()..color = t.ink.withValues(alpha: .35 * k);
       canvas.drawCircle(c, r, p);
-      canvas.drawLine(c - Offset(r * 2, 0), c + Offset(r * 2, 0), p..strokeWidth = .8);
+      canvas.drawLine(
+        c - Offset(r * 2, 0),
+        c + Offset(r * 2, 0),
+        p..strokeWidth = .8,
+      );
       canvas.drawLine(c - Offset(0, r * 2), c + Offset(0, r * 2), p);
     }
   }
@@ -766,11 +986,17 @@ class Tiles extends StatelessWidget {
               curve: Curves.easeOutBack,
               builder: (context, v, child) => Opacity(
                 opacity: v.clamp(0, 1),
-                child: Transform.translate(offset: Offset(0, 16 * (1 - v)), child: child),
+                child: Transform.translate(
+                  offset: Offset(0, 16 * (1 - v)),
+                  child: child,
+                ),
               ),
               child: Container(
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(16)),
+                decoration: BoxDecoration(
+                  color: t.infield,
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -781,7 +1007,12 @@ class Tiles extends StatelessWidget {
                       alignment: Alignment.centerLeft,
                       child: Text(value, style: t.x(22)),
                     ),
-                    Text(label, style: t.meta(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                      label,
+                      style: t.meta(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
@@ -837,7 +1068,13 @@ class _TipChips extends StatelessWidget {
 
 /// Seven daily bars with a dashed target line; today solid.
 class WeekBars extends StatelessWidget {
-  const WeekBars({super.key, required this.days, required this.values, required this.target, required this.max});
+  const WeekBars({
+    super.key,
+    required this.days,
+    required this.values,
+    required this.target,
+    required this.max,
+  });
   final List<String> days;
   final List<int> values;
   final int target, max;
@@ -854,7 +1091,10 @@ class WeekBars extends StatelessWidget {
             left: 0,
             right: 0,
             bottom: 22 + h * (target / max).clamp(0, 1),
-            child: CustomPaint(painter: _Dash(t.lane), size: const Size.fromHeight(1.5)),
+            child: CustomPaint(
+              painter: _Dash(t.lane),
+              size: const Size.fromHeight(1.5),
+            ),
           ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -872,7 +1112,9 @@ class WeekBars extends StatelessWidget {
                           duration: const Duration(milliseconds: 700),
                           curve: Curves.easeOutBack,
                           builder: (context, v, _) => Container(
-                            height: (h * (values[i] / max) * v).clamp(3, h).toDouble(),
+                            height: (h * (values[i] / max) * v)
+                                .clamp(3, h)
+                                .toDouble(),
                             decoration: BoxDecoration(
                               color: i == days.length - 1 ? t.ink : t.faint,
                               borderRadius: BorderRadius.circular(6),
@@ -881,7 +1123,9 @@ class WeekBars extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          i == days.length - 1 ? 'Today' : _dayLetters[DateTime.parse(d).weekday - 1],
+                          i == days.length - 1
+                              ? tr(context, 'Today')
+                              : _dayLetters[DateTime.parse(d).weekday - 1],
                           style: t.meta(i == days.length - 1 ? t.ink : null),
                         ),
                       ],

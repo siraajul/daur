@@ -8,6 +8,7 @@ import 'activity_anim.dart';
 import 'cloud.dart';
 import 'store.dart';
 import 'theme.dart';
+import 'l10n.dart';
 import 'today.dart' show Cta, thousands;
 import 'water_walk.dart' show litres;
 import 'visuals.dart';
@@ -59,22 +60,51 @@ class _FriendsScreenState extends State<FriendsScreen> {
         return Scaffold(
           body: SafeArea(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
-                const PageHeader('Friends', sub: 'This week\'s leaderboard'),
-                const SizedBox(height: 16),
+                PageHeader(
+                  tr(context, 'Friends'),
+                  sub: tr(context, 'This week\'s leaderboard'),
+                ),
+                SizedBox(height: 16),
                 if (!c.signedIn) ...[
-                  const Tip(Icons.emoji_events_outlined, 'Race your friends every week: meals, water, steps'),
-                  const SizedBox(height: 16),
-                  GoogleButton(busy: c.busy, onPressed: () => c.signInWithGoogle()),
+                  Tip(
+                    Icons.emoji_events_outlined,
+                    tr(
+                      context,
+                      'Race your friends every week: meals, water, steps',
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  GoogleButton(
+                    busy: c.busy,
+                    onPressed: () => c.signInWithGoogle(),
+                  ),
                 ] else if (code == null) ...[
-                  const Tip(Icons.emoji_events_outlined, 'Race your friends every week: meals, water, steps'),
-                  const Tip(Icons.balance_rounded, 'Each against your own targets, so it\'s fair'),
-                  const Tip(Icons.lock_outline_rounded, 'Only people with the code see the board'),
-                  const SizedBox(height: 16),
-                  Cta(label: 'Start a friends group', onTap: _busy ? null : () => _run(() => c.createBoard('friends'))),
-                  const SizedBox(height: 24),
-                  Text('Or join one', style: t.meta()),
+                  Tip(
+                    Icons.emoji_events_outlined,
+                    tr(
+                      context,
+                      'Race your friends every week: meals, water, steps',
+                    ),
+                  ),
+                  Tip(
+                    Icons.balance_rounded,
+                    tr(context, 'Each against your own targets, so it\'s fair'),
+                  ),
+                  Tip(
+                    Icons.lock_outline_rounded,
+                    tr(context, 'Only people with the code see the board'),
+                  ),
+                  SizedBox(height: 16),
+                  Cta(
+                    label: tr(context, 'Start a friends group'),
+                    onTap: _busy
+                        ? null
+                        : () => _run(() => c.createBoard('friends')),
+                  ),
+                  SizedBox(height: 24),
+                  Text(tr(context, 'Or join one'), style: t.meta()),
                   Row(
                     children: [
                       Expanded(
@@ -83,38 +113,52 @@ class _FriendsScreenState extends State<FriendsScreen> {
                           textCapitalization: TextCapitalization.characters,
                           style: t.x(20),
                           decoration: InputDecoration(
-                            hintText: 'CODE',
+                            hintText: tr(context, 'CODE'),
                             hintStyle: t.x(20, color: t.faint),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12),
                       FilledButton(
-                        onPressed: _busy ? null : () => _run(() => c.joinBoard('friends', _code.text)),
-                        style: FilledButton.styleFrom(backgroundColor: t.accent, foregroundColor: t.onAccent),
-                        child: const Text('Join'),
+                        onPressed: _busy
+                            ? null
+                            : () => _run(
+                                () => c.joinBoard('friends', _code.text),
+                              ),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: t.accent,
+                          foregroundColor: t.onAccent,
+                        ),
+                        child: Text(tr(context, 'Join')),
                       ),
                     ],
                   ),
                 ] else ...[
                   _CodeCard(code: code),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
                         for (final (key, label, icon, _, _) in boards)
                           Padding(
-                            padding: const EdgeInsets.only(right: 8),
+                            padding: EdgeInsets.only(right: 8),
                             child: ChoiceChip(
-                              avatar: Icon(icon, size: 18, color: key == _by ? t.onAccent : t.ink),
-                              label: Text(label, style: t.sec(key == _by ? t.onAccent : t.ink)),
+                              avatar: Icon(
+                                icon,
+                                size: 18,
+                                color: key == _by ? t.onAccent : t.ink,
+                              ),
+                              label: Text(
+                                tr(context, label),
+                                style: t.sec(key == _by ? t.onAccent : t.ink),
+                              ),
                               selected: key == _by,
                               showCheckmark: false,
                               selectedColor: t.accent,
                               backgroundColor: t.infield,
                               side: BorderSide.none,
-                              shape: const StadiumBorder(),
+                              shape: StadiumBorder(),
                               onSelected: (_) {
                                 HapticFeedback.selectionClick();
                                 setState(() => _by = key);
@@ -124,12 +168,21 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   StreamBuilder<List<Map<String, dynamic>>>(
                     stream: c.board(code),
                     builder: (context, snap) {
-                      if (snap.hasError) return Text('Couldn\'t load the board.', style: t.sec());
-                      if (!snap.hasData) return const Center(child: CircularProgressIndicator.adaptive());
+                      if (snap.hasError) {
+                        return Text(
+                          tr(context, 'Couldn\'t load the board.'),
+                          style: t.sec(),
+                        );
+                      }
+                      if (!snap.hasData) {
+                        return Center(
+                          child: CircularProgressIndicator.adaptive(),
+                        );
+                      }
                       // a new category raises the podium again
                       return Leaderboard(
                         key: ValueKey(_by),
@@ -140,13 +193,19 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       );
                     },
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
                   TextButton(
                     onPressed: () => c.leaveBoard('friends'),
-                    child: Text('Leave this group', style: t.sec(t.ink)),
+                    child: Text(
+                      tr(context, 'Leave this group'),
+                      style: t.sec(t.ink),
+                    ),
                   ),
                 ],
-                if (_error != null) ...[const SizedBox(height: 12), Text(_error!, style: t.body())],
+                if (_error != null) ...[
+                  SizedBox(height: 12),
+                  Text(tr(context, _error!), style: t.body()),
+                ],
               ],
             ),
           ),
@@ -164,32 +223,43 @@ class _CodeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
-      decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(18)),
+      padding: EdgeInsets.fromLTRB(16, 12, 8, 12),
+      decoration: BoxDecoration(
+        color: t.infield,
+        borderRadius: BorderRadius.circular(18),
+      ),
       child: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Group code', style: t.meta()),
+                Text(tr(context, 'Group code'), style: t.meta()),
                 Text(code, style: t.x(26, weight: FontWeight.w900)),
               ],
             ),
           ),
           IconButton(
-            tooltip: 'Share the code',
+            tooltip: tr(context, 'Share the code'),
             icon: Icon(Icons.ios_share_rounded, color: t.ink),
             onPressed: () => SharePlus.instance.share(
-              ShareParams(text: 'Race me on Daur this week: install it, open Menu → Friends and enter $code'),
+              ShareParams(
+                text: tr(
+                  context,
+                  "Race me on Daur this week: install it, open Menu → Friends and enter {code}",
+                  {"code": code},
+                ),
+              ),
             ),
           ),
           IconButton(
-            tooltip: 'Copy',
+            tooltip: tr(context, 'Copy'),
             icon: Icon(Icons.copy_rounded, color: t.ink),
             onPressed: () {
               Clipboard.setData(ClipboardData(text: code));
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Code copied')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(tr(context, 'Code copied'))),
+              );
             },
           ),
         ],
@@ -207,10 +277,34 @@ const boards = <(String, String, IconData, String Function(int), String)>[
     _plain,
     'Up to 300 a day: 100 each for meals, water and steps, against your own targets',
   ),
-  ('steps', 'Steps', Icons.directions_walk_rounded, _plain, 'Steps walked this week'),
-  ('lifted', 'Lifted', Icons.fitness_center_rounded, _kg, 'kg × reps over every set logged this week'),
-  ('full', 'Consistency', Icons.event_available_rounded, _days, 'Days with all four meals logged this week'),
-  ('water', 'Water', Icons.water_drop_outlined, _litres, 'Water drunk this week'),
+  (
+    'steps',
+    'Steps',
+    Icons.directions_walk_rounded,
+    _plain,
+    'Steps walked this week',
+  ),
+  (
+    'lifted',
+    'Lifted',
+    Icons.fitness_center_rounded,
+    _kg,
+    'kg × reps over every set logged this week',
+  ),
+  (
+    'full',
+    'Consistency',
+    Icons.event_available_rounded,
+    _days,
+    'Days with all four meals logged this week',
+  ),
+  (
+    'water',
+    'Water',
+    Icons.water_drop_outlined,
+    _litres,
+    'Water drunk this week',
+  ),
   (
     'extra',
     'Extra kcal',
@@ -219,6 +313,33 @@ const boards = <(String, String, IconData, String Function(int), String)>[
     'kcal eaten over each one\'s own target this week · Burn shows how to walk it off',
   ),
 ];
+
+String _byFormat(String Function(int) format) => format == _days
+    ? 'full'
+    : format == _kg
+    ? 'lifted'
+    : format == _litres
+    ? 'water'
+    : format == _kcal
+    ? 'extra'
+    : 'points';
+String _displayBoardValue(
+  BuildContext context,
+  String by,
+  int value,
+  String Function(int) format,
+) {
+  if (Localizations.localeOf(context).languageCode != 'bn') {
+    return format(value);
+  }
+  return switch (by) {
+    'full' => tr(context, '{count} days', {'count': value}),
+    'lifted' => tr(context, '{count} kg', {'count': thousands(value)}),
+    'water' => tr(context, '{count} L', {'count': litres(value)}),
+    'extra' => tr(context, '+{count} kcal', {'count': thousands(value)}),
+    _ => format(value),
+  };
+}
 
 String _plain(int n) => thousands(n);
 String _kg(int n) => '${thousands(n)} kg';
@@ -229,17 +350,28 @@ String _kcal(int n) => '${n > 0 ? '+' : ''}${thousands(n)} kcal';
 /// This week's ranking by one of [boards]: the top three on a podium that rises in, everyone else in
 /// a list with a bar against the leader, their streak and today's meals. A longer streak breaks a tie.
 class Leaderboard extends StatelessWidget {
-  const Leaderboard({super.key, required this.rows, required this.me, required this.today, this.by = 'points'});
-  final List<Map<String, dynamic>> rows; // board rows: name, photoUrl, week, streak, legs, day, and the counts
+  const Leaderboard({
+    super.key,
+    required this.rows,
+    required this.me,
+    required this.today,
+    this.by = 'points',
+  });
+  final List<Map<String, dynamic>>
+  rows; // board rows: name, photoUrl, week, streak, legs, day, and the counts
   final String? me;
   final String today;
   final String by; // a field of [boards]
 
   /// Steps typed in by hand this week, on a board where steps count: marked ✎.
-  bool typed(Map r) => (by == 'steps' || by == 'points') && r['typed'] == true && r['week'] == raceWeekStart(today);
+  bool typed(Map r) =>
+      (by == 'steps' || by == 'points') &&
+      r['typed'] == true &&
+      r['week'] == raceWeekStart(today);
 
   /// What counts: this race week's only (a row from last week is 0 until they open Daur).
-  int value(Map r) => r['week'] == raceWeekStart(today) ? (r[by] as num? ?? 0).toInt() : 0;
+  int value(Map r) =>
+      r['week'] == raceWeekStart(today) ? (r[by] as num? ?? 0).toInt() : 0;
 
   @override
   Widget build(BuildContext context) {
@@ -247,9 +379,15 @@ class Leaderboard extends StatelessWidget {
     final ranked = [...rows]
       ..sort((a, b) {
         final p = value(b).compareTo(value(a));
-        return p != 0 ? p : (b['streak'] as num? ?? 0).compareTo(a['streak'] as num? ?? 0);
+        return p != 0
+            ? p
+            : (b['streak'] as num? ?? 0).compareTo(a['streak'] as num? ?? 0);
       });
-    final day = DateTime.parse(today).difference(DateTime.parse(raceWeekStart(today))).inDays + 1;
+    final day =
+        DateTime.parse(today)
+            .difference(DateTime.parse(raceWeekStart(today)))
+            .inDays +
+        1;
     final top = math.max(1, ranked.isEmpty ? 1 : value(ranked.first));
     final (_, _, _, format, counts) = boards.firstWhere((b) => b.$1 == by);
     final mine = ranked.indexWhere((r) => r['uid'] == me);
@@ -259,12 +397,27 @@ class Leaderboard extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text(day >= 7 ? 'Last day · resets tomorrow' : 'Day $day of 7 · resets Saturday', style: t.meta()),
+              child: Text(
+                day >= 7
+                    ? tr(context, 'Last day · resets tomorrow')
+                    : tr(context, "Day {day} of 7 · resets Saturday", {
+                        "day": day,
+                      }),
+                style: t.meta(),
+              ),
             ),
-            if (mine >= 0) Text('You\'re ${_ordinal(mine + 1)}', style: t.meta(t.ink)),
+            if (mine >= 0)
+              Text(
+                tr(context, "You're {rank}", {
+                  "rank": Localizations.localeOf(context).languageCode == 'bn'
+                      ? mine + 1
+                      : _ordinal(mine + 1),
+                }),
+                style: t.meta(t.ink),
+              ),
           ],
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         _Podium(
           top3: ranked.take(3).toList(),
           value: value,
@@ -272,27 +425,33 @@ class Leaderboard extends StatelessWidget {
           typed: typed,
           me: me,
           // most extra kcal gets a flame, not a trophy
-          crownIcon: by == 'extra' ? Icons.local_fire_department_rounded : Icons.emoji_events_rounded,
+          crownIcon: by == 'extra'
+              ? Icons.local_fire_department_rounded
+              : Icons.emoji_events_rounded,
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         for (final (i, r) in ranked.indexed.skip(3))
           SlideIn(
             i: i - 3,
-            after: const Duration(milliseconds: 900),
+            after: Duration(milliseconds: 900),
             child: _RankRow(
               rank: i + 1,
               row: r,
               value: value(r),
-              text: format(value(r)),
+              text: _displayBoardValue(context, by, value(r), format),
               typed: typed(r),
               top: top,
               me: r['uid'] == me,
               today: today,
             ),
           ),
-        const SizedBox(height: 12),
-        Text(counts, style: t.meta()),
-        if (ranked.any(typed)) Text('✎ some steps typed in by hand, not from Health', style: t.meta()),
+        SizedBox(height: 12),
+        Text(tr(context, counts), style: t.meta()),
+        if (ranked.any(typed))
+          Text(
+            tr(context, '✎ some steps typed in by hand, not from Health'),
+            style: t.meta(),
+          ),
       ],
     );
   }
@@ -327,7 +486,7 @@ class _Podium extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
-    if (top3.isEmpty) return const SizedBox.shrink();
+    if (top3.isEmpty) return SizedBox.shrink();
     // place → (index in top3, block height, when it rises)
     const places = [(1, 86.0, 250), (0, 118.0, 450), (2, 62.0, 50)];
     return SizedBox(
@@ -338,17 +497,25 @@ class _Podium extends StatelessWidget {
           for (final (i, h, delay) in places)
             Expanded(
               child: i >= top3.length
-                  ? const SizedBox.shrink()
+                  ? SizedBox.shrink()
                   : Play(
                       delay: Duration(milliseconds: delay),
-                      duration: const Duration(milliseconds: 1300),
+                      duration: Duration(milliseconds: 1300),
                       curve: Curves.linear,
                       builder: (context, v, _) {
                         final r = top3[i];
-                        final rise = Curves.elasticOut.transform((v / .6).clamp(0, 1));
-                        final drop = Curves.bounceOut.transform(((v - .3) / .5).clamp(0, 1));
-                        final crown = Curves.elasticOut.transform(((v - .7) / .3).clamp(0, 1));
-                        final name = (r['name'] as String? ?? '').split(' ').first;
+                        final rise = Curves.elasticOut.transform(
+                          (v / .6).clamp(0, 1),
+                        );
+                        final drop = Curves.bounceOut.transform(
+                          ((v - .3) / .5).clamp(0, 1),
+                        );
+                        final crown = Curves.elasticOut.transform(
+                          ((v - .7) / .3).clamp(0, 1),
+                        );
+                        final name = (r['name'] as String? ?? '')
+                            .split(' ')
+                            .first;
                         final photo = r['photoUrl'] as String?;
                         final first = i == 0;
                         return Column(
@@ -357,48 +524,68 @@ class _Podium extends StatelessWidget {
                             if (first)
                               Transform.scale(
                                 scale: crown,
-                                child: Icon(crownIcon, color: t.accent, size: 30),
+                                child: Icon(
+                                  crownIcon,
+                                  color: t.accent,
+                                  size: 30,
+                                ),
                               ),
                             Opacity(
                               opacity: drop.clamp(0, 1),
                               child: Transform.translate(
                                 offset: Offset(0, -40 * (1 - drop)),
                                 child: Container(
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: BoxDecoration(color: first ? t.accent : t.ink, shape: BoxShape.circle),
+                                  padding: EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: first ? t.accent : t.ink,
+                                    shape: BoxShape.circle,
+                                  ),
                                   child: CircleAvatar(
                                     radius: first ? 26 : 21,
                                     backgroundColor: t.infield,
-                                    foregroundImage: photo == null ? null : NetworkImage(photo),
-                                    child: Text(name.isEmpty ? '?' : name[0], style: t.body()),
+                                    foregroundImage: photo == null
+                                        ? null
+                                        : NetworkImage(photo),
+                                    child: Text(
+                                      name.isEmpty ? '?' : name[0],
+                                      style: t.body(),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4),
                             Text(
-                              r['uid'] == me ? 'You' : name,
+                              r['uid'] == me ? tr(context, 'You') : name,
                               style: t.body(),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
-                              '${format((value(r) * rise.clamp(0, 1)).round())}${typed(r) ? ' ✎' : ''}',
+                              '${_displayBoardValue(context, _byFormat(format), (value(r) * rise.clamp(0, 1)).round(), format)}${typed(r) ? ' ✎' : ''}',
                               style: t.x(15, color: t.ink2),
                               maxLines: 1,
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4),
                             Container(
                               height: h * rise.clamp(0, 1.08),
-                              margin: const EdgeInsets.symmetric(horizontal: 6),
+                              margin: EdgeInsets.symmetric(horizontal: 6),
                               alignment: Alignment.topCenter,
-                              padding: const EdgeInsets.only(top: 8),
+                              padding: EdgeInsets.only(top: 8),
                               decoration: BoxDecoration(
                                 color: first ? t.accent : t.infield,
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                                borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(14),
+                                ),
                               ),
                               child: rise > .5
-                                  ? Text('${i + 1}', style: t.x(28, color: first ? t.onAccent : t.ink))
+                                  ? Text(
+                                      '${i + 1}',
+                                      style: t.x(
+                                        28,
+                                        color: first ? t.onAccent : t.ink,
+                                      ),
+                                    )
                                   : null,
                             ),
                           ],
@@ -439,8 +626,8 @@ class _RankRow extends StatelessWidget {
     final streak = (row['streak'] as num? ?? 0).toInt();
     final legs = row['day'] == today ? (row['legs'] as num? ?? 0).toInt() : 0;
     return Container(
-      constraints: const BoxConstraints(minHeight: 64),
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      constraints: BoxConstraints(minHeight: 64),
+      padding: EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: me ? t.infield.withValues(alpha: .6) : null,
         border: Border(top: BorderSide(color: t.rule, width: .5)),
@@ -455,14 +642,14 @@ class _RankRow extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: 6),
           CircleAvatar(
             radius: 18,
             backgroundColor: t.infield,
             foregroundImage: photo == null ? null : NetworkImage(photo),
             child: Text(name.isEmpty ? '?' : name[0], style: t.meta(t.ink)),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -471,18 +658,18 @@ class _RankRow extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        me ? '$name (you)' : name,
+                        me ? tr(context, "{name} (you)", {"name": name}) : name,
                         style: t.body(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    SizedBox(width: 6),
                     for (var i = 0; i < 4; i++)
                       Container(
                         width: 7,
                         height: 7,
-                        margin: const EdgeInsets.only(right: 2),
+                        margin: EdgeInsets.only(right: 2),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: i < legs ? t.ink : null,
@@ -491,12 +678,12 @@ class _RankRow extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: Play(
-                    delay: const Duration(milliseconds: 1000),
-                    duration: const Duration(milliseconds: 900),
+                    delay: Duration(milliseconds: 1000),
+                    duration: Duration(milliseconds: 900),
                     curve: Curves.easeOutCubic,
                     builder: (context, v, _) => LinearProgressIndicator(
                       value: (value / top * v).clamp(0, 1).toDouble(),
@@ -509,7 +696,7 @@ class _RankRow extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -517,7 +704,11 @@ class _RankRow extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.local_fire_department_rounded, size: 14, color: streak > 0 ? t.accent : t.faint),
+                  Icon(
+                    Icons.local_fire_department_rounded,
+                    size: 14,
+                    color: streak > 0 ? t.accent : t.faint,
+                  ),
                   Text('$streak', style: t.meta()),
                 ],
               ),

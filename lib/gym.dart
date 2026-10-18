@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -16,14 +18,18 @@ import 'today.dart' show MenuButton;
 import 'workout.dart';
 import 'visuals.dart';
 
-String planText(ExPlan p) =>
-    p.timed ? '${p.sets} × ${p.reps} s' : '${p.sets} × ${p.reps}${p.kg > 0 ? ' · ${kgText(p.kg)} kg' : ''}';
+String planText(ExPlan p, {String language = 'en'}) => p.timed
+    ? trLanguage(language, '{sets} × {seconds} s', {'sets': p.sets, 'seconds': p.reps})
+    : p.kg > 0
+      ? trLanguage(language, '{sets} × {reps} · {weight} kg', {'sets': p.sets, 'reps': p.reps, 'weight': kgText(p.kg)})
+      : '${p.sets} × ${p.reps}';
 IconData dayIcon(String day) => switch (day) {
   'Push' => Icons.north_east_rounded,
   'Pull' => Icons.south_west_rounded,
   _ => Icons.directions_run_rounded,
 };
-String kgText(double kg) => kg == kg.roundToDouble() ? kg.toInt().toString() : kg.toString();
+String kgText(double kg) =>
+    kg == kg.roundToDouble() ? kg.toInt().toString() : kg.toString();
 
 /// Gym session: each exercise shows its sets as circles; tap the next one to log it at the plan,
 /// and a rest bar counts down at the top. Tap the exercise for reps, weight or stopping early.
@@ -40,7 +46,9 @@ class _GymScreenState extends State<GymScreen> {
   Timer? _tick;
   bool _buzzed = false;
 
-  int get _left => _restEnd == null ? 0 : _restEnd!.difference(DateTime.now()).inSeconds.clamp(0, 3600);
+  int get _left => _restEnd == null
+      ? 0
+      : _restEnd!.difference(DateTime.now()).inSeconds.clamp(0, 3600);
 
   /// One tap logs the next set: today's last weight and reps, else the plan.
   void _logNext(String ex) {
@@ -54,11 +62,19 @@ class _GymScreenState extends State<GymScreen> {
       _stopRest();
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(behavior: SnackBarBehavior.floating, content: Text(msg ?? '$ex done')));
+        ..showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text(msg ?? tr(context, '{value1} done', {'value1': ex})),
+          ),
+        );
       return;
     }
     HapticFeedback.mediumImpact();
-    _startRest(ex, 'Set ${n + 1} · ${p.timed ? '$reps s' : '$reps × ${kgText(kg)} kg'}');
+    _startRest(
+      ex,
+      'Set ${n + 1} · ${p.timed ? '$reps s' : '$reps × ${kgText(kg)} kg'}',
+    );
   }
 
   void _startRest(String ex, String next) {
@@ -68,12 +84,19 @@ class _GymScreenState extends State<GymScreen> {
       _restNext = '$ex · $next';
       _buzzed = false;
     });
-    Live.rest(end: _restEnd!, exercise: ex, next: next); // lock-screen countdown
+    Live.rest(
+      end: _restEnd!,
+      exercise: ex,
+      next: next,
+    ); // lock-screen countdown
     _tick = Timer.periodic(const Duration(milliseconds: 500), (_) {
       if (_left == 0 && !_buzzed) {
         _buzzed = true;
         HapticFeedback.vibrate();
-        Future.delayed(const Duration(milliseconds: 350), HapticFeedback.vibrate);
+        Future.delayed(
+          const Duration(milliseconds: 350),
+          HapticFeedback.vibrate,
+        );
         Future.delayed(const Duration(seconds: 6), () {
           if (mounted && _left == 0) _stopRest();
         });
@@ -103,30 +126,54 @@ class _GymScreenState extends State<GymScreen> {
       decoration: BoxDecoration(
         color: go ? t.accent : t.infield,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 16, offset: Offset(0, 4))],
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x40000000),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Icon(go ? Icons.play_arrow_rounded : Icons.timer_outlined, color: go ? t.onAccent : t.ink),
+          Icon(
+            go ? Icons.play_arrow_rounded : Icons.timer_outlined,
+            color: go ? t.onAccent : t.ink,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(go ? 'Go' : 'Rest ${clock(_left)}', style: t.x(20, color: go ? t.onAccent : t.ink)),
-                Text(_restNext, style: t.meta(go ? t.onAccent : null), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  go
+                      ? tr(context, 'Go')
+                      : tr(context, 'Rest {value1}', {'value1': clock(_left)}),
+                  style: t.x(20, color: go ? t.onAccent : t.ink),
+                ),
+                Text(
+                  _restNext,
+                  style: t.meta(go ? t.onAccent : null),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
           if (!go)
             TextButton(
-              onPressed: () => setState(() => _restEnd = _restEnd!.add(const Duration(seconds: 15))),
+              onPressed: () => setState(
+                () => _restEnd = _restEnd!.add(const Duration(seconds: 15)),
+              ),
               child: Text('+15 s', style: t.body()),
             ),
           IconButton(
             onPressed: _stopRest,
-            tooltip: go ? 'Close' : 'Skip rest',
-            icon: Icon(go ? Icons.close_rounded : Icons.skip_next_rounded, color: go ? t.onAccent : t.ink),
+            tooltip: go ? tr(context, 'Close') : tr(context, 'Skip rest'),
+            icon: Icon(
+              go ? Icons.close_rounded : Icons.skip_next_rounded,
+              color: go ? t.onAccent : t.ink,
+            ),
           ),
         ],
       ),
@@ -137,7 +184,8 @@ class _GymScreenState extends State<GymScreen> {
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     final s = widget.store;
-    final day = s.gymDay, list = s.dayExercises; // push / pull / legs: only today's exercises
+    final day = s.gymDay,
+        list = s.dayExercises; // push / pull / legs: only today's exercises
     final done = list.where(s.exerciseDone).length;
     final cardioMin = s.cardio.fold(0, (a, c) => a + c.seconds) ~/ 60;
     final cardioKm = s.cardio.fold(0.0, (a, c) => a + c.km);
@@ -148,14 +196,23 @@ class _GymScreenState extends State<GymScreen> {
         children: [
           Positioned.fill(
             child: ListView(
-              padding: EdgeInsets.fromLTRB(20, 8, 20, _restEnd == null ? 24 : 110),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                8,
+                20,
+                _restEnd == null ? 24 : 110,
+              ),
               children: [
                 Row(
                   children: [
                     const MenuButton(),
-                    Expanded(child: Text('Gym', style: t.title())),
+                    Expanded(child: Text(tr(context, 'Gym'), style: t.title())),
                     MoreButton([
-                      MenuItem('Clear today', s.clearGymTicks, destructive: true),
+                      MenuItem(
+                        'Clear today',
+                        s.clearGymTicks,
+                        destructive: true,
+                      ),
                       MenuItem('Restore default list', s.restoreGym),
                     ]),
                   ],
@@ -169,7 +226,11 @@ class _GymScreenState extends State<GymScreen> {
                       : '$day day next · ${s.gymThisWeek} of 3–5 sessions this week',
                   style: t.sec(),
                 ),
-                if (s.gymBy.isNotEmpty) Text('Workout from ${s.gymBy}', style: t.meta()),
+                if (s.gymBy.isNotEmpty)
+                  Text(
+                    tr(context, 'Workout from {value1}', {'value1': s.gymBy}),
+                    style: t.meta(),
+                  ),
                 const SizedBox(height: 14),
                 // the split: today's day is picked from the rotation; tap another to switch
                 Segments<String>(
@@ -193,7 +254,10 @@ class _GymScreenState extends State<GymScreen> {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      Text('of ${list.length}', style: t.x(28)),
+                      Text(
+                        tr(context, 'of {value1}', {'value1': list.length}),
+                        style: t.x(28),
+                      ),
                     ],
                   ),
                 ),
@@ -205,33 +269,50 @@ class _GymScreenState extends State<GymScreen> {
                 const SizedBox(height: 12),
                 for (final (i, ex) in list.indexed)
                   Play(
-                    key: ValueKey('$day$ex'), // a new day slides its list in again
+                    key: ValueKey(
+                      '$day$ex',
+                    ), // a new day slides its list in again
                     delay: Duration(milliseconds: 120 + 60 * i),
                     duration: const Duration(milliseconds: 480),
                     builder: (context, v, child) => Opacity(
                       opacity: v,
-                      child: Transform.translate(offset: Offset(28 * (1 - v), 0), child: child),
+                      child: Transform.translate(
+                        offset: Offset(28 * (1 - v), 0),
+                        child: child,
+                      ),
                     ),
-                    child: _ExerciseRow(store: s, ex: ex, index: i, onLogNext: () => _logNext(ex)),
+                    child: _ExerciseRow(
+                      store: s,
+                      ex: ex,
+                      index: i,
+                      onLogNext: () => _logNext(ex),
+                    ),
                   ),
                 _Row(
                   leading: Icon(Icons.directions_walk, color: t.ink),
-                  title: 'Treadmill',
+                  title: tr(context, 'Treadmill'),
                   sub: s.cardio.isEmpty
                       ? 'Cardio, optional · 20–30 min'
                       : '$cardioMin min · ${cardioKm.toStringAsFixed(2)} km today',
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(fullscreenDialog: true, builder: (_) => TreadmillScreen(store: s)),
+                    MaterialPageRoute(
+                      fullscreenDialog: true,
+                      builder: (_) => TreadmillScreen(store: s),
+                    ),
                   ),
                 ),
                 _AddExercise(store: s),
                 const SizedBox(height: 24),
-                const Tip(Icons.fitness_center_rounded, 'Keep the muscle, lose the fat'),
+                const Tip(
+                  Icons.fitness_center_rounded,
+                  'Keep the muscle, lose the fat',
+                ),
               ],
             ),
           ),
-          if (_restEnd != null) Positioned(left: 0, right: 0, bottom: 8, child: _restBar(t)),
+          if (_restEnd != null)
+            Positioned(left: 0, right: 0, bottom: 8, child: _restBar(t)),
         ],
       ),
     );
@@ -239,7 +320,12 @@ class _GymScreenState extends State<GymScreen> {
 }
 
 class _ExerciseRow extends StatelessWidget {
-  const _ExerciseRow({required this.store, required this.ex, required this.index, required this.onLogNext});
+  const _ExerciseRow({
+    required this.store,
+    required this.ex,
+    required this.index,
+    required this.onLogNext,
+  });
   final Store store;
   final String ex;
   final int index;
@@ -273,17 +359,19 @@ class _ExerciseRow extends StatelessWidget {
           child: done ? Icon(Icons.check, size: 16, color: t.ground) : null,
         ),
       ),
-      title: ex,
+      title: gymPlans.containsKey(ex) ? tr(context, ex) : ex,
       titleColor: done ? t.ink2 : t.ink,
       bold: inProgress,
-      sub: planText(p),
+      sub: planText(p, language: Localizations.localeOf(context).languageCode),
       // one circle per set: filled = done (reps inside), yellow ring = tap to log the next one
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           for (var k = 0; k < math.max(p.sets, logged.length); k++)
             _SetDot(
-              label: k < logged.length ? '${logged[k].reps}' : '${k + 1}',
+              label: k < logged.length
+                  ? tr(context, '{value1}', {'value1': logged[k].reps})
+                  : tr(context, '{value1}', {'value1': k + 1}),
               state: k < logged.length
                   ? _Dot.done
                   : done
@@ -292,7 +380,9 @@ class _ExerciseRow extends StatelessWidget {
                   ? _Dot.next
                   : _Dot.todo,
               onTap: !done && k >= logged.length ? onLogNext : null,
-              semantics: k < logged.length ? 'Set ${k + 1} done' : 'Log set ${logged.length + 1} of $ex',
+              semantics: k < logged.length
+                  ? 'Set ${k + 1} done'
+                  : 'Log set ${logged.length + 1} of $ex',
             ),
         ],
       ),
@@ -309,7 +399,12 @@ class _ExerciseRow extends StatelessWidget {
 enum _Dot { done, next, todo, skipped }
 
 class _SetDot extends StatelessWidget {
-  const _SetDot({required this.label, required this.state, required this.onTap, required this.semantics});
+  const _SetDot({
+    required this.label,
+    required this.state,
+    required this.onTap,
+    required this.semantics,
+  });
   final String label, semantics;
   final _Dot state;
   final VoidCallback? onTap;
@@ -343,7 +438,10 @@ class _SetDot extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: fill,
-                  border: Border.all(color: border, width: state == _Dot.next ? 2.5 : 1.5),
+                  border: Border.all(
+                    color: border,
+                    width: state == _Dot.next ? 2.5 : 1.5,
+                  ),
                 ),
                 child: state == _Dot.skipped
                     ? Icon(Icons.remove_rounded, size: 16, color: t.ink2)
@@ -408,9 +506,12 @@ class _Row extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: t.body(weight: bold ? FontWeight.w600 : FontWeight.w400, color: titleColor),
+                    style: t.body(
+                      weight: bold ? FontWeight.w600 : FontWeight.w400,
+                      color: titleColor,
+                    ),
                   ),
-                  Text(sub, style: t.meta(bold ? t.ink : null)),
+                  Text(tr(context, sub), style: t.meta(bold ? t.ink : null)),
                 ],
               ),
             ),
@@ -426,9 +527,16 @@ class _Row extends StatelessWidget {
 /// Exercises (or sets) as hurdles on a straight. [pos] is how far along the runner is (0..n,
 /// fractional while it runs); between hurdles it hops a parabola over the next one.
 class HurdlesPainter extends CustomPainter {
-  HurdlesPainter(this.n, this.pos, this.t, {this.wobble = 0, this.wobbleAt = -1});
+  HurdlesPainter(
+    this.n,
+    this.pos,
+    this.t, {
+    this.wobble = 0,
+    this.wobbleAt = -1,
+  });
   final int n;
-  final double pos, wobble; // wobble: the just-cleared hurdle rocking (radians, decays)
+  final double pos,
+      wobble; // wobble: the just-cleared hurdle rocking (radians, decays)
   final int wobbleAt;
   final Daur t;
 
@@ -443,18 +551,25 @@ class HurdlesPainter extends CustomPainter {
     if (n == 0) return;
     final gap = n == 1 ? 0.0 : (w - 48) / (n - 1);
     double x(int i) => 24 + i * gap;
-    double rest(int k) => k == 0 ? 10.0 : (x(k - 1) + (gap == 0 ? 20 : gap / 2)).clamp(0, w - 10).toDouble();
+    double rest(int k) => k == 0
+        ? 10.0
+        : (x(k - 1) + (gap == 0 ? 20 : gap / 2)).clamp(0, w - 10).toDouble();
     final p = pos.clamp(0, n.toDouble()).toDouble();
     final k = p.floor().clamp(0, n), f = p - k;
     final rx = k >= n ? rest(n) : rest(k) + (rest(k + 1) - rest(k)) * f;
-    final lift = k < n ? math.sin(f * math.pi) * (h * .55) : 0.0; // hop over hurdle k
+    final lift = k < n
+        ? math.sin(f * math.pi) * (h * .55)
+        : 0.0; // hop over hurdle k
 
     for (var i = 0; i < n; i++) {
       canvas.save();
       canvas.translate(x(i), h - 8);
       if (i == wobbleAt) canvas.rotate(wobble);
       canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromLTWH(-2.5, -(h - 16), 5, h - 16), const Radius.circular(2.5)),
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(-2.5, -(h - 16), 5, h - 16),
+          const Radius.circular(2.5),
+        ),
         Paint()..color = i < p.round() ? t.ink : t.faint,
       );
       canvas.restore();
@@ -474,13 +589,22 @@ class HurdlesPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(HurdlesPainter o) =>
-      o.n != n || o.pos != pos || o.t != t || o.wobble != wobble || o.wobbleAt != wobbleAt;
+      o.n != n ||
+      o.pos != pos ||
+      o.t != t ||
+      o.wobble != wobble ||
+      o.wobbleAt != wobbleAt;
 }
 
 /// The hurdle rail, animated: when [cleared] goes up the runner hops the next hurdle on a spring,
 /// the hurdle it clipped rocks and settles, with a haptic on each landing.
 class Hurdles extends StatefulWidget {
-  const Hurdles({super.key, required this.n, required this.cleared, this.height = 48});
+  const Hurdles({
+    super.key,
+    required this.n,
+    required this.cleared,
+    this.height = 48,
+  });
   final int n, cleared;
   final double height;
   @override
@@ -488,7 +612,10 @@ class Hurdles extends StatefulWidget {
 }
 
 class _HurdlesState extends State<Hurdles> with TickerProviderStateMixin {
-  late final _pos = AnimationController.unbounded(vsync: this, value: widget.cleared.toDouble());
+  late final _pos = AnimationController.unbounded(
+    vsync: this,
+    value: widget.cleared.toDouble(),
+  );
   late final _wob = AnimationController.unbounded(vsync: this, value: 0);
   int _wobbleAt = -1;
 
@@ -501,12 +628,23 @@ class _HurdlesState extends State<Hurdles> with TickerProviderStateMixin {
       return;
     }
     final up = widget.cleared > old.cleared;
-    _pos.animateWith(SpringSimulation(Springs.runner, _pos.value, widget.cleared.toDouble(), _pos.velocity)).then((_) {
-      if (!mounted || !up) return;
-      HapticFeedback.mediumImpact();
-      _wobbleAt = widget.cleared - 1;
-      _wob.animateWith(SpringSimulation(Springs.bouncy, 0, 0, 2.2)); // a rock, then still
-    });
+    _pos
+        .animateWith(
+          SpringSimulation(
+            Springs.runner,
+            _pos.value,
+            widget.cleared.toDouble(),
+            _pos.velocity,
+          ),
+        )
+        .then((_) {
+          if (!mounted || !up) return;
+          HapticFeedback.mediumImpact();
+          _wobbleAt = widget.cleared - 1;
+          _wob.animateWith(
+            SpringSimulation(Springs.bouncy, 0, 0, 2.2),
+          ); // a rock, then still
+        });
   }
 
   @override
@@ -524,7 +662,13 @@ class _HurdlesState extends State<Hurdles> with TickerProviderStateMixin {
       child: AnimatedBuilder(
         animation: Listenable.merge([_pos, _wob]),
         builder: (context, _) => CustomPaint(
-          painter: HurdlesPainter(widget.n, _pos.value, t, wobble: _wob.value.clamp(-.5, .5), wobbleAt: _wobbleAt),
+          painter: HurdlesPainter(
+            widget.n,
+            _pos.value,
+            t,
+            wobble: _wob.value.clamp(-.5, .5),
+            wobbleAt: _wobbleAt,
+          ),
           size: Size.infinite,
         ),
       ),
@@ -556,17 +700,21 @@ class _AddExerciseState extends State<_AddExercise> {
       style: t.body(weight: FontWeight.w400),
       onSubmitted: (_) => _add(),
       decoration: InputDecoration(
-        hintText: 'Add an exercise, e.g. Leg curl',
+        hintText: tr(context, 'Add an exercise, e.g. Leg curl'),
         hintStyle: t.sec(),
         counterText: '',
         prefixIcon: Icon(Icons.add, color: t.ink),
         suffixIcon: IconButton(
           onPressed: _add,
-          tooltip: 'Add exercise',
+          tooltip: tr(context, 'Add exercise'),
           icon: Icon(Icons.check, color: t.ink),
         ),
-        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: t.rule)),
-        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: t.ink)),
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: t.rule),
+        ),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: t.ink),
+        ),
       ),
     );
   }

@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'package:flutter/material.dart';
 
 import 'activity_anim.dart';
@@ -23,7 +25,9 @@ class ProgressScreen extends StatelessWidget {
     final s = store;
     final now = s.trendKg ?? s.latestKg;
     final thisWeek = s.avgKg(0, 7), lastWeek = s.avgKg(7, 14);
-    final change = thisWeek != null && lastWeek != null ? thisWeek - lastWeek : null;
+    final change = thisWeek != null && lastWeek != null
+        ? thisWeek - lastWeek
+        : null;
 
     return SafeArea(
       child: ListView(
@@ -32,16 +36,24 @@ class ProgressScreen extends StatelessWidget {
           Row(
             children: [
               const MenuButton(),
-              Expanded(child: Text('Progress', style: t.title())),
+              Expanded(child: Text(tr(context, 'Progress'), style: t.title())),
               IconButton.filledTonal(
                 onPressed: () => logWeight(context, s),
-                tooltip: 'Log today\'s weight',
+                tooltip: tr(context, 'Log today\'s weight'),
                 icon: Icon(Icons.add, color: t.ink),
-                style: IconButton.styleFrom(backgroundColor: t.ink.withValues(alpha: .18)),
+                style: IconButton.styleFrom(
+                  backgroundColor: t.ink.withValues(alpha: .18),
+                ),
               ),
             ],
           ),
-          Text('Day ${s.lap} of $laps', style: t.sec()),
+          Text(
+            tr(context, 'Day {value1} of {value2}', {
+              'value1': s.lap,
+              'value2': laps,
+            }),
+            style: t.sec(),
+          ),
           const SizedBox(height: 20),
           // the hero: kilos since day 1, on the weekly average when there is one
           Row(
@@ -49,11 +61,13 @@ class ProgressScreen extends StatelessWidget {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Odometer(
-                text: now == null ? s.startKg.toStringAsFixed(1) : _signed(now - s.startKg),
+                text: now == null
+                    ? s.startKg.toStringAsFixed(1)
+                    : _signed(now - s.startKg),
                 style: t.x(64, weight: FontWeight.w900),
               ),
               const SizedBox(width: 8),
-              Text('kg', style: t.x(26)),
+              Text(tr(context, 'kg'), style: t.x(26)),
             ],
           ),
           Text(
@@ -78,11 +92,13 @@ class ProgressScreen extends StatelessWidget {
                       delay: const Duration(milliseconds: 150),
                       duration: const Duration(milliseconds: 1500),
                       curve: Curves.easeInOutCubic,
-                      builder: (context, v, _) => CustomPaint(painter: _WeightChart(t, s, v)),
+                      builder: (context, v, _) =>
+                          CustomPaint(painter: _WeightChart(t, s, v)),
                     ),
                   ),
                   // no weigh-ins yet: Dau waits on the empty chart
-                  if (s.weights.isEmpty) const Center(child: Dau(mood: DauMood.waiting, size: 110)),
+                  if (s.weights.isEmpty)
+                    const Center(child: Dau(mood: DauMood.waiting, size: 110)),
                 ],
               ),
             ),
@@ -91,44 +107,71 @@ class ProgressScreen extends StatelessWidget {
           Wrap(
             spacing: 14,
             children: [
-              _legend(t, Container(width: 14, height: 3, color: t.ink), '7-day average'),
-              _legend(t, CircleAvatar(radius: 3, backgroundColor: t.ink2), 'weigh-in'),
-              _legend(t, Container(width: 10, height: 10, color: t.accent.withValues(alpha: .5)), 'month target'),
+              _legend(
+                context,
+                t,
+                Container(width: 14, height: 3, color: t.ink),
+                '7-day average',
+              ),
+              _legend(
+                context,
+                t,
+                CircleAvatar(radius: 3, backgroundColor: t.ink2),
+                'weigh-in',
+              ),
+              _legend(
+                context,
+                t,
+                Container(
+                  width: 10,
+                  height: 10,
+                  color: t.accent.withValues(alpha: .5),
+                ),
+                'month target',
+              ),
             ],
           ),
           const SizedBox(height: 24),
           // this week's change against the goal's pace (Lose 0.6–0.9 down, Gain 0.2–0.4 up, Keep steady)
-          PaceGauge(change: change, goal: s.goal, kcal: s.kcalGoal, stalled: s.stalled),
+          PaceGauge(
+            change: change,
+            goal: s.goal,
+            kcal: s.kcalGoal,
+            stalled: s.stalled,
+          ),
           const SizedBox(height: 28),
           Row(
             children: [
-              Expanded(child: Text('This week', style: t.meta())),
+              Expanded(child: Text(tr(context, 'This week'), style: t.meta())),
               InkWell(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => RecapScreen(store: s))),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => RecapScreen(store: s)),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text('Recap ›', style: t.sec(t.ink)),
+                  child: Text(tr(context, 'Recap ›'), style: t.sec(t.ink)),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          _weekTiles(t, s),
+          _weekTiles(context, t, s),
           const SizedBox(height: 28),
-          _strength(t, s),
+          _strength(context, t, s),
           const SizedBox(height: 28),
-          Text('Month targets', style: t.meta()),
+          Text(tr(context, 'Month targets'), style: t.meta()),
           const SizedBox(height: 8),
           Row(
             children: [
               for (final (i, (name, range, day)) in s.targets.indexed) ...[
                 if (i > 0) const SizedBox(width: 8),
-                Expanded(child: _target(t, s, name, range, day)),
+                Expanded(child: _target(context, t, s, name, range, day)),
               ],
             ],
           ),
           const SizedBox(height: 28),
-          Text('$laps days', style: t.meta()),
+          Text(tr(context, '{value1} days', {'value1': laps}), style: t.meta()),
           const SizedBox(height: 8),
           _Season(store: s),
           const SizedBox(height: 16),
@@ -145,8 +188,16 @@ class ProgressScreen extends StatelessWidget {
                   children: [
                     Icon(Icons.monitor_weight_outlined, color: t.ink),
                     const SizedBox(width: 12),
-                    Expanded(child: Text('All weigh-ins', style: t.body())),
-                    Text('${s.weights.length}', style: t.sec()),
+                    Expanded(
+                      child: Text(
+                        tr(context, 'All weigh-ins'),
+                        style: t.body(),
+                      ),
+                    ),
+                    Text(
+                      tr(context, '{value1}', {'value1': s.weights.length}),
+                      style: t.sec(),
+                    ),
                     Icon(Icons.chevron_right_rounded, color: t.ink2),
                   ],
                 ),
@@ -164,21 +215,28 @@ class ProgressScreen extends StatelessWidget {
           ? '−'
           : ''}${v.abs().toStringAsFixed(1)}';
 
-  Widget _legend(Daur t, Widget mark, String label) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      mark,
-      const SizedBox(width: 6),
-      Text(label, style: t.meta()),
-    ],
-  );
+  Widget _legend(BuildContext context, Daur t, Widget mark, String label) =>
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          mark,
+          const SizedBox(width: 6),
+          Text(tr(context, label), style: t.meta()),
+        ],
+      );
 
   /// The last 7 finished days as four tiles: calories, protein, gym, sleep. Each with a bar.
-  Widget _weekTiles(Daur t, Store s) {
+  Widget _weekTiles(BuildContext context, Daur t, Store s) {
     final f = s.weekFood;
     final (lo, hi) = s.proteinRange;
-    final nights = s.lastDays(7).map((d) => s.sleepHistory[d]).whereType<int>().toList();
-    final sleep = nights.isEmpty ? null : nights.reduce((a, b) => a + b) ~/ nights.length;
+    final nights = s
+        .lastDays(7)
+        .map((d) => s.sleepHistory[d])
+        .whereType<int>()
+        .toList();
+    final sleep = nights.isEmpty
+        ? null
+        : nights.reduce((a, b) => a + b) ~/ nights.length;
     // (icon, label, value, line, bar 0..1). A full bar is yellow (good), except calories: over isn't good
     final tiles = <(IconData, String, String, String, double)>[
       (
@@ -199,11 +257,19 @@ class ProgressScreen extends StatelessWidget {
         'avg · goal $lo–$hi g',
         f.days == 0 ? 0 : f.protein / lo,
       ),
-      (Icons.fitness_center_rounded, 'Gym', '${s.gymThisWeek}', 'sessions · aim 3–5', s.gymThisWeek / 3),
+      (
+        Icons.fitness_center_rounded,
+        'Gym',
+        '${s.gymThisWeek}',
+        'sessions · aim 3–5',
+        s.gymThisWeek / 3,
+      ),
       (
         Icons.bedtime_outlined,
         'Sleep',
-        sleep == null ? '—' : '${sleep ~/ 60}h ${(sleep % 60).toString().padLeft(2, '0')}',
+        sleep == null
+            ? '—'
+            : '${sleep ~/ 60}h ${(sleep % 60).toString().padLeft(2, '0')}',
         sleep == null ? 'not tracked yet' : 'avg · goal 7–8 h',
         sleep == null ? 0 : sleep / 420,
       ),
@@ -219,7 +285,10 @@ class ProgressScreen extends StatelessWidget {
         for (final (icon, label, value, sub, frac) in tiles)
           Container(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-            decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(18)),
+            decoration: BoxDecoration(
+              color: t.infield,
+              borderRadius: BorderRadius.circular(18),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -227,7 +296,7 @@ class ProgressScreen extends StatelessWidget {
                   children: [
                     Icon(icon, size: 18, color: t.ink),
                     const SizedBox(width: 6),
-                    Text(label, style: t.sec(t.ink)),
+                    Text(tr(context, label), style: t.sec(t.ink)),
                   ],
                 ),
                 const Spacer(),
@@ -236,7 +305,12 @@ class ProgressScreen extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: Text(value, style: t.x(24)),
                 ),
-                Text(sub, style: t.meta(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  tr(context, sub),
+                  style: t.meta(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(3),
@@ -246,7 +320,9 @@ class ProgressScreen extends StatelessWidget {
                     builder: (context, v, _) => LinearProgressIndicator(
                       value: (frac.clamp(0, 1) * v).toDouble(),
                       minHeight: 6,
-                      color: frac >= 1 && label != 'Calories' ? t.accent : t.ink,
+                      color: frac >= 1 && label != 'Calories'
+                          ? t.accent
+                          : t.ink,
                       backgroundColor: t.lane.withValues(alpha: .35),
                     ),
                   ),
@@ -260,25 +336,37 @@ class ProgressScreen extends StatelessWidget {
 
   static String amount(double v, String unit) => switch (unit) {
     'kg' => '${v == v.roundToDouble() ? v.toInt() : v} kg',
-    's' => v >= 60 ? '${v ~/ 60}:${(v.toInt() % 60).toString().padLeft(2, '0')}' : '${v.toInt()} s',
+    's' =>
+      v >= 60
+          ? '${v ~/ 60}:${(v.toInt() % 60).toString().padLeft(2, '0')}'
+          : '${v.toInt()} s',
     _ => '${v.toInt()} reps',
   };
 
   /// Each exercise since its first session: a trend line, start → now, the change.
-  Widget _strength(Daur t, Store s) {
+  Widget _strength(BuildContext context, Daur t, Store s) {
     final rows = s.strength;
     final up = rows.where((r) => r.now > r.start).length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Strength', style: t.meta()),
+        Text(tr(context, 'Strength'), style: t.meta()),
         const SizedBox(height: 4),
         if (rows.isEmpty)
-          const Tip(Icons.fitness_center_rounded, 'Log sets on two gym days to see each lift grow')
+          const Tip(
+            Icons.fitness_center_rounded,
+            'Log sets on two gym days to see each lift grow',
+          )
         else ...[
-          _overall(t, s),
+          _overall(context, t, s),
           const SizedBox(height: 12),
-          Text('Stronger in $up of ${rows.length} exercises', style: t.body()),
+          Text(
+            tr(context, 'Stronger in {value1} of {value2} exercises', {
+              'value1': up,
+              'value2': rows.length,
+            }),
+            style: t.body(),
+          ),
           const SizedBox(height: 8),
           for (final r in rows)
             Container(
@@ -287,7 +375,11 @@ class ProgressScreen extends StatelessWidget {
                 border: Border(top: BorderSide(color: t.rule, width: .5)),
               ),
               child: Semantics(
-                label: '${r.ex}: from ${amount(r.start, r.unit)} to ${amount(r.now, r.unit)}',
+                label: tr(context, '{value1}: from {value2} to {value3}', {
+                  'value1': r.ex,
+                  'value2': amount(r.start, r.unit),
+                  'value3': amount(r.now, r.unit),
+                }),
                 excludeSemantics: true,
                 child: Row(
                   children: [
@@ -311,11 +403,21 @@ class ProgressScreen extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          Text('${amount(r.start, r.unit)} → ${amount(r.now, r.unit)}', style: t.sec()),
+                          Text(
+                            tr(context, '{value1} → {value2}', {
+                              'value1': amount(r.start, r.unit),
+                              'value2': amount(r.now, r.unit),
+                            }),
+                            style: t.sec(),
+                          ),
                         ],
                       ),
                     ),
-                    SizedBox(width: 56, height: 26, child: CustomPaint(painter: _Spark(t, r.series))),
+                    SizedBox(
+                      width: 56,
+                      height: 26,
+                      child: CustomPaint(painter: _Spark(t, r.series)),
+                    ),
                     const SizedBox(width: 10),
                     SizedBox(
                       width: 64,
@@ -327,7 +429,10 @@ class ProgressScreen extends StatelessWidget {
                               ? '—'
                               : '${r.now >= r.start ? '+' : '−'}${((r.now - r.start).abs() / r.start * 100).round()}%',
                           maxLines: 1,
-                          style: t.x(16, color: r.now > r.start ? t.accent : t.ink),
+                          style: t.x(
+                            16,
+                            color: r.now > r.start ? t.accent : t.ink,
+                          ),
                         ),
                       ),
                     ),
@@ -341,17 +446,24 @@ class ProgressScreen extends StatelessWidget {
   }
 
   /// Overall strength: one ring per body area (full = +50%), the overall gain in the middle.
-  Widget _overall(Daur t, Store s) {
+  Widget _overall(BuildContext context, Daur t, Store s) {
     final sum = s.strengthSummary;
     String pct(double g) => '${g >= 0 ? '+' : '−'}${(g.abs() * 100).round()}%';
     const order = ['Push', 'Pull', 'Legs', 'Core'];
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(22)),
+      decoration: BoxDecoration(
+        color: t.infield,
+        borderRadius: BorderRadius.circular(22),
+      ),
       child: Row(
         children: [
           Semantics(
-            label: 'Overall strength ${sum.overall == null ? 'not measured yet' : pct(sum.overall!)}',
+            label: tr(context, 'Overall strength {value1}', {
+              'value1': sum.overall == null
+                  ? 'not measured yet'
+                  : pct(sum.overall!),
+            }),
             excludeSemantics: true,
             child: SizedBox.square(
               dimension: 164,
@@ -359,14 +471,19 @@ class ProgressScreen extends StatelessWidget {
                 delay: const Duration(milliseconds: 200),
                 duration: const Duration(milliseconds: 1600),
                 curve: Curves.linear,
-                builder: (context, v, child) =>
-                    CustomPaint(painter: _Rings(t, [for (final a in order) sum.areas[a]], v), child: child),
+                builder: (context, v, child) => CustomPaint(
+                  painter: _Rings(t, [for (final a in order) sum.areas[a]], v),
+                  child: child,
+                ),
                 child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(sum.overall == null ? '—' : pct(sum.overall!), style: t.x(20, weight: FontWeight.w900)),
-                      Text('overall', style: t.meta()),
+                      Text(
+                        sum.overall == null ? '—' : pct(sum.overall!),
+                        style: t.x(20, weight: FontWeight.w900),
+                      ),
+                      Text(tr(context, 'overall'), style: t.meta()),
                     ],
                   ),
                 ),
@@ -378,7 +495,7 @@ class ProgressScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Overall strength', style: t.body()),
+                Text(tr(context, 'Overall strength'), style: t.body()),
                 const SizedBox(height: 8),
                 for (final (i, a) in order.indexed)
                   Padding(
@@ -389,11 +506,17 @@ class ProgressScreen extends StatelessWidget {
                         Container(
                           width: 10,
                           height: 10,
-                          decoration: BoxDecoration(color: _Rings.shade(t, i), shape: BoxShape.circle),
+                          decoration: BoxDecoration(
+                            color: _Rings.shade(t, i),
+                            shape: BoxShape.circle,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(child: Text(a, style: t.sec(t.ink))),
-                        Text(sum.areas[a] == null ? '—' : pct(sum.areas[a]!), style: t.x(14)),
+                        Text(
+                          sum.areas[a] == null ? '—' : pct(sum.areas[a]!),
+                          style: t.x(14),
+                        ),
                       ],
                     ),
                   ),
@@ -406,7 +529,14 @@ class ProgressScreen extends StatelessWidget {
   }
 
   /// A month target as a chip: yellow once the weekly average is inside or under it.
-  Widget _target(Daur t, Store s, String name, String range, int day) {
+  Widget _target(
+    BuildContext context,
+    Daur t,
+    Store s,
+    String name,
+    String range,
+    int day,
+  ) {
     final hi = double.parse(range.split('–').last);
     final hit = s.trendKg != null && s.trendKg! <= hi;
     return Container(
@@ -421,8 +551,14 @@ class ProgressScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: Text(name, style: t.meta(hit ? t.onAccent : null))),
-              Icon(hit ? Icons.check_circle_rounded : Icons.flag_outlined, size: 16, color: hit ? t.onAccent : t.ink2),
+              Expanded(
+                child: Text(name, style: t.meta(hit ? t.onAccent : null)),
+              ),
+              Icon(
+                hit ? Icons.check_circle_rounded : Icons.flag_outlined,
+                size: 16,
+                color: hit ? t.onAccent : t.ink2,
+              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -431,7 +567,10 @@ class ProgressScreen extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Text(range, style: t.x(16, color: hit ? t.onAccent : t.ink)),
           ),
-          Text('day $day', style: t.meta(hit ? t.onAccent : null)),
+          Text(
+            tr(context, 'day {value1}', {'value1': day}),
+            style: t.meta(hit ? t.onAccent : null),
+          ),
         ],
       ),
     );
@@ -451,32 +590,54 @@ class ProgressScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 0, 8, 24),
             children: [
-              Text('Weigh-ins', style: t.title(t.sheetInk)),
+              Text(tr(context, 'Weigh-ins'), style: t.title(t.sheetInk)),
               const SizedBox(height: 8),
               for (final (i, w) in ws.indexed)
                 Container(
                   constraints: const BoxConstraints(minHeight: 48),
                   decoration: BoxDecoration(
-                    border: Border(top: BorderSide(color: t.sheetRule, width: .5)),
+                    border: Border(
+                      top: BorderSide(color: t.sheetRule, width: .5),
+                    ),
                   ),
                   child: Row(
                     children: [
                       Expanded(
                         child: Text(
-                          niceDate(DateTime.parse(w.day)),
-                          style: t.body(color: t.sheetInk, weight: FontWeight.w400),
+                          niceDate(DateTime.parse(w.day), language: Localizations.localeOf(context).languageCode),
+                          style: t.body(
+                            color: t.sheetInk,
+                            weight: FontWeight.w400,
+                          ),
                         ),
                       ),
-                      if (i + 1 < ws.length) Text(_signed(w.kg - ws[i + 1].kg), style: t.sec(t.sheetInk2)),
+                      if (i + 1 < ws.length)
+                        Text(
+                          _signed(w.kg - ws[i + 1].kg),
+                          style: t.sec(t.sheetInk2),
+                        ),
                       const SizedBox(width: 12),
-                      Text('${w.kg.toStringAsFixed(1)} kg', style: t.x(16, color: t.sheetInk)),
+                      Text(
+                        tr(context, '{value1} kg', {
+                          'value1': w.kg.toStringAsFixed(1),
+                        }),
+                        style: t.x(16, color: t.sheetInk),
+                      ),
                       IconButton(
-                        tooltip: 'Delete this weigh-in',
-                        icon: Icon(Icons.close_rounded, size: 20, color: t.sheetInk2),
+                        tooltip: tr(context, 'Delete this weigh-in'),
+                        icon: Icon(
+                          Icons.close_rounded,
+                          size: 20,
+                          color: t.sheetInk2,
+                        ),
                         onPressed: () {
                           final snap = s.snapshot();
                           s.removeWeight(w);
-                          undoToast(context, 'Weigh-in deleted', () => s.restore(snap));
+                          undoToast(
+                            context,
+                            'Weigh-in deleted',
+                            () => s.restore(snap),
+                          );
                         },
                       ),
                     ],
@@ -491,10 +652,19 @@ class ProgressScreen extends StatelessWidget {
 
   /// Also opened from the weigh-in reminder and the welcome-back sheet.
   static Future<void> logWeight(BuildContext context, Store store) async {
-    final v = await askNumber(context, 'Weight this morning', suffix: 'kg', decimal: true);
+    final v = await askNumber(
+      context,
+      'Weight this morning',
+      suffix: 'kg',
+      decimal: true,
+    );
     if (v != null && v > 20 && v < 300) {
       store.logWeight(v);
-      if (context.mounted) await checkBadges(context, store); // first weigh-in, kg milestones, month targets
+      if (context.mounted)
+        { await checkBadges(
+          context,
+          store,
+        ); } // first weigh-in, kg milestones, month targets
     }
   }
 }
@@ -522,12 +692,21 @@ class _Season extends StatelessWidget {
           // column = week, row = weekday, like the design
           for (var i = 0; i < laps; i++)
             () {
-              final day = (i % 12) * 7 + i ~/ 12; // row-major grid → week columns
+              final day =
+                  (i % 12) * 7 + i ~/ 12; // row-major grid → week columns
               final key = dayKey(start.add(Duration(days: day)));
               final isToday = key == store.today;
-              final k = Curves.easeOut.transform((v * 1.8 - day / laps * .8).clamp(0, 1));
+              final k = Curves.easeOut.transform(
+                (v * 1.8 - day / laps * .8).clamp(0, 1),
+              );
               return CustomPaint(
-                painter: _Oval(t, (isToday ? store.legsDone : store.lapHistory[key] ?? 0) / 4 * k, isToday),
+                painter: _Oval(
+                  t,
+                  (isToday ? store.legsDone : store.lapHistory[key] ?? 0) /
+                      4 *
+                      k,
+                  isToday,
+                ),
               );
             }(),
         ],
@@ -583,14 +762,27 @@ class _WeightChart extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final start = DateTime.parse(s.startDay);
     int dayOf(String key) => DateTime.parse(key).difference(start).inDays;
-    final pts = [for (final w in s.weights) (dayOf(w.day), w.kg)].where((p) => p.$1 >= 0).toList();
+    final pts = [for (final w in s.weights) (dayOf(w.day), w.kg)]
+        .where((p) => p.$1 >= 0)
+        .toList();
     final targets = [
-      for (final (_, r, d) in s.targets) (d, double.parse(r.split('–').first), double.parse(r.split('–').last)),
+      for (final (_, r, d) in s.targets)
+        (d, double.parse(r.split('–').first), double.parse(r.split('–').last)),
     ];
     final todayX = dayOf(s.today);
-    final days = [laps, todayX + 1, ...pts.map((p) => p.$1 + 1)].reduce((a, b) => a > b ? a : b);
-    final ks = [s.startKg, ...pts.map((p) => p.$2), ...targets.map((x) => x.$2), ...targets.map((x) => x.$3)];
-    final lo = ks.reduce((a, b) => a < b ? a : b) - 1, hi = ks.reduce((a, b) => a > b ? a : b) + 1;
+    final days = [
+      laps,
+      todayX + 1,
+      ...pts.map((p) => p.$1 + 1),
+    ].reduce((a, b) => a > b ? a : b);
+    final ks = [
+      s.startKg,
+      ...pts.map((p) => p.$2),
+      ...targets.map((x) => x.$2),
+      ...targets.map((x) => x.$3),
+    ];
+    final lo = ks.reduce((a, b) => a < b ? a : b) - 1,
+        hi = ks.reduce((a, b) => a > b ? a : b) + 1;
     const left = 34.0, bottom = 18.0;
     final w = size.width - left, h = size.height - bottom;
     double x(num d) => left + d / (days - 1) * w;
@@ -611,13 +803,22 @@ class _WeightChart extends CustomPainter {
     }
     for (final (d, text) in [(0, 'Day 1'), (days - 1, 'Day $days')]) {
       final l = label(text);
-      l.paint(canvas, Offset((x(d) - (d == 0 ? 0 : l.width)).clamp(left, size.width - l.width), h + 4));
+      l.paint(
+        canvas,
+        Offset(
+          (x(d) - (d == 0 ? 0 : l.width)).clamp(left, size.width - l.width),
+          h + 4,
+        ),
+      );
     }
 
     // month targets: a yellow band at the target day
     for (final (d, a, b) in targets) {
       canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromLTRB(x(d) - 5, y(b), x(d) + 5, y(a)), const Radius.circular(4)),
+        RRect.fromRectAndRadius(
+          Rect.fromLTRB(x(d) - 5, y(b), x(d) + 5, y(a)),
+          const Radius.circular(4),
+        ),
         Paint()..color = t.accent.withValues(alpha: .5),
       );
     }
@@ -641,7 +842,10 @@ class _WeightChart extends CustomPainter {
     final avg = <Offset>[
       for (final (d, _) in pts)
         () {
-          final win = pts.where((p) => p.$1 <= d && p.$1 > d - 7).map((p) => p.$2).toList();
+          final win = pts
+              .where((p) => p.$1 <= d && p.$1 > d - 7)
+              .map((p) => p.$2)
+              .toList();
           return Offset(x(d), y(win.reduce((a, b) => a + b) / win.length));
         }(),
     ];
@@ -684,11 +888,15 @@ class _Spark extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (v.length < 2) return;
-    final lo = v.reduce((a, b) => a < b ? a : b), hi = v.reduce((a, b) => a > b ? a : b);
+    final lo = v.reduce((a, b) => a < b ? a : b),
+        hi = v.reduce((a, b) => a > b ? a : b);
     final span = hi - lo == 0 ? 1 : hi - lo;
     final pts = [
       for (final (i, x) in v.indexed)
-        Offset(i / (v.length - 1) * size.width, size.height - 3 - (x - lo) / span * (size.height - 6)),
+        Offset(
+          i / (v.length - 1) * size.width,
+          size.height - 3 - (x - lo) / span * (size.height - 6),
+        ),
     ];
     canvas.drawPath(
       Path()..addPolygon(pts, false),
@@ -714,11 +922,14 @@ class _Rings extends CustomPainter {
   final double grow; // 0..1: the rings fill one after another, outside in
 
   /// Yellow outside (the headline area), then ink getting lighter inward: one accent, one role.
-  static Color shade(Daur t, int i) => i == 0 ? t.accent : t.ink.withValues(alpha: const [1.0, 1.0, .82, .64][i]);
+  static Color shade(Daur t, int i) => i == 0
+      ? t.accent
+      : t.ink.withValues(alpha: const [1.0, 1.0, .82, .64][i]);
 
   @override
   void paint(Canvas canvas, Size size) {
-    const stroke = 10.0, gap = 3.0; // leaves the middle ~76 px across for the overall number
+    const stroke = 10.0,
+        gap = 3.0; // leaves the middle ~76 px across for the overall number
     final c = size.center(Offset.zero);
     for (final (i, g) in gains.indexed) {
       final r = size.shortestSide / 2 - stroke / 2 - i * (stroke + gap);
@@ -732,9 +943,13 @@ class _Rings extends CustomPainter {
           ..color = t.ink.withValues(alpha: .12),
       );
       if (g == null) continue;
-      final k = Curves.easeOutCubic.transform(((grow - i * .15) / .55).clamp(0, 1));
+      final k = Curves.easeOutCubic.transform(
+        ((grow - i * .15) / .55).clamp(0, 1),
+      );
       if (k <= 0) continue;
-      final frac = (g / .5).clamp(0.03, 1.0) * k; // a sliver even for a loss, so the ring reads as measured
+      final frac =
+          (g / .5).clamp(0.03, 1.0) *
+          k; // a sliver even for a loss, so the ring reads as measured
       canvas.drawArc(
         rect,
         -1.5708,
@@ -750,5 +965,6 @@ class _Rings extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_Rings o) => o.gains != gains || o.t != t || o.grow != grow;
+  bool shouldRepaint(_Rings o) =>
+      o.gains != gains || o.t != t || o.grow != grow;
 }

@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'package:flutter/material.dart';
 
 import 'badges.dart';
@@ -18,8 +20,15 @@ class StreakScreen extends StatelessWidget {
     final todayDone = s.legsDone == 4;
     // 5 weeks, Monday-first rows, ending with this week
     final now = DateTime.now();
-    final monday = DateTime(now.year, now.month, now.day - (now.weekday - 1) - 28);
-    final days = [for (var i = 0; i < 35; i++) DateTime(monday.year, monday.month, monday.day + i)];
+    final monday = DateTime(
+      now.year,
+      now.month,
+      now.day - (now.weekday - 1) - 28,
+    );
+    final days = [
+      for (var i = 0; i < 35; i++)
+        DateTime(monday.year, monday.month, monday.day + i),
+    ];
 
     return Scaffold(
       body: SafeArea(
@@ -32,34 +41,74 @@ class StreakScreen extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(Icons.local_fire_department_rounded, size: 72, color: s.streak > 0 ? t.accent : t.faint),
+                Icon(
+                  Icons.local_fire_department_rounded,
+                  size: 72,
+                  color: s.streak > 0 ? t.accent : t.faint,
+                ),
                 const SizedBox(width: 8),
-                Text('${s.streak}', style: t.x(80, weight: FontWeight.w900)),
+                Text(
+                  tr(context, '{value1}', {'value1': s.streak}),
+                  style: t.x(80, weight: FontWeight.w900),
+                ),
                 const SizedBox(width: 10),
-                Expanded(child: Text(s.streak == 1 ? 'day in a row' : 'days in a row', style: t.x(20))),
+                Expanded(
+                  child: Text(
+                    s.streak == 1
+                        ? tr(context, 'day in a row')
+                        : tr(context, 'days in a row'),
+                    style: t.x(20),
+                  ),
+                ),
               ],
             ),
             Row(
               children: [
                 Icon(Icons.emoji_events_outlined, size: 18, color: t.ink2),
                 const SizedBox(width: 6),
-                Text('Best ${s.bestStreak}', style: t.sec()),
+                Text(
+                  tr(context, 'Best {value1}', {'value1': s.bestStreak}),
+                  style: t.sec(),
+                ),
                 const SizedBox(width: 16),
                 // a freeze saves the streak on a missed day; one is earned every 7 full days
                 Tooltip(
                   message: 'A freeze saves the streak on a missed day. Earn one every 7 full days.',
                   child: Row(
                     children: [
-                      Icon(Icons.ac_unit_rounded, size: 18, color: s.freezes > 0 ? t.ink : t.faint),
+                      Icon(
+                        Icons.ac_unit_rounded,
+                        size: 18,
+                        color: s.freezes > 0 ? t.ink : t.faint,
+                      ),
                       const SizedBox(width: 4),
-                      Text('${s.freezes} ${s.freezes == 1 ? 'freeze' : 'freezes'}', style: t.sec()),
+                      Text(
+                        tr(context, '{value1} {value2}', {
+                          'value1': s.freezes,
+                          'value2': s.freezes == 1 ? 'freeze' : 'freezes',
+                        }),
+                        style: t.sec(),
+                      ),
                     ],
                   ),
                 ),
                 const Spacer(),
-                Icon(todayDone ? Icons.check_circle_rounded : Icons.restaurant_outlined, size: 18, color: t.ink),
+                Icon(
+                  todayDone
+                      ? Icons.check_circle_rounded
+                      : Icons.restaurant_outlined,
+                  size: 18,
+                  color: t.ink,
+                ),
                 const SizedBox(width: 6),
-                Text(todayDone ? 'Today counted' : '${4 - s.legsDone} meals left today', style: t.sec(t.ink)),
+                Text(
+                  todayDone
+                      ? tr(context, 'Today counted')
+                      : tr(context, '{value1} meals left today', {
+                          'value1': 4 - s.legsDone,
+                        }),
+                  style: t.sec(t.ink),
+                ),
               ],
             ),
             const Tip(
@@ -89,16 +138,34 @@ class StreakScreen extends StatelessWidget {
               spacing: 14,
               runSpacing: 6,
               children: [
-                _legend(t, _key(t, color: t.accent), 'perfect: meals, water, steps'),
-                _legend(t, _key(t, color: t.ink), 'meal logging complete'),
-                _legend(t, Icon(Icons.ac_unit_rounded, size: 13, color: t.ink), 'frozen'),
+                _legend(
+                  context,
+                  t,
+                  _key(t, color: t.accent),
+                  'perfect: meals, water, steps',
+                ),
+                _legend(
+                  context,
+                  t,
+                  _key(t, color: t.ink),
+                  'meal logging complete',
+                ),
+                _legend(
+                  context,
+                  t,
+                  Icon(Icons.ac_unit_rounded, size: 13, color: t.ink),
+                  'frozen',
+                ),
               ],
             ),
             const SizedBox(height: 20),
             OutlinedButton.icon(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => RecapScreen(store: s))),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => RecapScreen(store: s)),
+              ),
               icon: Icon(Icons.insights_rounded, color: t.ink),
-              label: Text('This week\'s recap', style: t.body()),
+              label: Text(tr(context, 'This week\'s recap'), style: t.body()),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: t.lane),
                 minimumSize: const Size.fromHeight(48),
@@ -106,7 +173,7 @@ class StreakScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 32),
-            Text('Medals', style: t.title()),
+            Text(tr(context, 'Medals'), style: t.title()),
             const SizedBox(height: 12),
             GridView.count(
               crossAxisCount: 3,
@@ -115,7 +182,10 @@ class StreakScreen extends StatelessWidget {
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
               childAspectRatio: .82,
-              children: [for (final m in medalsFor(s)) _Medal(m: m, earned: s.seenHints.contains('badge:${m.id}'))],
+              children: [
+                for (final m in medalsFor(s))
+                  _Medal(m: m, earned: s.seenHints.contains('badge:${m.id}')),
+              ],
             ),
           ],
         ),
@@ -129,14 +199,15 @@ class StreakScreen extends StatelessWidget {
     decoration: BoxDecoration(shape: BoxShape.circle, color: color),
   );
 
-  Widget _legend(Daur t, Widget mark, String label) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      mark,
-      const SizedBox(width: 6),
-      Text(label, style: t.meta()),
-    ],
-  );
+  Widget _legend(BuildContext context, Daur t, Widget mark, String label) =>
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          mark,
+          const SizedBox(width: 6),
+          Text(tr(context, label), style: t.meta()),
+        ],
+      );
 }
 
 class _Day extends StatelessWidget {
@@ -155,7 +226,14 @@ class _Day extends StatelessWidget {
         : n == 4
         ? 'meal logging complete'
         : '$n of 4 meals';
-    return Semantics(label: '${day.day}: $what', excludeSemantics: true, child: _cell(context, key));
+    return Semantics(
+      label: tr(context, '{value1}: {value2}', {
+        'value1': day.day,
+        'value2': what,
+      }),
+      excludeSemantics: true,
+      child: _cell(context, key),
+    );
   }
 
   Widget _cell(BuildContext context, String key) {
@@ -163,7 +241,8 @@ class _Day extends StatelessWidget {
     final isToday = key == store.today;
     final n = isToday ? store.legsDone : store.lapHistory[key] ?? 0;
     // days after today, and days before the plan started, are drawn faint
-    final future = day.isAfter(DateTime.now()) || key.compareTo(store.startDay) < 0;
+    final future =
+        day.isAfter(DateTime.now()) || key.compareTo(store.startDay) < 0;
     final perfect = !future && store.perfect(key);
     if (store.frozenDays.contains(key)) {
       return Container(
@@ -194,7 +273,7 @@ class _Day extends StatelessWidget {
         ),
       ),
       child: Text(
-        '${day.day}',
+        tr(context, '{value1}', {'value1': day.day}),
         style: t.meta(
           perfect
               ? t.onAccent
@@ -225,7 +304,11 @@ class _Medal extends StatelessWidget {
             color: earned ? t.accent : null,
             border: Border.all(color: earned ? t.accent : t.lane, width: 2),
           ),
-          child: Icon(earned ? m.icon : Icons.lock_outline_rounded, color: earned ? t.onAccent : t.faint, size: 28),
+          child: Icon(
+            earned ? m.icon : Icons.lock_outline_rounded,
+            color: earned ? t.onAccent : t.faint,
+            size: 28,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
@@ -256,14 +339,24 @@ class RecapScreen extends StatelessWidget {
       (Icons.star_rounded, '${w.perfect}/7', 'perfect days'),
       (
         Icons.monitor_weight_outlined,
-        kg == null ? '—' : '${kg <= 0 ? '−' : '+'}${kg.abs().toStringAsFixed(1)}',
+        kg == null
+            ? '—'
+            : '${kg <= 0 ? '−' : '+'}${kg.abs().toStringAsFixed(1)}',
         kg == null ? 'weigh 3+ mornings' : 'kg vs last week',
       ),
       (Icons.local_fire_department_rounded, '${s.streak}', 'day streak'),
       (Icons.fitness_center_rounded, '${w.gym}', 'gym sessions'),
       (Icons.water_drop_outlined, '${w.water}/7', 'water days'),
-      (Icons.directions_walk_rounded, w.steps == 0 ? '—' : thousands(w.steps), 'steps a day'),
-      (Icons.account_balance_wallet_outlined, '৳${thousands(w.spent)}', 'spent'),
+      (
+        Icons.directions_walk_rounded,
+        w.steps == 0 ? '—' : thousands(w.steps),
+        'steps a day',
+      ),
+      (
+        Icons.account_balance_wallet_outlined,
+        '৳${thousands(w.spent)}',
+        'spent',
+      ),
     ];
     return Scaffold(
       body: SafeArea(
@@ -286,7 +379,10 @@ class RecapScreen extends StatelessWidget {
                 for (final (icon, big, label) in tiles)
                   Container(
                     padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(18)),
+                    decoration: BoxDecoration(
+                      color: t.infield,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -295,9 +391,12 @@ class RecapScreen extends StatelessWidget {
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
-                          child: Text(big, style: t.x(28, weight: FontWeight.w900)),
+                          child: Text(
+                            big,
+                            style: t.x(28, weight: FontWeight.w900),
+                          ),
                         ),
-                        Text(label, style: t.meta()),
+                        Text(tr(context, label), style: t.meta()),
                       ],
                     ),
                   ),

@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -16,7 +18,8 @@ import 'visuals.dart';
 import 'water_walk.dart' show WeekBars;
 
 String _hh(int h) => '${(h % 24).toString().padLeft(2, '0')}:00';
-String _dur(Duration d) => '${d.inHours}h ${(d.inMinutes % 60).toString().padLeft(2, '0')}m';
+String _dur(Duration d) =>
+    '${d.inHours}h ${(d.inMinutes % 60).toString().padLeft(2, '0')}m';
 
 /// The stages of a fast in plain words, from the hour each starts. A rough guide: bodies vary,
 /// and no app can measure this; it's there to make the hours feel like they are going somewhere.
@@ -28,15 +31,26 @@ const fastStages = <(int, String, IconData)>[
   (16, 'Deep fast', Icons.auto_awesome_rounded),
 ];
 
-int stageAt(Duration d) => fastStages.lastIndexWhere((st) => d.inMinutes >= st.$1 * 60);
+int stageAt(Duration d) =>
+    fastStages.lastIndexWhere((st) => d.inMinutes >= st.$1 * 60);
 
 /// Where the fast stands now: the one started by hand if there is one, else the plan's schedule
 /// (fasting outside the eating window, eating inside it).
-({bool eating, Duration elapsed, Duration left, double frac}) fastNow(Store s, DateTime now) {
+({bool eating, Duration elapsed, Duration left, double frac}) fastNow(
+  Store s,
+  DateTime now,
+) {
   if (s.ramadan) return _ramadanNow(now);
   if (s.fastFrom != null) {
-    final total = Duration(hours: s.fastGoal), e = now.difference(s.fastFrom!), l = total - e;
-    return (eating: false, elapsed: e, left: l.isNegative ? Duration.zero : l, frac: e.inSeconds / total.inSeconds);
+    final total = Duration(hours: s.fastGoal),
+        e = now.difference(s.fastFrom!),
+        l = total - e;
+    return (
+      eating: false,
+      elapsed: e,
+      left: l.isNegative ? Duration.zero : l,
+      frac: e.inSeconds / total.inSeconds,
+    );
   }
   final start = DateTime(now.year, now.month, now.day, s.eatStart);
   final end = DateTime(now.year, now.month, now.day, s.eatEnd);
@@ -50,8 +64,12 @@ int stageAt(Duration d) => fastStages.lastIndexWhere((st) => d.inMinutes >= st.$
     );
   }
   // the fast runs from the window's close to its next open
-  final fastStart = now.isBefore(start) ? end.subtract(const Duration(days: 1)) : end;
-  final fastEnd = now.isBefore(start) ? start : start.add(const Duration(days: 1));
+  final fastStart = now.isBefore(start)
+      ? end.subtract(const Duration(days: 1))
+      : end;
+  final fastEnd = now.isBefore(start)
+      ? start
+      : start.add(const Duration(days: 1));
   final total = fastEnd.difference(fastStart);
   return (
     eating: false,
@@ -62,13 +80,23 @@ int stageAt(Duration d) => fastStages.lastIndexWhere((st) => d.inMinutes >= st.$
 }
 
 /// Ramadan: fasting from the end of sehri to iftar, eating from iftar to the next sehri.
-({bool eating, Duration elapsed, Duration left, double frac}) _ramadanNow(DateTime now) {
+({bool eating, Duration elapsed, Duration left, double frac}) _ramadanNow(
+  DateTime now,
+) {
   final today = ramadanTimes(now);
   final (from, to, eating) = now.isBefore(today.sehri)
-      ? (ramadanTimes(now.subtract(const Duration(days: 1))).iftar, today.sehri, true)
+      ? (
+          ramadanTimes(now.subtract(const Duration(days: 1))).iftar,
+          today.sehri,
+          true,
+        )
       : now.isBefore(today.iftar)
       ? (today.sehri, today.iftar, false)
-      : (today.iftar, ramadanTimes(now.add(const Duration(days: 1))).sehri, true);
+      : (
+          today.iftar,
+          ramadanTimes(now.add(const Duration(days: 1))).sehri,
+          true,
+        );
   return (
     eating: eating,
     elapsed: now.difference(from),
@@ -88,7 +116,9 @@ class FastBar extends StatelessWidget {
     final s = store;
     final now = DateTime.now(), f = fastNow(s, now);
     final times = ramadanTimes(now);
-    final next = f.eating && now.isAfter(times.iftar) ? ramadanTimes(now.add(const Duration(days: 1))) : times;
+    final next = f.eating && now.isAfter(times.iftar)
+        ? ramadanTimes(now.add(const Duration(days: 1)))
+        : times;
     final (String title, String side) = !s.ramadan
         ? (
             f.eating
@@ -109,11 +139,17 @@ class FastBar extends StatelessWidget {
         : ('Iftar in ${_dur(f.left)}', hhmm(times.iftar));
     return InkWell(
       borderRadius: BorderRadius.circular(18),
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FastingScreen(store: s))),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => FastingScreen(store: s)),
+      ),
       child: Container(
         margin: const EdgeInsets.only(top: 12),
         padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-        decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(18)),
+        decoration: BoxDecoration(
+          color: t.infield,
+          borderRadius: BorderRadius.circular(18),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -130,7 +166,12 @@ class FastBar extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(title, style: t.body(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    title,
+                    style: t.body(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 Text(side, style: t.sec()),
               ],
@@ -183,10 +224,18 @@ class _FastingScreenState extends State<FastingScreen> {
   void _end(BuildContext context) {
     final s = widget.store, snap = s.snapshot();
     final d = s.endFast()!;
-    d.inMinutes >= s.fastGoal * 60 ? HapticFeedback.heavyImpact() : HapticFeedback.mediumImpact();
-    undoToast(context, d.inMinutes < 30 ? 'Fast ended · too short to keep' : 'Fast saved · ${_dur(d)}', () {
-      s.restore(snap);
-    });
+    d.inMinutes >= s.fastGoal * 60
+        ? HapticFeedback.heavyImpact()
+        : HapticFeedback.mediumImpact();
+    undoToast(
+      context,
+      d.inMinutes < 30
+          ? 'Fast ended · too short to keep'
+          : 'Fast saved · ${_dur(d)}',
+      () {
+        s.restore(snap);
+      },
+    );
   }
 
   @override
@@ -201,9 +250,14 @@ class _FastingScreenState extends State<FastingScreen> {
         final f = fastNow(s, DateTime.now());
         final times = ramadanTimes(DateTime.now());
         final stage = f.eating ? null : stageAt(f.elapsed);
-        if (_stage != null && stage != null && stage > _stage!) HapticFeedback.mediumImpact();
+        if (_stage != null && stage != null && stage > _stage!) {
+          HapticFeedback.mediumImpact();
+        }
         _stage = stage;
-        final day = meals.fold(0, (a, m) => a + s.mealKcal(m) * (s.fasted(m) ? 0 : 1));
+        final day = meals.fold(
+          0,
+          (a, m) => a + s.mealKcal(m) * (s.fasted(m) ? 0 : 1),
+        );
         final days = s.lastDays(7);
         final streak = s.fastStreak;
         return Scaffold(
@@ -226,8 +280,14 @@ class _FastingScreenState extends State<FastingScreen> {
                       SwitchListTile.adaptive(
                         contentPadding: EdgeInsets.zero,
                         secondary: Icon(Icons.nightlight_round, color: t.ink),
-                        title: Text('Ramadan', style: t.body()),
-                        subtitle: Text('Sehri and iftar times, meals around the fast', style: t.meta()),
+                        title: Text(tr(context, 'Ramadan'), style: t.body()),
+                        subtitle: Text(
+                          tr(
+                            context,
+                            'Sehri and iftar times, meals around the fast',
+                          ),
+                          style: t.meta(),
+                        ),
                         value: s.ramadan,
                         onChanged: (v) async {
                           HapticFeedback.selectionClick();
@@ -236,7 +296,8 @@ class _FastingScreenState extends State<FastingScreen> {
                           if (v && s.ramadanPlace == null) {
                             var zone = '';
                             try {
-                              zone = (await FlutterTimezone.getLocalTimezone()).identifier;
+                              zone = (await FlutterTimezone.getLocalTimezone())
+                                  .identifier;
                             } catch (_) {}
                             s.setRamadanPlace(placeForZone(zone));
                           }
@@ -250,22 +311,45 @@ class _FastingScreenState extends State<FastingScreen> {
                           ('16:8', 8, 'The usual one'),
                           ('18:6', 6, 'Hard'),
                         ])
-                          _PlanCard(plan: p, eat: eat, how: how, onTap: () => s.setFast(p)),
+                          _PlanCard(
+                            plan: p,
+                            eat: eat,
+                            how: how,
+                            onTap: () => s.setFast(p),
+                          ),
                         const SizedBox(height: 8),
-                        const Tip(Icons.restaurant_rounded, 'Same food for the day, eaten in fewer hours'),
+                        const Tip(
+                          Icons.restaurant_rounded,
+                          'Same food for the day, eaten in fewer hours',
+                        ),
                       ] else ...[
                         if (on)
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
                             children: [
-                              groundChip(context, 'Off', false, () => s.setFast(null)),
+                              groundChip(
+                                context,
+                                'Off',
+                                false,
+                                () => s.setFast(null),
+                              ),
                               for (final p in FastingScreen.plans)
-                                groundChip(context, p, s.fastPlan == p, () => s.setFast(p)),
+                                groundChip(
+                                  context,
+                                  p,
+                                  s.fastPlan == p,
+                                  () => s.setFast(p),
+                                ),
                             ],
                           ),
                         const SizedBox(height: 24),
-                        _StageRing(f: f, goal: s.fastGoal, byHand: s.fastFrom != null, ramadan: s.ramadan),
+                        _StageRing(
+                          f: f,
+                          goal: s.fastGoal,
+                          byHand: s.fastFrom != null,
+                          ramadan: s.ramadan,
+                        ),
                         if (!f.eating) ...[
                           const SizedBox(height: 24),
                           _StageLine(elapsed: f.elapsed, goal: s.fastGoal),
@@ -274,36 +358,63 @@ class _FastingScreenState extends State<FastingScreen> {
                           const SizedBox(height: 24),
                           Row(
                             children: [
-                              Expanded(child: Text('Fasts kept', style: t.body())),
-                              Text('${s.ramadanKept}', style: t.x(22)),
+                              Expanded(
+                                child: Text(
+                                  tr(context, 'Fasts kept'),
+                                  style: t.body(),
+                                ),
+                              ),
+                              Text(
+                                tr(context, '{value1}', {
+                                  'value1': s.ramadanKept,
+                                }),
+                                style: t.x(22),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 8),
                           ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: Icon(Icons.place_outlined, color: t.ink),
-                            title: Text('Times for', style: t.body()),
+                            title: Text(
+                              tr(context, 'Times for'),
+                              style: t.body(),
+                            ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(s.ramadanPlace ?? 'Dhaka', style: t.x(15)),
-                                Icon(Icons.chevron_right_rounded, color: t.ink2),
+                                Text(
+                                  tr(context, s.ramadanPlace ?? 'Dhaka'),
+                                  style: t.x(15),
+                                ),
+                                Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: t.ink2,
+                                ),
                               ],
                             ),
                             onTap: () async {
                               final p = await showModalBottomSheet<String>(
                                 context: context,
                                 isScrollControlled: true,
-                                builder: (_) => _PlacePicker(current: s.ramadanPlace ?? 'Dhaka'),
+                                builder: (_) => _PlacePicker(
+                                  current: s.ramadanPlace ?? 'Dhaka',
+                                ),
                               );
                               if (p != null) s.setRamadanPlace(p);
                             },
                           ),
                           SwitchListTile.adaptive(
                             contentPadding: EdgeInsets.zero,
-                            title: Text('Not fasting today', style: t.body()),
+                            title: Text(
+                              tr(context, 'Not fasting today'),
+                              style: t.body(),
+                            ),
                             subtitle: Text(
-                              'Ill, travelling or on your period · it goes on the make-up list',
+                              tr(
+                                context,
+                                'Ill, travelling or on your period · it goes on the make-up list',
+                              ),
                               style: t.meta(),
                             ),
                             value: !s.fastingToday,
@@ -317,13 +428,17 @@ class _FastingScreenState extends State<FastingScreen> {
                             Container(
                               constraints: const BoxConstraints(minHeight: 48),
                               decoration: BoxDecoration(
-                                border: Border(top: BorderSide(color: t.rule, width: .5)),
+                                border: Border(
+                                  top: BorderSide(color: t.rule, width: .5),
+                                ),
                               ),
                               child: Row(
                                 children: [
                                   Icon(mealIcon(m.id), size: 20, color: t.ink),
                                   const SizedBox(width: 12),
-                                  Expanded(child: Text(m.name, style: t.body())),
+                                  Expanded(
+                                    child: Text(m.name, style: t.body()),
+                                  ),
                                   Text(m.window, style: t.sec(t.ink)),
                                 ],
                               ),
@@ -333,26 +448,38 @@ class _FastingScreenState extends State<FastingScreen> {
                             Icons.water_drop_outlined,
                             'Drink your water between iftar and sehri, a glass an hour',
                           ),
-                          const Tip(Icons.directions_walk_rounded, 'Walk after iftar, not before it'),
+                          const Tip(
+                            Icons.directions_walk_rounded,
+                            'Walk after iftar, not before it',
+                          ),
                         ],
                         if (on) ...[
                           const SizedBox(height: 24),
                           Row(
                             children: [
                               Expanded(
-                                child: Text('Eat from', style: t.body(weight: FontWeight.w400)),
+                                child: Text(
+                                  tr(context, 'Eat from'),
+                                  style: t.body(weight: FontWeight.w400),
+                                ),
                               ),
                               IconButton(
-                                tooltip: 'Earlier',
+                                tooltip: tr(context, 'Earlier'),
                                 onPressed: () {
                                   HapticFeedback.selectionClick();
                                   s.setFast(s.fastPlan, start: s.eatStart - 1);
                                 },
                                 icon: Icon(Icons.remove, color: t.ink),
                               ),
-                              Text('${_hh(s.eatStart)}–${_hh(s.eatEnd)}', style: t.x(18)),
+                              Text(
+                                tr(context, '{value1}–{value2}', {
+                                  'value1': _hh(s.eatStart),
+                                  'value2': _hh(s.eatEnd),
+                                }),
+                                style: t.x(18),
+                              ),
                               IconButton(
-                                tooltip: 'Later',
+                                tooltip: tr(context, 'Later'),
                                 onPressed: () {
                                   HapticFeedback.selectionClick();
                                   s.setFast(s.fastPlan, start: s.eatStart + 1);
@@ -366,17 +493,32 @@ class _FastingScreenState extends State<FastingScreen> {
                             Container(
                               constraints: const BoxConstraints(minHeight: 48),
                               decoration: BoxDecoration(
-                                border: Border(top: BorderSide(color: t.rule, width: .5)),
+                                border: Border(
+                                  top: BorderSide(color: t.rule, width: .5),
+                                ),
                               ),
                               child: Row(
                                 children: [
-                                  Icon(mealIcon(m.id), size: 20, color: s.fasted(m) ? t.ink2 : t.ink),
+                                  Icon(
+                                    mealIcon(m.id),
+                                    size: 20,
+                                    color: s.fasted(m) ? t.ink2 : t.ink,
+                                  ),
                                   const SizedBox(width: 12),
                                   Expanded(
-                                    child: Text(m.name, style: t.body(color: s.fasted(m) ? t.ink2 : t.ink)),
+                                    child: Text(
+                                      m.name,
+                                      style: t.body(
+                                        color: s.fasted(m) ? t.ink2 : t.ink,
+                                      ),
+                                    ),
                                   ),
                                   Text(
-                                    s.fasted(m) ? 'fasting' : '${thousands(s.mealKcal(m))} kcal',
+                                    s.fasted(m)
+                                        ? tr(context, 'fasting')
+                                        : tr(context, '{value1} kcal', {
+                                            'value1': thousands(s.mealKcal(m)),
+                                          }),
                                     style: s.fasted(m) ? t.sec() : t.x(15),
                                   ),
                                 ],
@@ -385,12 +527,24 @@ class _FastingScreenState extends State<FastingScreen> {
                           Container(
                             padding: const EdgeInsets.only(top: 10),
                             decoration: BoxDecoration(
-                              border: Border(top: BorderSide(color: t.rule, width: .5)),
+                              border: Border(
+                                top: BorderSide(color: t.rule, width: .5),
+                              ),
                             ),
                             child: Row(
                               children: [
-                                Expanded(child: Text('Your day', style: t.body())),
-                                Text('${thousands(day)} kcal', style: t.x(17)),
+                                Expanded(
+                                  child: Text(
+                                    tr(context, 'Your day'),
+                                    style: t.body(),
+                                  ),
+                                ),
+                                Text(
+                                  tr(context, '{value1} kcal', {
+                                    'value1': thousands(day),
+                                  }),
+                                  style: t.x(17),
+                                ),
                               ],
                             ),
                           ),
@@ -398,7 +552,12 @@ class _FastingScreenState extends State<FastingScreen> {
                         const SizedBox(height: 24),
                         Row(
                           children: [
-                            Expanded(child: Text('Last 7 days', style: t.meta())),
+                            Expanded(
+                              child: Text(
+                                tr(context, 'Last 7 days'),
+                                style: t.meta(),
+                              ),
+                            ),
                             Text(
                               streak > 0
                                   ? '$streak-day fasting streak'
@@ -417,10 +576,19 @@ class _FastingScreenState extends State<FastingScreen> {
                           max: (s.fastGoal + 6) * 60,
                         ),
                         const SizedBox(height: 16),
-                        const Tip(Icons.insights_rounded, 'Stages are a rough guide · bodies vary'),
+                        const Tip(
+                          Icons.insights_rounded,
+                          'Stages are a rough guide · bodies vary',
+                        ),
                       ],
-                      const Tip(Icons.local_cafe_outlined, 'While fasting: water, black tea, black coffee'),
-                      const Tip(Icons.medical_services_outlined, 'Diabetic or on medicine? Ask your doctor first'),
+                      const Tip(
+                        Icons.local_cafe_outlined,
+                        'While fasting: water, black tea, black coffee',
+                      ),
+                      const Tip(
+                        Icons.medical_services_outlined,
+                        'Diabetic or on medicine? Ask your doctor first',
+                      ),
                     ],
                   ),
                 ),
@@ -428,9 +596,13 @@ class _FastingScreenState extends State<FastingScreen> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                     child: s.fastFrom != null
-                        ? Cta(label: 'End fast', trailing: _dur(f.elapsed), onTap: () => _end(context))
+                        ? Cta(
+                            label: tr(context, 'End fast'),
+                            trailing: _dur(f.elapsed),
+                            onTap: () => _end(context),
+                          )
                         : Cta(
-                            label: 'Start fast now',
+                            label: tr(context, 'Start fast now'),
                             trailing: 'goal ${s.fastGoal}h',
                             onTap: () {
                               HapticFeedback.mediumImpact();
@@ -463,22 +635,29 @@ class _PlacePickerState extends State<_PlacePicker> {
     final t = Daur.of(context);
     final shown = [
       for (final (i, p) in ramadanPlaces.indexed)
-        if (p.$1.toLowerCase().contains(_q.toLowerCase())) (p.$1, i < ramadanDistricts),
+        if (p.$1.toLowerCase().contains(_q.toLowerCase()) ||
+            tr(context, p.$1).contains(_q))
+          (p.$1, i < ramadanDistricts),
     ];
     return SizedBox(
       height: MediaQuery.sizeOf(context).height * .75,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(20, 0, 20, MediaQuery.viewInsetsOf(context).bottom),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          0,
+          20,
+          MediaQuery.viewInsetsOf(context).bottom,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Times for', style: t.x(20, color: t.sheetRed)),
+            Text(tr(context, 'Times for'), style: t.x(20, color: t.sheetRed)),
             TextField(
               onChanged: (v) => setState(() => _q = v.trim()),
               style: t.body(color: t.sheetInk, weight: FontWeight.w500),
               decoration: InputDecoration(
                 prefixIcon: Icon(Icons.search_rounded, color: t.sheetInk2),
-                hintText: 'District or city',
+                hintText: tr(context, 'District or city'),
                 hintStyle: t.sec(t.sheetInk2),
               ),
             ),
@@ -489,14 +668,25 @@ class _PlacePickerState extends State<_PlacePicker> {
                     if (i == 0 || shown[i - 1].$2 != home)
                       Padding(
                         padding: const EdgeInsets.only(top: 16, bottom: 4),
-                        child: Text(home ? 'Bangladesh' : 'Abroad', style: t.meta(t.sheetInk2)),
+                        child: Text(
+                          home
+                              ? tr(context, 'Bangladesh')
+                              : tr(context, 'Abroad'),
+                          style: t.meta(t.sheetInk2),
+                        ),
                       ),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: Text(name, style: t.body(color: t.sheetInk)),
-                      trailing: name == widget.current ? Icon(Icons.check_rounded, color: t.sheetRed) : null,
+                      title: Text(
+                        tr(context, name),
+                        style: t.body(color: t.sheetInk),
+                      ),
+                      trailing: name == widget.current
+                          ? Icon(Icons.check_rounded, color: t.sheetRed)
+                          : null,
                       onTap: () {
-                        FocusManager.instance.primaryFocus?.unfocus(); // the keyboard goes with the sheet
+                        FocusManager.instance.primaryFocus
+                            ?.unfocus(); // the keyboard goes with the sheet
                         Navigator.pop(context, name);
                       },
                     ),
@@ -504,7 +694,10 @@ class _PlacePickerState extends State<_PlacePicker> {
                   if (shown.isEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 16),
-                      child: Text('Not on the list · pick the nearest place', style: t.sec(t.sheetInk2)),
+                      child: Text(
+                        tr(context, 'Not on the list · pick the nearest place'),
+                        style: t.sec(t.sheetInk2),
+                      ),
                     ),
                 ],
               ),
@@ -528,16 +721,26 @@ class _MakeUp extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Text('$n ${n == 1 ? 'fast' : 'fasts'} to make up', style: t.body(weight: FontWeight.w400)),
+          child: Text(
+            tr(context, '{value1} {value2} to make up', {
+              'value1': n,
+              'value2': n == 1 ? 'fast' : 'fasts',
+            }),
+            style: t.body(weight: FontWeight.w400),
+          ),
         ),
         TextButton(
           onPressed: () {
             HapticFeedback.mediumImpact();
             final snap = store.snapshot();
             store.madeUpFast();
-            undoToast(context, 'One made up · ${n - 1} left', () => store.restore(snap));
+            undoToast(
+              context,
+              'One made up · ${n - 1} left',
+              () => store.restore(snap),
+            );
           },
-          child: Text('Made one up', style: t.sec(t.accent)),
+          child: Text(tr(context, 'Made one up'), style: t.sec(t.accent)),
         ),
       ],
     );
@@ -545,7 +748,12 @@ class _MakeUp extends StatelessWidget {
 }
 
 class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.plan, required this.eat, required this.how, required this.onTap});
+  const _PlanCard({
+    required this.plan,
+    required this.eat,
+    required this.how,
+    required this.onTap,
+  });
   final String plan, how;
   final int eat;
   final VoidCallback onTap;
@@ -582,7 +790,13 @@ class _PlanCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(how, style: t.body()),
-                      Text('eat $eat hours · fast ${24 - eat}', style: t.meta()),
+                      Text(
+                        tr(context, 'eat {value1} hours · fast {value2}', {
+                          'value1': eat,
+                          'value2': 24 - eat,
+                        }),
+                        style: t.meta(),
+                      ),
                     ],
                   ),
                 ),
@@ -599,7 +813,12 @@ class _PlanCard extends StatelessWidget {
 /// The hero: a ring that fills to the goal, a stage notch at each stage's hour, a breathing yellow
 /// tip; inside, the stage's icon (springs in when a stage starts), the clock and the stage's name.
 class _StageRing extends StatefulWidget {
-  const _StageRing({required this.f, required this.goal, required this.byHand, this.ramadan = false});
+  const _StageRing({
+    required this.f,
+    required this.goal,
+    required this.byHand,
+    this.ramadan = false,
+  });
   final ({bool eating, Duration elapsed, Duration left, double frac}) f;
   final int goal;
   final bool byHand, ramadan;
@@ -608,8 +827,12 @@ class _StageRing extends StatefulWidget {
   State<_StageRing> createState() => _StageRingState();
 }
 
-class _StageRingState extends State<_StageRing> with SingleTickerProviderStateMixin {
-  late final _pulse = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600));
+class _StageRingState extends State<_StageRing>
+    with SingleTickerProviderStateMixin {
+  late final _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  );
 
   @override
   void didChangeDependencies() {
@@ -631,9 +854,19 @@ class _StageRingState extends State<_StageRing> with SingleTickerProviderStateMi
     final d = f.elapsed;
     final done = !f.eating && f.left == Duration.zero && widget.byHand;
     final icon = st?.$3 ?? Icons.restaurant_rounded;
-    final name = f.eating ? (widget.ramadan ? 'After iftar' : 'Eating window') : st!.$2;
+    final name = f.eating
+        ? (widget.ramadan ? 'After iftar' : 'Eating window')
+        : st!.$2;
     return Semantics(
-      label: f.eating ? 'Eating window, ${_dur(f.left)} left' : 'Fasting ${_dur(d)} of ${widget.goal} hours, ${st!.$2}',
+      label: f.eating
+          ? tr(context, 'Eating window, {value1} left', {
+              'value1': _dur(f.left),
+            })
+          : tr(context, 'Fasting {value1} of {value2} hours, {value3}', {
+              'value1': _dur(d),
+              'value2': widget.goal,
+              'value3': st!.$2,
+            }),
       excludeSemantics: true,
       child: Center(
         // a finished fast throws confetti
@@ -647,8 +880,16 @@ class _StageRingState extends State<_StageRing> with SingleTickerProviderStateMi
               curve: Curves.easeOutCubic,
               builder: (context, frac, child) => AnimatedBuilder(
                 animation: _pulse,
-                builder: (context, child) =>
-                    CustomPaint(painter: _StagePainter(frac, widget.goal, f.eating, _pulse.value, t), child: child),
+                builder: (context, child) => CustomPaint(
+                  painter: _StagePainter(
+                    frac,
+                    widget.goal,
+                    f.eating,
+                    _pulse.value,
+                    t,
+                  ),
+                  child: child,
+                ),
                 child: child,
               ),
               child: Center(
@@ -658,10 +899,18 @@ class _StageRingState extends State<_StageRing> with SingleTickerProviderStateMi
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 600),
                       transitionBuilder: (c, a) => ScaleTransition(
-                        scale: CurvedAnimation(parent: a, curve: Curves.elasticOut),
+                        scale: CurvedAnimation(
+                          parent: a,
+                          curve: Curves.elasticOut,
+                        ),
                         child: FadeTransition(opacity: a, child: c),
                       ),
-                      child: Icon(icon, key: ValueKey(icon), size: 30, color: f.eating ? t.ink : t.accent),
+                      child: Icon(
+                        icon,
+                        key: ValueKey(icon),
+                        size: 30,
+                        color: f.eating ? t.ink : t.accent,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Row(
@@ -670,10 +919,24 @@ class _StageRingState extends State<_StageRing> with SingleTickerProviderStateMi
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         Text(
-                          '${d.inHours}:${(d.inMinutes % 60).toString().padLeft(2, '0')}',
+                          tr(context, '{value1}:{value2}', {
+                            'value1': d.inHours,
+                            'value2': (d.inMinutes % 60).toString().padLeft(
+                              2,
+                              '0',
+                            ),
+                          }),
                           style: t.x(44, weight: FontWeight.w900),
                         ),
-                        Text(':${(d.inSeconds % 60).toString().padLeft(2, '0')}', style: t.x(16, color: t.ink2)),
+                        Text(
+                          tr(context, ':{value1}', {
+                            'value1': (d.inSeconds % 60).toString().padLeft(
+                              2,
+                              '0',
+                            ),
+                          }),
+                          style: t.x(16, color: t.ink2),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -714,8 +977,14 @@ class _StagePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     const stroke = 16.0, top = -math.pi / 2;
-    final c = size.center(Offset.zero), r = size.shortestSide / 2 - stroke / 2 - 12;
-    Offset at(double f) => c + Offset(r * math.cos(top + f * 2 * math.pi), r * math.sin(top + f * 2 * math.pi));
+    final c = size.center(Offset.zero),
+        r = size.shortestSide / 2 - stroke / 2 - 12;
+    Offset at(double f) =>
+        c +
+        Offset(
+          r * math.cos(top + f * 2 * math.pi),
+          r * math.sin(top + f * 2 * math.pi),
+        );
     canvas.drawCircle(
       c,
       r,
@@ -742,12 +1011,20 @@ class _StagePainter extends CustomPainter {
       for (final (h, _, _) in fastStages) {
         if (h == 0 || h >= goal) continue;
         final f = h / goal;
-        canvas.drawCircle(at(f), 4, Paint()..color = f <= frac ? t.ground : t.ink.withValues(alpha: .45));
+        canvas.drawCircle(
+          at(f),
+          4,
+          Paint()..color = f <= frac ? t.ground : t.ink.withValues(alpha: .45),
+        );
       }
     }
     // the tip breathes: a yellow dot with a ring spreading out and fading
     final p = at(frac);
-    canvas.drawCircle(p, 12 + 12 * pulse, Paint()..color = t.accent.withValues(alpha: .4 * (1 - pulse)));
+    canvas.drawCircle(
+      p,
+      12 + 12 * pulse,
+      Paint()..color = t.accent.withValues(alpha: .4 * (1 - pulse)),
+    );
     canvas.drawCircle(p, 12, Paint()..color = t.accent);
     canvas.drawCircle(
       p,
@@ -761,7 +1038,11 @@ class _StagePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_StagePainter o) =>
-      o.frac != frac || o.pulse != pulse || o.goal != goal || o.eating != eating || o.t != t;
+      o.frac != frac ||
+      o.pulse != pulse ||
+      o.goal != goal ||
+      o.eating != eating ||
+      o.t != t;
 }
 
 /// The stages as a line of discs: passed ones filled, the current one yellow, the rest outlined;
@@ -778,7 +1059,14 @@ class _StageLine extends StatelessWidget {
     final n = stages.length, cur = stageAt(elapsed).clamp(0, n - 1);
     final hrs = elapsed.inMinutes / 60;
     final next = cur + 1 < n ? stages[cur + 1].$1 : null;
-    final along = cur + (next == null ? 0 : ((hrs - stages[cur].$1) / (next - stages[cur].$1)).clamp(0.0, 1.0));
+    final along =
+        cur +
+        (next == null
+            ? 0
+            : ((hrs - stages[cur].$1) / (next - stages[cur].$1)).clamp(
+                0.0,
+                1.0,
+              ));
     const disc = 40.0;
     return LayoutBuilder(
       builder: (context, box) {
@@ -830,7 +1118,9 @@ class _StageLine extends StatelessWidget {
                                 : i < cur
                                 ? t.ink
                                 : t.ground,
-                            border: i > cur ? Border.all(color: t.lane, width: 1.5) : null,
+                            border: i > cur
+                                ? Border.all(color: t.lane, width: 1.5)
+                                : null,
                           ),
                           child: Icon(
                             icon,
@@ -843,8 +1133,16 @@ class _StageLine extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        Text(name, textAlign: TextAlign.center, maxLines: 2, style: t.meta(i == cur ? t.ink : null)),
-                        Text('${h}h', style: t.meta(t.ink2)),
+                        Text(
+                          name,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          style: t.meta(i == cur ? t.ink : null),
+                        ),
+                        Text(
+                          tr(context, '{value1}h', {'value1': h}),
+                          style: t.meta(t.ink2),
+                        ),
                       ],
                     ),
                   ),

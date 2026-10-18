@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'dart:async';
 import 'dart:ui' as ui;
 
@@ -38,16 +40,27 @@ class Reminders {
     'weigh': ('Weigh-in', 'Morning weigh-in'),
     'walk': ('Evening walk', 'Only when you are short of steps'),
     'streak': ('Streak', 'At 21:30 when today isn\'t complete'),
-    'fasting': ('Fasting', 'When the eating window opens and is about to close'),
-    'checkins': ('Check-ins', 'Pace check, junk rule, end of the plan, a nudge after 2 days away'),
+    'fasting': (
+      'Fasting',
+      'When the eating window opens and is about to close',
+    ),
+    'checkins': (
+      'Check-ins',
+      'Pace check, junk rule, end of the plan, a nudge after 2 days away',
+    ),
   };
 
-  static Future<void> init() async {
-    if (_ready || !_supported) return;
+  static String _language = 'en';
+  static Future<void> init({String? language}) async {
+    final nextLanguage = language ?? _language;
+    if ((_ready && nextLanguage == _language) || !_supported) return;
+    _language = nextLanguage;
     _ready = true;
     tzdata.initializeTimeZones();
     try {
-      tz.setLocalLocation(tz.getLocation((await FlutterTimezone.getLocalTimezone()).identifier));
+      tz.setLocalLocation(
+        tz.getLocation((await FlutterTimezone.getLocalTimezone()).identifier),
+      );
     } catch (_) {
       tz.setLocalLocation(tz.getLocation('Asia/Dhaka'));
     }
@@ -62,16 +75,19 @@ class Reminders {
             DarwinNotificationCategory(
               'meal',
               actions: [
-                DarwinNotificationAction.plain('log', 'Log as planned'),
+                DarwinNotificationAction.plain('log', trLanguage(_language, 'Log as planned')),
                 DarwinNotificationAction.plain(
                   'other',
-                  'Something else',
+                  trLanguage(_language, 'Something else'),
                   options: {DarwinNotificationActionOption.foreground},
                 ),
-                DarwinNotificationAction.plain('skip', 'Skip'),
+                DarwinNotificationAction.plain('skip', trLanguage(_language, 'Skip')),
               ],
             ),
-            DarwinNotificationCategory('water', actions: [DarwinNotificationAction.plain('glass', '+ Glass')]),
+            DarwinNotificationCategory(
+              'water',
+              actions: [DarwinNotificationAction.plain('glass', trLanguage(_language, '+ Glass'))],
+            ),
           ],
         ),
       ),
@@ -85,14 +101,17 @@ class Reminders {
     await init();
     if (defaultTargetPlatform == TargetPlatform.android) {
       return await plugin
-              .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+              .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin
+              >()
               ?.requestNotificationsPermission() ??
           false;
     }
-    return await plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()?.requestPermissions(
-          alert: true,
-          sound: true,
-        ) ??
+    return await plugin
+            .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin
+            >()
+            ?.requestPermissions(alert: true, sound: true) ??
         false;
   }
 
@@ -124,9 +143,11 @@ class Reminders {
     return NotificationDetails(
       android: AndroidNotificationDetails(
         'daur_$channel',
-        name,
-        channelDescription: desc,
-        importance: channel == 'meals' ? Importance.high : Importance.defaultImportance,
+        trLanguage(_language, name),
+        channelDescription: trLanguage(_language, desc),
+        importance: channel == 'meals'
+            ? Importance.high
+            : Importance.defaultImportance,
         priority: channel == 'meals' ? Priority.high : Priority.defaultPriority,
         color: const Color(0xFF28645D),
         icon: 'ic_stat_daur',
@@ -192,10 +213,13 @@ class Reminders {
               _base + d * 50 + slot,
               when,
               channel,
-              title,
-              body,
+              trLanguage(s.appLanguage, title),
+              trLanguage(s.appLanguage, body),
               payload,
-              sub: 'Day $lap of $laps',
+              sub: trLanguage(s.appLanguage, 'Day {value1} of {value2}', {
+                'value1': lap,
+                'value2': laps,
+              }),
               progress: progress,
               lines: lines,
             ),
@@ -204,33 +228,68 @@ class Reminders {
       }
 
       if (s.reminderOn('weigh') && !(d == 0 && s.weighedToday)) {
-        add(1, at(7, 30), 'weigh', 'Weigh-in · day $lap', 'After the bathroom, before breakfast.', 'weigh');
+        add(
+          1,
+          at(7, 30),
+          'weigh',
+          trLanguage(s.appLanguage, 'Weigh-in · day {value1}', {'value1': lap}),
+          trLanguage(s.appLanguage, 'After the bathroom, before breakfast.'),
+          'weigh',
+        );
       }
       // Ramadan's times move a minute a day: each day's meals get that day's
       final dayMeals = s.ramadan ? withRamadanTimes(meals, day) : meals;
       final rt = ramadanTimes(day);
       if (s.reminderOn('meals')) {
         for (final (i, m) in dayMeals.indexed) {
-          if (s.fasted(m) || (d == 0 && (s.done.containsKey(m.id) || s.skipped.contains(m.id)))) continue;
-          final p = m.window.split('–').first.split(':').map(int.parse).toList();
+          if (s.fasted(m) ||
+              (d == 0 &&
+                  (s.done.containsKey(m.id) || s.skipped.contains(m.id))))
+            { continue; }
+          final p = m.window
+              .split('–')
+              .first
+              .split(':')
+              .map(int.parse)
+              .toList();
           final opt = s.chosen(m);
           final last = i == meals.length - 1;
           final (time, title, body) = switch (s.ramadan ? m.id : '') {
             // sehri: 45 minutes before it ends; iftar: 10 minutes before
             'm1' => (
               rt.sehri.subtract(const Duration(minutes: 45)),
-              'Sehri ends ${hhmm(rt.sehri)}',
-              '${opt.name} · water too, 2–3 glasses.',
+              trLanguage(s.appLanguage, 'Sehri ends {value1}', {
+                'value1': hhmm(rt.sehri),
+              }),
+              trLanguage(s.appLanguage, '{value1} · water too, 2–3 glasses.', {
+                'value1': opt.name,
+              }),
             ),
             'm2' => (
               rt.iftar.subtract(const Duration(minutes: 10)),
-              'Iftar at ${hhmm(rt.iftar)}',
-              'Dates and water first, then ${opt.name}.',
+              trLanguage(s.appLanguage, 'Iftar at {value1}', {
+                'value1': hhmm(rt.iftar),
+              }),
+              trLanguage(
+                s.appLanguage,
+                'Dates and water first, then {value1}.',
+                {'value1': opt.name},
+              ),
             ),
             _ => (
               at(p[0], p[1]),
-              '${m.name} · ${m.window.split('–').first}',
-              '${opt.name} · ${s.optKcal(m, opt)} kcal. ${last ? 'The last meal of the day.' : 'Log it in one tap.'}',
+              trLanguage(s.appLanguage, '{value1} · {value2}', {
+                'value1': trLanguage(s.appLanguage, m.name),
+                'value2': m.window.split('–').first,
+              }),
+              trLanguage(s.appLanguage, '{value1} · {value2} kcal. {value3}', {
+                'value1': opt.name,
+                'value2': s.optKcal(m, opt),
+                'value3': trLanguage(
+                  s.appLanguage,
+                  last ? 'The last meal of the day.' : 'Log it in one tap.',
+                ),
+              }),
             ),
           };
           add(10 + i, time, 'meals', title, body, 'meal:${m.id}');
@@ -243,14 +302,24 @@ class Reminders {
             ? [(iftarHour.hour, iftarHour.minute, 5), (21, 0, 9), (22, 45, 12)]
             : [(11, 0, 5), (14, 30, 9), (18, 0, 12)];
         for (final (i, (h, mm, of14)) in checks.indexed) {
-          final goal = (of14 * s.waterGoal / 14).round(); // checkpoints scaled to the day's goal
+          final goal = (of14 * s.waterGoal / 14)
+              .round(); // checkpoints scaled to the day's goal
           if (d == 0 && s.water >= goal) continue;
           add(
             20 + i,
             at(h, mm),
             'water',
-            d == 0 ? 'Water · ${litres(s.water)} of ${litres(s.waterGoal)} L' : 'Water',
-            'Aim for ${litres(goal)} L by now. One glass, 250 ml.',
+            d == 0
+                ? trLanguage(s.appLanguage, 'Water · {value1} of {value2} L', {
+                    'value1': litres(s.water),
+                    'value2': litres(s.waterGoal),
+                  })
+                : 'Water',
+            trLanguage(
+              s.appLanguage,
+              'Aim for {value1} L by now. One glass, 250 ml.',
+              {'value1': litres(goal)},
+            ),
             'water',
             progress: d == 0 ? (s.water, s.waterGoal) : null,
           );
@@ -265,8 +334,17 @@ class Reminders {
             30,
             at(21, 15),
             'walk',
-            'Walk off ${thousands(s.burnLeft)} kcal',
-            '${hoursMinutes(min)} brisk walk covers it, about ${thousands((min / 60 * 5.6 * 1350).round())} steps.',
+            trLanguage(s.appLanguage, 'Walk off {value1} kcal', {
+              'value1': thousands(s.burnLeft),
+            }),
+            trLanguage(
+              s.appLanguage,
+              '{value1} brisk walk covers it, about {value2} steps.',
+              {
+                'value1': hoursMinutes(min),
+                'value2': thousands((min / 60 * 5.6 * 1350).round()),
+              },
+            ),
             'burn',
           );
         } else if (d > 0 || steps == null) {
@@ -274,8 +352,12 @@ class Reminders {
             30,
             at(21, 15),
             'walk',
-            'Evening walk',
-            'Short of ${thousands(target)} steps? 20 minutes after dinner covers most of it.',
+            trLanguage(s.appLanguage, 'Evening walk'),
+            trLanguage(
+              s.appLanguage,
+              'Short of {value1} steps? 20 minutes after dinner covers most of it.',
+              {'value1': thousands(target)},
+            ),
             'walk',
           );
         } else if (steps < target) {
@@ -283,8 +365,14 @@ class Reminders {
             30,
             at(21, 15),
             'walk',
-            'Walk · ${thousands(steps)} of ${thousands(target)}',
-            '20 minutes after dinner covers the rest.',
+            trLanguage(s.appLanguage, 'Walk · {value1} of {value2}', {
+              'value1': thousands(steps),
+              'value2': thousands(target),
+            }),
+            trLanguage(
+              s.appLanguage,
+              '20 minutes after dinner covers the rest.',
+            ),
             'walk',
             progress: (steps, target),
           );
@@ -298,10 +386,16 @@ class Reminders {
             32,
             at(open, 0),
             'fasting',
-            'Eating window open',
+            trLanguage(s.appLanguage, 'Eating window open'),
             d == 0 && s.fastFrom != null
-                ? 'Until ${close.toString().padLeft(2, '0')}:00. End your fast in Daur.'
-                : 'Until ${close.toString().padLeft(2, '0')}:00.',
+                ? trLanguage(
+                    s.appLanguage,
+                    'Until {value1}:00. End your fast in Daur.',
+                    {'value1': close.toString().padLeft(2, '0')},
+                  )
+                : trLanguage(s.appLanguage, 'Until {value1}:00.', {
+                    'value1': close.toString().padLeft(2, '0'),
+                  }),
             'fasting',
           );
         }
@@ -310,8 +404,12 @@ class Reminders {
             33,
             at(close - 1, 30),
             'fasting',
-            'Window closes in 30 min',
-            'Last bite by ${close.toString().padLeft(2, '0')}:00, then the fast starts.',
+            trLanguage(s.appLanguage, 'Window closes in 30 min'),
+            trLanguage(
+              s.appLanguage,
+              'Last bite by {value1}:00, then the fast starts.',
+              {'value1': close.toString().padLeft(2, '0')},
+            ),
             'fasting',
           );
         }
@@ -324,10 +422,23 @@ class Reminders {
           31,
           at(21, 30),
           'streak',
-          n > 0 ? 'Your $n-day streak ends at midnight' : 'Close today',
+          n > 0
+              ? trLanguage(
+                  s.appLanguage,
+                  'Your {value1}-day streak ends at midnight',
+                  {'value1': n},
+                )
+              : trLanguage(s.appLanguage, 'Close today'),
           d == 0
-              ? 'Log the last ${left == 1 ? 'meal' : '$left meals'}, or mark ${left == 1 ? 'it' : 'them'} skipped.'
-              : 'Log what\'s left before midnight.',
+              ? trLanguage(
+                  s.appLanguage,
+                  'Log the last {value1}, or mark {value2} skipped.',
+                  {
+                    'value1': left == 1 ? 'meal' : '$left meals',
+                    'value2': left == 1 ? 'it' : 'them',
+                  },
+                )
+              : trLanguage(s.appLanguage, 'Log what\'s left before midnight.'),
           'open',
           progress: d == 0 ? (s.legsDone, 4) : null,
           // expanded: everything still open today, one line each (Android inbox style)
@@ -335,12 +446,24 @@ class Reminders {
               ? const []
               : [
                   for (final m in meals)
-                    if (!s.fasted(m) && !s.done.containsKey(m.id) && !s.skipped.contains(m.id))
-                      '${m.name} · not logged yet',
-                  if (s.burnLeft > 0) 'Burn · ${thousands(s.burnLeft)} kcal over',
-                  if (s.water < s.waterGoal) 'Water · ${litres(s.waterGoal - s.water)} L to go',
+                    if (!s.fasted(m) &&
+                        !s.done.containsKey(m.id) &&
+                        !s.skipped.contains(m.id))
+                      trLanguage(s.appLanguage, '{value1} · not logged yet', {
+                        'value1': trLanguage(s.appLanguage, m.name),
+                      }),
+                  if (s.burnLeft > 0)
+                    trLanguage(s.appLanguage, 'Burn · {value1} kcal over', {
+                      'value1': thousands(s.burnLeft),
+                    }),
+                  if (s.water < s.waterGoal)
+                    trLanguage(s.appLanguage, 'Water · {value1} L to go', {
+                      'value1': litres(s.waterGoal - s.water),
+                    }),
                   if (steps != null && steps < stepTargetForDay(lap))
-                    'Steps · ${thousands(stepTargetForDay(lap) - steps)} short',
+                    trLanguage(s.appLanguage, 'Steps · {value1} short', {
+                      'value1': thousands(stepTargetForDay(lap) - steps),
+                    }),
                 ],
         );
       }
@@ -351,40 +474,80 @@ class Reminders {
           43,
           at(20, 30),
           'checkins',
-          'Your week',
+          trLanguage(s.appLanguage, 'Your week'),
           d == 0
-              ? '${w.full} of 7 full days${w.kgChange == null ? '' : ' · ${w.kgChange! <= 0 ? '−' : '+'}${w.kgChange!.abs().toStringAsFixed(1)} kg'}. Tap for the recap.'
-              : 'Full days, weight, steps, gym and spending. Tap for the recap.',
+              ? trLanguage(
+                  s.appLanguage,
+                  '{value1} of 7 full days{value2}. Tap for the recap.',
+                  {
+                    'value1': w.full,
+                    'value2': w.kgChange == null
+                        ? ''
+                        : ' · ${w.kgChange! <= 0 ? '−' : '+'}${w.kgChange!.abs().toStringAsFixed(1)} kg',
+                  },
+                )
+              : trLanguage(
+                  s.appLanguage,
+                  'Full days, weight, steps, gym and spending. Tap for the recap.',
+                ),
           'recap',
         );
       }
       // a trainer's Sunday: who needs them this week (counted when the dashboard was last open)
-      if (s.reminderOn('checkins') && s.role == 'trainer' && s.studentsTotal > 0 && day.weekday == DateTime.sunday) {
+      if (s.reminderOn('checkins') &&
+          s.role == 'trainer' &&
+          s.studentsTotal > 0 &&
+          day.weekday == DateTime.sunday) {
         add(
           44,
           at(19, 30),
           'checkins',
           s.studentsNeed == 0
-              ? 'All ${s.studentsTotal} students on track'
-              : '${s.studentsNeed} of ${s.studentsTotal} students need you',
-          'Open Students to see who, and why.',
+              ? trLanguage(s.appLanguage, 'All {value1} students on track', {
+                  'value1': s.studentsTotal,
+                })
+              : trLanguage(
+                  s.appLanguage,
+                  '{value1} of {value2} students need you',
+                  {'value1': s.studentsNeed, 'value2': s.studentsTotal},
+                ),
+          trLanguage(s.appLanguage, 'Open Students to see who, and why.'),
           'students',
         );
       }
       if (s.reminderOn('checkins')) {
-        const checkins = {
-          28: (40, 9, 0, 'Day 28 · pace check', 'Four weeks in. See how your weight trend compares with the plan.'),
+        final checkins = {
+          28: (
+            40,
+            9,
+            0,
+            trLanguage(s.appLanguage, 'Day 28 · pace check'),
+            trLanguage(
+              s.appLanguage,
+              'Four weeks in. See how your weight trend compares with the plan.',
+            ),
+          ),
           31: (
             41,
             9,
             0,
-            'Day 31 · the junk rule changes',
-            'From today: one controlled junk meal a week, never a cheat day.',
+            trLanguage(s.appLanguage, 'Day 31 · the junk rule changes'),
+            trLanguage(
+              s.appLanguage,
+              'From today: one controlled junk meal a week, never a cheat day.',
+            ),
           ),
-          laps: (42, 21, 30, 'Day 84 · the last day', 'Log it and choose what comes next.'),
+          laps: (
+            42,
+            21,
+            30,
+            trLanguage(s.appLanguage, 'Day 84 · the last day'),
+            trLanguage(s.appLanguage, 'Log it and choose what comes next.'),
+          ),
         };
         final c = checkins[lap];
-        if (c != null) add(c.$1, at(c.$2, c.$3), 'checkins', c.$4, c.$5, 'open');
+        if (c != null)
+          { add(c.$1, at(c.$2, c.$3), 'checkins', c.$4, c.$5, 'open'); }
       }
     }
     // re-engagement: if the app isn't opened for two days, one gentle nudge at 19:00
@@ -395,8 +558,13 @@ class Reminders {
           _base + 390,
           when,
           'checkins',
-          'Day ${s.lapIn(2)} of your plan',
-          'One tap logs a meal. Pick up where you left off.',
+          trLanguage(s.appLanguage, 'Day {value1} of your plan', {
+            'value1': s.lapIn(2),
+          }),
+          trLanguage(
+            s.appLanguage,
+            'One tap logs a meal. Pick up where you left off.',
+          ),
           'open',
         ),
       );
@@ -407,7 +575,7 @@ class Reminders {
   static Future<void> reschedule(Store s) async {
     if (!_supported) return;
     try {
-      await init();
+      await init(language: s.appLanguage);
       final pending = await plugin.pendingNotificationRequests();
       for (final p in pending) {
         if (p.id >= _base && p.id < _base + 400) await plugin.cancel(id: p.id);
@@ -415,14 +583,31 @@ class Reminders {
       final now = DateTime.now();
       for (final p in plan(s, now, steps: WidgetSync.steps)) {
         // today's Sunday recap carries the week as a picture; later Sundays don't know their week yet
-        final picture = p.payload == 'recap' && p.when.day == now.day ? await recapPicture(s) : null;
+        final picture = p.payload == 'recap' && p.when.day == now.day
+            ? await recapPicture(s)
+            : null;
         final actions = switch (p.channel) {
-          'meals' => const [
-            AndroidNotificationAction('log', 'Log as planned'),
-            AndroidNotificationAction('other', 'Something else', showsUserInterface: true),
-            AndroidNotificationAction('skip', 'Skip'),
+          'meals' => [
+            AndroidNotificationAction(
+              'log',
+              trLanguage(s.appLanguage, 'Log as planned'),
+            ),
+            AndroidNotificationAction(
+              'other',
+              trLanguage(s.appLanguage, 'Something else'),
+              showsUserInterface: true,
+            ),
+            AndroidNotificationAction(
+              'skip',
+              trLanguage(s.appLanguage, 'Skip'),
+            ),
           ],
-          'water' => const [AndroidNotificationAction('glass', '+ Glass')],
+          'water' => [
+            AndroidNotificationAction(
+              'glass',
+              trLanguage(s.appLanguage, '+ Glass'),
+            ),
+          ],
           _ => const <AndroidNotificationAction>[],
         };
         await plugin.zonedSchedule(
@@ -443,7 +628,8 @@ class Reminders {
                 ? 'water'
                 : null,
           ),
-          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle, // no exact-alarm permission needed
+          androidScheduleMode: AndroidScheduleMode
+              .inexactAllowWhileIdle, // no exact-alarm permission needed
           title: p.title,
           body: p.body,
           payload: p.payload,
@@ -477,7 +663,9 @@ class Reminders {
   /// Log / Skip / + Glass. Returns true if handled.
   static Future<bool> _apply(Store s, NotificationResponse r) async {
     final payload = r.payload ?? '';
-    final meal = payload.startsWith('meal:') ? meals.where((m) => m.id == payload.substring(5)).firstOrNull : null;
+    final meal = payload.startsWith('meal:')
+        ? meals.where((m) => m.id == payload.substring(5)).firstOrNull
+        : null;
     switch (r.actionId) {
       case 'log' when meal != null:
         if (!s.done.containsKey(meal.id)) s.logMeal(meal);
@@ -528,21 +716,43 @@ class Planned {
 Future<Uint8List?> recapPicture(Store s) async {
   try {
     const w = 1024.0, h = 512.0;
-    const red = ui.Color(0xFFF6F3EC), ink = ui.Color(0xFF25342F), ink2 = ui.Color(0xFF58665F);
+    const red = ui.Color(0xFFF6F3EC),
+        ink = ui.Color(0xFF25342F),
+        ink2 = ui.Color(0xFF58665F);
     const yellow = ui.Color(0xFF28645D), dark = ui.Color(0xFFFFFFFF);
     final rec = ui.PictureRecorder();
     final c = ui.Canvas(rec);
     c.drawRect(const ui.Rect.fromLTWH(0, 0, w, h), ui.Paint()..color = red);
-    void text(String t, double x, double y, double size, ui.Color color, {ui.FontWeight weight = ui.FontWeight.w700}) {
-      final b = ui.ParagraphBuilder(ui.ParagraphStyle(fontSize: size, fontWeight: weight))
-        ..pushStyle(ui.TextStyle(color: color))
-        ..addText(t);
-      c.drawParagraph(b.build()..layout(const ui.ParagraphConstraints(width: w - 112)), ui.Offset(x, y));
+    void text(
+      String t,
+      double x,
+      double y,
+      double size,
+      ui.Color color, {
+      ui.FontWeight weight = ui.FontWeight.w700,
+    }) {
+      final b =
+          ui.ParagraphBuilder(
+              ui.ParagraphStyle(fontSize: size, fontWeight: weight),
+            )
+            ..pushStyle(ui.TextStyle(color: color))
+            ..addText(t);
+      c.drawParagraph(
+        b.build()..layout(const ui.ParagraphConstraints(width: w - 112)),
+        ui.Offset(x, y),
+      );
     }
 
     final wk = s.week, days = s.lastDays(7);
     text('YOUR WEEK', 56, 36, 32, ink2, weight: ui.FontWeight.w600);
-    text('${wk.full} of 7 full days', 56, 76, 84, ink, weight: ui.FontWeight.w900);
+    text(
+      '${wk.full} of 7 full days',
+      56,
+      76,
+      84,
+      ink,
+      weight: ui.FontWeight.w900,
+    );
     for (final (i, d) in days.indexed) {
       final cx = 56 + 54 + i * 136.0, cy = 296.0, r = 54.0;
       final legs = d == s.today ? s.legsDone : s.lapHistory[d] ?? 0;
@@ -550,9 +760,17 @@ Future<Uint8List?> recapPicture(Store s) async {
         ..style = ui.PaintingStyle.stroke
         ..strokeWidth = 6;
       if (s.perfect(d) || legs >= 4) {
-        c.drawCircle(ui.Offset(cx, cy), r, ui.Paint()..color = s.perfect(d) ? yellow : ink);
+        c.drawCircle(
+          ui.Offset(cx, cy),
+          r,
+          ui.Paint()..color = s.perfect(d) ? yellow : ink,
+        );
       } else {
-        c.drawCircle(ui.Offset(cx, cy), r - 3, ring..color = ink.withValues(alpha: .35));
+        c.drawCircle(
+          ui.Offset(cx, cy),
+          r - 3,
+          ring..color = ink.withValues(alpha: .35),
+        );
         if (legs > 0) {
           c.drawArc(
             ui.Rect.fromCircle(center: ui.Offset(cx, cy), radius: r - 3),
@@ -566,12 +784,19 @@ Future<Uint8List?> recapPicture(Store s) async {
         }
       }
       final letter = 'MTWTFSS'[DateTime.parse(d).weekday - 1];
-      text(letter, cx - 11, cy - 19, 34, s.perfect(d) || legs >= 4 ? dark : ink);
+      text(
+        letter,
+        cx - 11,
+        cy - 19,
+        34,
+        s.perfect(d) || legs >= 4 ? dark : ink,
+      );
     }
     final kg = wk.kgChange;
     text(
       [
-        if (kg != null) '${kg <= 0 ? '−' : '+'}${kg.abs().toStringAsFixed(1)} kg',
+        if (kg != null)
+          '${kg <= 0 ? '−' : '+'}${kg.abs().toStringAsFixed(1)} kg',
         '${thousands(wk.steps)} steps a day',
         '${wk.gym} gym',
         '${wk.perfect} perfect',

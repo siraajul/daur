@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,21 +22,55 @@ import 'track.dart';
 import 'visuals.dart';
 import 'water_walk.dart';
 
-const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const _months = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 const _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-String niceDate(DateTime d) => '${_days[d.weekday - 1]} ${d.day} ${_months[d.month - 1]}';
-String thousands(int n) => n.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+$)'), (_) => ',');
+String niceDate(DateTime d, {String language = 'en'}) =>
+    '${trLanguage(language, _days[d.weekday - 1])} ${d.day} ${trLanguage(language, _months[d.month - 1])}';
+String thousands(int n) =>
+    n.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+$)'), (_) => ',');
 
 /// "Junk this week" line, shared by Today, the meal sheet and the Food tab.
 (String, String) junkStatus(Store s, {int adding = 0}) {
   final n = s.junkThisWeek + adding, a = s.junkAllowance;
-  final resets = 'resets ${niceDate(s.weekResets)}';
+  final resets = trLanguage(s.appLanguage, 'resets {date}', {
+    'date': niceDate(s.weekResets, language: s.appLanguage),
+  });
   if (a == 0) {
-    return (n == 0 ? 'No junk this week' : 'Junk this week: $n', 'Month 1: keep junk to a minimum · $resets');
+    return (
+      n == 0
+          ? trLanguage(s.appLanguage, 'No junk this week')
+          : trLanguage(s.appLanguage, 'Junk this week: {count}', {'count': n}),
+      trLanguage(s.appLanguage, 'Month 1: keep junk to a minimum · {reset}', {
+        'reset': resets,
+      }),
+    );
   }
   return (
-    n > a ? 'Junk this week: $n, over the 1 allowed' : 'Junk this week: $n of 1',
-    '1 controlled meal a week · $resets',
+    n > a
+        ? trLanguage(
+            s.appLanguage,
+            'Junk this week: {count}, over the 1 allowed',
+            {'count': n},
+          )
+        : trLanguage(s.appLanguage, 'Junk this week: {count} of 1', {
+            'count': n,
+          }),
+    trLanguage(s.appLanguage, '1 controlled meal a week · {reset}', {
+      'reset': resets,
+    }),
   );
 }
 
@@ -50,37 +86,55 @@ class MenuButton extends StatelessWidget {
       backgroundColor: Daur.of(context).accent,
       smallSize: 9,
       // Android: the drawer's ≡; iPhone: a profile button that opens the More page
-      child: Icon(isIOS(context) ? CupertinoIcons.person_crop_circle : Icons.menu, color: Daur.of(context).ink),
+      child: Icon(
+        isIOS(context) ? CupertinoIcons.person_crop_circle : Icons.menu,
+        color: Daur.of(context).ink,
+      ),
     ),
-    tooltip: dot ? 'Menu: Food guide, Reminders and more' : 'Menu',
+    tooltip: dot
+        ? tr(context, 'Menu: Food guide, Reminders and more')
+        : tr(context, 'Menu'),
   );
 }
 
-void undoToast(BuildContext context, String msg, VoidCallback undo) => ScaffoldMessenger.of(context)
-  ..hideCurrentSnackBar()
-  ..showSnackBar(
-    SnackBar(
-      content: Text(msg),
-      behavior: SnackBarBehavior.floating,
-      action: SnackBarAction(label: 'Undo', onPressed: undo),
-    ),
-  );
+void undoToast(BuildContext context, String msg, VoidCallback undo) =>
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(label: tr(context, 'Undo'), onPressed: undo),
+        ),
+      );
 
 /// Open the logging sheet; whatever it changes can be undone exactly from the snackbar.
-Future<void> openMeal(BuildContext context, Store s, {Meal? meal, int n = 0}) async {
+Future<void> openMeal(
+  BuildContext context,
+  Store s, {
+  Meal? meal,
+  int n = 0,
+}) async {
   final snap = s.snapshot();
   final junkBefore = s.rareToday;
   final msg = await showMealSheet(context, s, meal: meal, n: n);
-  if (msg != null && context.mounted) undoToast(context, msg, () => s.restore(snap));
+  if (msg != null && context.mounted)
+    { undoToast(context, msg, () => s.restore(snap)); }
   // first junk meal in month 1: one gentle pointer to the rule
-  if (s.rareToday > junkBefore && s.junkAllowance == 0) s.showHintNow('junk-first');
+  if (s.rareToday > junkBefore && s.junkAllowance == 0)
+    { s.showHintNow('junk-first'); }
 }
 
 /// One impact controller for Today: the track nudges the screen when the runner lands.
 final _impact = ImpactController();
 
 class TodayScreen extends StatelessWidget {
-  const TodayScreen({super.key, required this.store, required this.steps, required this.onRefreshSteps});
+  const TodayScreen({
+    super.key,
+    required this.store,
+    required this.steps,
+    required this.onRefreshSteps,
+  });
   final Store store;
   final int? steps;
   final Future<void> Function() onRefreshSteps;
@@ -92,7 +146,9 @@ class TodayScreen extends StatelessWidget {
     final next = s.nextMeal;
     final stepTarget = stepTargetForDay(s.lap);
     final walked = steps ?? s.manualSteps ?? 0;
-    final fastedLeft = meals.where((m) => s.fasted(m) && !s.done.containsKey(m.id)).length;
+    final fastedLeft = meals
+        .where((m) => s.fasted(m) && !s.done.containsKey(m.id))
+        .length;
 
     return Impact(
       controller: _impact,
@@ -107,18 +163,29 @@ class TodayScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       MenuButton(dot: s.drawerDot),
-                      Text('DAY ${s.lap}', style: t.x(22)),
+                      Text(
+                        tr(context, 'DAY {value1}', {'value1': s.lap}),
+                        style: t.x(22),
+                      ),
                       const SizedBox(width: 8),
-                      Text('of $laps', style: t.meta()),
+                      Text(
+                        tr(context, 'of {value1}', {'value1': laps}),
+                        style: t.meta(),
+                      ),
                       const Spacer(),
                       // the flame opens the streak: calendar of full days, best run, medals
                       InkWell(
                         borderRadius: BorderRadius.circular(20),
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StreakScreen(store: s))),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => StreakScreen(store: s),
+                          ),
+                        ),
                         child: StreakFlame(streak: s.streak),
                       ),
                       const SizedBox(width: 10),
-                      Text(niceDate(DateTime.now()), style: t.sec()),
+                      Text(niceDate(DateTime.now(), language: Localizations.localeOf(context).languageCode), style: t.sec()),
                     ],
                   ),
                   CoachCard(store: s),
@@ -137,15 +204,29 @@ class TodayScreen extends StatelessWidget {
                   ),
                   Center(
                     child: Text(
-                      'Track = meal logging · steps are counted separately',
+                      tr(
+                        context,
+                        'Track = meal logging · steps are counted separately',
+                      ),
                       style: t.meta(),
                       textAlign: TextAlign.center,
                     ),
                   ),
                   if (s.skipped.isNotEmpty)
-                    Center(child: Text('${s.mealsDone} eaten · ${s.skipped.length} skipped', style: t.sec())),
+                    Center(
+                      child: Text(
+                        tr(context, '{value1} eaten · {value2} skipped', {
+                          'value1': s.mealsDone,
+                          'value2': s.skipped.length,
+                        }),
+                        style: t.sec(),
+                      ),
+                    ),
                   if (s.programmePausedOn != null)
-                    const Tip(Icons.pause_circle_outline, 'Programme paused · daily logging is still available'),
+                    const Tip(
+                      Icons.pause_circle_outline,
+                      'Programme paused · daily logging is still available',
+                    ),
                   if (s.kcal > 0)
                     Center(
                       child: Pop(
@@ -155,27 +236,48 @@ class TodayScreen extends StatelessWidget {
                       ),
                     ),
                   // the lap is run: Dau cheers (decoration; the caption already says it)
-                  if (s.legsDone == 4) const Center(child: Dau(mood: DauMood.cheer, size: 96)),
+                  if (s.legsDone == 4)
+                    const Center(child: Dau(mood: DauMood.cheer, size: 96)),
                   const SizedBox(height: 8),
                   // the day's legs slide in one after another when Today opens
                   for (final (i, m) in meals.indexed)
                     SlideIn(
                       i: i,
-                      child: _Leg(store: s, meal: m, n: (i + 1) * 100, isNext: m == next),
+                      child: _Leg(
+                        store: s,
+                        meal: m,
+                        n: (i + 1) * 100,
+                        isNext: m == next,
+                      ),
                     ),
                   for (final (i, e) in s.extras.indexed)
                     _Line(
-                      lead: IconDisc(foodIcon(e.name, e.cat), size: 36, rare: e.rare),
-                      title: e.qty == 1 ? e.name : '${qtyText(e.qty)} × ${e.name}',
+                      lead: IconDisc(
+                        foodIcon(e.name, e.cat),
+                        size: 36,
+                        rare: e.rare,
+                      ),
+                      title: e.qty == 1
+                          ? e.name
+                          : tr(context, '{value1} × {value2}', {
+                              'value1': qtyText(e.qty),
+                              'value2': e.name,
+                            }),
                       sub: 'Extra · ${e.totalKcal} kcal',
                       right: '',
                       action: IconButton(
-                        tooltip: 'Remove ${e.name}',
+                        tooltip: tr(context, 'Remove {value1}', {
+                          'value1': e.name,
+                        }),
                         icon: Icon(Icons.close_rounded, color: t.ink2),
                         onPressed: () {
                           final snap = s.snapshot();
                           s.removeExtra(i);
-                          undoToast(context, '${e.name} removed', () => s.restore(snap));
+                          undoToast(
+                            context,
+                            '${e.name} removed',
+                            () => s.restore(snap),
+                          );
                         },
                       ),
                     ),
@@ -183,7 +285,7 @@ class TodayScreen extends StatelessWidget {
                     onTap: () => openMeal(context, s),
                     child: _Line(
                       lead: Icon(Icons.add_circle_outline, color: t.ink),
-                      title: 'Ate something extra?',
+                      title: tr(context, 'Ate something extra?'),
                       sub: 'Tea with sugar, a singara…',
                       right: '',
                     ),
@@ -196,7 +298,9 @@ class TodayScreen extends StatelessWidget {
                         final over = s.junkThisWeek > s.junkAllowance;
                         return _Line(
                           lead: Icon(
-                            over ? Icons.warning_amber_rounded : Icons.fastfood_outlined,
+                            over
+                                ? Icons.warning_amber_rounded
+                                : Icons.fastfood_outlined,
                             color: over ? t.ink : t.ink2,
                           ),
                           title: title,
@@ -208,10 +312,18 @@ class TodayScreen extends StatelessWidget {
                   // over the day's target: how much is left to burn, and the plainest way to do it
                   if (s.burnLeft > 0)
                     InkWell(
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BurnScreen(store: s))),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => BurnScreen(store: s)),
+                      ),
                       child: _Line(
-                        lead: Icon(Icons.local_fire_department_rounded, color: t.accent),
-                        title: '${thousands(s.kcal - s.kcalGoal)} kcal over',
+                        lead: Icon(
+                          Icons.local_fire_department_rounded,
+                          color: t.accent,
+                        ),
+                        title: tr(context, '{value1} kcal over', {
+                          'value1': thousands(s.kcal - s.kcalGoal),
+                        }),
                         sub:
                             'Burn ${thousands(s.burnLeft)} more · ${hoursMinutes(s.minutesFor(s.burnLeft, burnWays.first.$4))} brisk walk',
                         right: '',
@@ -221,18 +333,23 @@ class TodayScreen extends StatelessWidget {
                   // water, walk, sleep: three tiles, each opens its screen; water adds a glass in one tap
                   IntrinsicHeight(
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch, // three tiles, one height
+                      crossAxisAlignment:
+                          CrossAxisAlignment.stretch, // three tiles, one height
                       children: [
                         Expanded(
                           child: _Tile(
                             icon: Icons.water_drop_outlined,
-                            label: 'Water',
+                            label: tr(context, 'Water'),
                             value: '${litres(s.water)} L',
                             sub: 'of ${litres(s.waterGoal)} L',
                             frac: s.water / s.waterGoal,
                             back: Liquid(frac: s.water / s.waterGoal),
-                            onOpen: () =>
-                                Navigator.push(context, MaterialPageRoute(builder: (_) => WaterScreen(store: s))),
+                            onOpen: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => WaterScreen(store: s),
+                              ),
+                            ),
                             action: s.water >= s.waterGoal
                                 ? null
                                 : () {
@@ -247,20 +364,33 @@ class TodayScreen extends StatelessWidget {
                         Expanded(
                           child: _Tile(
                             icon: Icons.directions_walk_rounded,
-                            label: 'Walk',
+                            label: tr(context, 'Walk'),
                             value: thousands(walked),
                             sub: 'of ${thousands(stepTarget)}',
                             frac: walked / stepTarget,
-                            back: Footprints(frac: walked / stepTarget, delay: const Duration(milliseconds: 400)),
-                            action: steps != null ? onRefreshSteps : () => _enterSteps(context),
-                            actionIcon: steps != null ? Icons.refresh_rounded : Icons.edit_rounded,
-                            actionLabel: steps != null ? 'Refresh steps' : 'Enter steps',
+                            back: Footprints(
+                              frac: walked / stepTarget,
+                              delay: const Duration(milliseconds: 400),
+                            ),
+                            action: steps != null
+                                ? onRefreshSteps
+                                : () => _enterSteps(context),
+                            actionIcon: steps != null
+                                ? Icons.refresh_rounded
+                                : Icons.edit_rounded,
+                            actionLabel: steps != null
+                                ? 'Refresh steps'
+                                : 'Enter steps',
                             onOpen: steps == null && !Steps.supported
                                 ? () => _enterSteps(context)
                                 : () => Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => WalkScreen(store: s, steps: steps, onRefresh: onRefreshSteps),
+                                      builder: (_) => WalkScreen(
+                                        store: s,
+                                        steps: steps,
+                                        onRefresh: onRefreshSteps,
+                                      ),
                                     ),
                                   ),
                           ),
@@ -269,13 +399,15 @@ class TodayScreen extends StatelessWidget {
                         Expanded(
                           child: _Tile(
                             icon: Icons.bedtime_outlined,
-                            label: 'Sleep',
+                            label: tr(context, 'Sleep'),
                             value: s.sleepMin == null
                                 ? 'Add'
                                 : '${s.sleepMin! ~/ 60}h ${(s.sleepMin! % 60).toString().padLeft(2, '0')}',
                             sub: 'of 7–8 h',
                             frac: (s.sleepMin ?? 0) / 450,
-                            back: s.sleepMin == null ? null : const Zzz(at: Offset(44, 20)),
+                            back: s.sleepMin == null
+                                ? null
+                                : const Zzz(at: Offset(44, 20)),
                             action: () => _enterSleep(context),
                             actionIcon: Icons.edit_rounded,
                             actionLabel: 'Enter sleep',
@@ -291,17 +423,33 @@ class TodayScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
               child: next == null
-                  ? Cta(label: 'All meals logged · see you tomorrow', muted: true)
+                  ? Cta(
+                      label: tr(context, 'All meals logged · see you tomorrow'),
+                      muted: true,
+                    )
                   : Cta(
-                      label: 'Log ${next.name.toLowerCase()}',
+                      label: tr(context, 'Log {value1}', {
+                        'value1': next.name.toLowerCase(),
+                      }),
                       trailing: '${s.mealKcal(next)} kcal',
                       onTap: () {
                         final snap = s.snapshot();
                         s.logMeal(next);
-                        s.legsDone == 4 ? HapticFeedback.heavyImpact() : HapticFeedback.mediumImpact();
-                        undoToast(context, '${next.name} logged: ${s.chosen(next).name}', () => s.restore(snap));
+                        s.legsDone == 4
+                            ? HapticFeedback.heavyImpact()
+                            : HapticFeedback.mediumImpact();
+                        undoToast(
+                          context,
+                          '${next.name} logged: ${s.chosen(next).name}',
+                          () => s.restore(snap),
+                        );
                       },
-                      onLongPress: () => openMeal(context, s, meal: next, n: (meals.indexOf(next) + 1) * 100),
+                      onLongPress: () => openMeal(
+                        context,
+                        s,
+                        meal: next,
+                        n: (meals.indexOf(next) + 1) * 100,
+                      ),
                     ),
             ),
           ],
@@ -311,7 +459,8 @@ class TodayScreen extends StatelessWidget {
   }
 
   void _enterSleep(BuildContext context) =>
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => SleepScreen(store: store)));
+      Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => SleepScreen(store: store)));
 
   Future<void> _enterSteps(BuildContext context) async {
     final v = await askNumber(
@@ -324,7 +473,9 @@ class TodayScreen extends StatelessWidget {
               'Connect Health',
               () async {
                 // Health Connect missing (Android 9–13): open its store page; otherwise ask for access
-                await Steps.available() ? await Steps.today(ask: true) : await Steps.installHealthConnect();
+                await Steps.available()
+                    ? await Steps.today(ask: true)
+                    : await Steps.installHealthConnect();
                 await onRefreshSteps();
               },
             )
@@ -344,39 +495,58 @@ class _BurnPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Daur.of(context), s = store, left = s.burnLeft;
     // Gain: what's still to eat, in yellow from 18:00 when the day is running out
-    final over = s.gaining ? s.eatLeft > 0 && DateTime.now().hour >= 18 : left > 0;
+    final over = s.gaining
+        ? s.eatLeft > 0 && DateTime.now().hour >= 18
+        : left > 0;
     final text = s.gaining
-        ? (s.eatLeft > 0 ? '${thousands(s.eatLeft)} kcal still to eat' : 'Today\'s target eaten')
+        ? (s.eatLeft > 0
+              ? '${thousands(s.eatLeft)} kcal still to eat'
+              : 'Today\'s target eaten')
         : over
         ? '${thousands(left)} to burn · ${hoursMinutes(s.minutesFor(left, burnWays.first.$4))} walk'
         : '${thousands((s.kcalGoal - s.kcal).clamp(0, 1 << 30))} kcal left today';
     return Semantics(
       button: true,
-      label: '$text. Opens ${s.gaining ? 'Fuel' : 'Burn'}',
+      label: tr(context, '{value1}. Opens {value2}', {
+        'value1': text,
+        'value2': s.gaining ? 'Fuel' : 'Burn',
+      }),
       excludeSemantics: true,
       child: Material(
         color: over ? t.accent : t.infield,
         shape: const StadiumBorder(),
         child: InkWell(
           customBorder: const StadiumBorder(),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BurnScreen(store: s))),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => BurnScreen(store: s)),
+          ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 14, 8),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  over ? Icons.local_fire_department_rounded : Icons.local_fire_department_outlined,
+                  over
+                      ? Icons.local_fire_department_rounded
+                      : Icons.local_fire_department_outlined,
                   size: 18,
                   color: over ? t.onAccent : t.ink,
                 ),
                 const SizedBox(width: 6),
                 Text(
                   text,
-                  style: t.body(color: over ? t.onAccent : t.ink, weight: FontWeight.w700),
+                  style: t.body(
+                    color: over ? t.onAccent : t.ink,
+                    weight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(width: 2),
-                Icon(Icons.chevron_right_rounded, size: 18, color: over ? t.onAccent : t.ink2),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: over ? t.onAccent : t.ink2,
+                ),
               ],
             ),
           ),
@@ -387,7 +557,12 @@ class _BurnPill extends StatelessWidget {
 }
 
 class _Leg extends StatelessWidget {
-  const _Leg({required this.store, required this.meal, required this.n, required this.isNext});
+  const _Leg({
+    required this.store,
+    required this.meal,
+    required this.n,
+    required this.isNext,
+  });
   final Store store;
   final Meal meal;
   final int n;
@@ -398,14 +573,20 @@ class _Leg extends StatelessWidget {
     final t = Daur.of(context);
     final eaten = store.done[meal.id];
     final skipped = store.skipped.contains(meal.id);
-    final fasting = eaten == null && store.fasted(meal); // outside the eating window
+    final fasting =
+        eaten == null && store.fasted(meal); // outside the eating window
     final rare = store.mealRare(meal);
     return InkWell(
       onTap: () => openMeal(context, store, meal: meal, n: n),
       child: Container(
         constraints: const BoxConstraints(minHeight: 58),
         decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: n == 100 ? Colors.transparent : t.rule, width: .5)),
+          border: Border(
+            top: BorderSide(
+              color: n == 100 ? Colors.transparent : t.rule,
+              width: .5,
+            ),
+          ),
         ),
         child: Row(
           children: [
@@ -445,7 +626,11 @@ class _Leg extends StatelessWidget {
                       child: eaten != null
                           ? Icon(Icons.check_rounded, size: 18, color: t.ground)
                           : fasting
-                          ? Icon(Icons.hourglass_bottom_rounded, size: 16, color: t.ink2)
+                          ? Icon(
+                              Icons.hourglass_bottom_rounded,
+                              size: 16,
+                              color: t.ink2,
+                            )
                           : skipped
                           ? Icon(Icons.remove_rounded, size: 18, color: t.ink2)
                           : null,
@@ -460,16 +645,25 @@ class _Leg extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(mealIcon(meal.id), size: 18, color: skipped ? t.ink2 : t.ink),
+                      Icon(
+                        mealIcon(meal.id),
+                        size: 18,
+                        color: skipped ? t.ink2 : t.ink,
+                      ),
                       const SizedBox(width: 6),
-                      Text(meal.name, style: t.body(color: skipped ? t.ink2 : t.ink)),
+                      Text(
+                        meal.name,
+                        style: t.body(color: skipped ? t.ink2 : t.ink),
+                      ),
                     ],
                   ),
                   Row(
                     children: [
                       Flexible(
                         child: Text(
-                          fasting ? 'Fasting' : store.mealLabel(meal),
+                          fasting
+                              ? tr(context, 'Fasting')
+                              : store.mealLabel(meal),
                           style: t.meta(),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -479,7 +673,11 @@ class _Leg extends StatelessWidget {
                         const SizedBox(width: 6),
                         Tooltip(
                           message: 'Junk food',
-                          child: Icon(Icons.local_fire_department_rounded, size: 16, color: t.ink),
+                          child: Icon(
+                            Icons.local_fire_department_rounded,
+                            size: 16,
+                            color: t.ink,
+                          ),
                         ),
                       ],
                     ],
@@ -492,11 +690,23 @@ class _Leg extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    if (isNext) ...[CircleAvatar(radius: 4, backgroundColor: t.accent), const SizedBox(width: 6)],
-                    Text(eaten ?? (skipped || fasting ? '—' : meal.window), style: t.sec(t.ink)),
+                    if (isNext) ...[
+                      CircleAvatar(radius: 4, backgroundColor: t.accent),
+                      const SizedBox(width: 6),
+                    ],
+                    Text(
+                      eaten ?? (skipped || fasting ? '—' : meal.window),
+                      style: t.sec(t.ink),
+                    ),
                   ],
                 ),
-                if (!skipped && !fasting) Text('${store.mealKcal(meal)} kcal', style: t.meta()),
+                if (!skipped && !fasting)
+                  Text(
+                    tr(context, '{value1} kcal', {
+                      'value1': store.mealKcal(meal),
+                    }),
+                    style: t.meta(),
+                  ),
               ],
             ),
           ],
@@ -507,7 +717,13 @@ class _Leg extends StatelessWidget {
 }
 
 class _Line extends StatelessWidget {
-  const _Line({required this.lead, required this.title, required this.sub, required this.right, this.action});
+  const _Line({
+    required this.lead,
+    required this.title,
+    required this.sub,
+    required this.right,
+    this.action,
+  });
   final Widget lead;
   final String title, sub, right;
   final Widget? action;
@@ -531,8 +747,11 @@ class _Line extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(title, style: t.body(weight: FontWeight.w500)),
-                Text(sub, style: t.meta()),
+                Text(
+                  tr(context, title),
+                  style: t.body(weight: FontWeight.w500),
+                ),
+                Text(tr(context, sub), style: t.meta()),
               ],
             ),
           ),
@@ -559,7 +778,8 @@ class _Tile extends StatelessWidget {
     required this.actionLabel,
     this.back,
   });
-  final Widget? back; // alive behind the numbers: water sloshing, footprints, z's
+  final Widget?
+  back; // alive behind the numbers: water sloshing, footprints, z's
   final IconData icon, actionIcon;
   final String label, value, sub, actionLabel;
   final double frac;
@@ -589,7 +809,11 @@ class _Tile extends StatelessWidget {
                       Icon(icon, size: 18, color: t.ink),
                       const SizedBox(width: 4),
                       Expanded(
-                        child: Text(label, style: t.sec(t.ink), overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          tr(context, label),
+                          style: t.sec(t.ink),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
@@ -599,7 +823,12 @@ class _Tile extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: Text(value, style: t.x(22)),
                   ),
-                  Text(sub, style: t.meta(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(
+                    tr(context, sub),
+                    style: t.meta(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const Spacer(),
                   Row(
                     children: [
@@ -618,10 +847,16 @@ class _Tile extends StatelessWidget {
                       IconButton.filled(
                         onPressed: action,
                         tooltip: actionLabel,
-                        icon: Icon(actionIcon, size: 16, color: action == null ? t.ink2 : t.onAccent),
+                        icon: Icon(
+                          actionIcon,
+                          size: 16,
+                          color: action == null ? t.ink2 : t.onAccent,
+                        ),
                         style: IconButton.styleFrom(
                           backgroundColor: t.accent,
-                          disabledBackgroundColor: t.lane.withValues(alpha: .25),
+                          disabledBackgroundColor: t.lane.withValues(
+                            alpha: .25,
+                          ),
                           minimumSize: const Size(32, 32),
                           fixedSize: const Size(32, 32),
                           padding: EdgeInsets.zero,
@@ -657,10 +892,15 @@ class Cta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
-    final bg = muted ? (onDark ? t.ink.withValues(alpha: .14) : t.sheetRule) : t.accent;
+    final bg = muted
+        ? (onDark ? t.ink.withValues(alpha: .14) : t.sheetRule)
+        : t.accent;
     final fg = muted ? (onDark ? t.ink : t.sheetInk) : t.onAccent;
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 54, minWidth: double.infinity),
+      constraints: const BoxConstraints(
+        minHeight: 54,
+        minWidth: double.infinity,
+      ),
       child: FilledButton(
         onPressed: onTap,
         onLongPress: onLongPress,
@@ -675,11 +915,21 @@ class Cta extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Text(label, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              child: Text(
+                tr(context, label),
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
             if (trailing != null)
               Flexible(
-                child: Text(trailing!, textAlign: TextAlign.end, style: const TextStyle(fontSize: 17)),
+                child: Text(
+                  trailing!,
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(fontSize: 17),
+                ),
               ),
           ],
         ),

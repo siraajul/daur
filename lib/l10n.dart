@@ -1,7 +1,38 @@
-/// Navigation labels only. Unknown strings retain their English text; this is
-/// deliberately not presented as a complete translation of tracking or advice.
-String navLabel(String language, String text) =>
-    language == 'bn' ? (_banglaNavigation[text] ?? text) : text;
+import 'package:flutter/widgets.dart';
+
+import 'l10n_core.dart';
+import 'l10n_tracking.dart';
+import 'l10n_social.dart';
+import 'l10n_services.dart';
+
+/// Display-only localisation. Stored food/exercise identifiers and user-authored text stay unchanged.
+String tr(
+  BuildContext context,
+  String message, [
+  Map<String, Object> args = const {},
+]) => trLanguage(Localizations.localeOf(context).languageCode, message, args);
+
+String trLanguage(
+  String language,
+  String message, [
+  Map<String, Object> args = const {},
+]) {
+  var result = language == 'bn' ? _bangla[message] ?? message : message;
+  for (final arg in args.entries) {
+    result = result.replaceAll('{${arg.key}}', '${arg.value}');
+  }
+  return result;
+}
+
+final _bangla = {
+  ..._banglaNavigation,
+  ...banglaCore,
+  ...banglaTracking,
+  ...banglaSocial,
+  ...banglaServices,
+};
+
+String navLabel(String language, String text) => trLanguage(language, text);
 
 const _banglaNavigation = <String, String>{
   'Today': 'আজ',

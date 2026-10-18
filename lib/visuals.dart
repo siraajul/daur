@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import 'adaptive.dart';
 import 'theme.dart';
+import 'l10n.dart';
 
 /// One icon vocabulary for food across the app (outlined/rounded Material, ink colour).
 /// Category is told by shape, never by colour (design/DIRECTION.md: one accent, one role).
@@ -38,7 +39,19 @@ const _foodWords = <(List<String>, IconData)>[
   (['pizza'], Icons.local_pizza_outlined),
   (['burger', 'sandwich', 'shawarma', 'roll'], Icons.lunch_dining_outlined),
   (['fries', 'fried chicken', 'nugget'], Icons.fastfood_outlined),
-  (['noodle', 'chowmein', 'soup', 'haleem', 'nehari', 'paya', 'pasta', 'ramen'], Icons.ramen_dining_outlined),
+  (
+    [
+      'noodle',
+      'chowmein',
+      'soup',
+      'haleem',
+      'nehari',
+      'paya',
+      'pasta',
+      'ramen',
+    ],
+    Icons.ramen_dining_outlined,
+  ),
   (['tea', 'cha', 'coffee', 'latte'], Icons.emoji_food_beverage_outlined),
   (
     [
@@ -118,12 +131,50 @@ const _foodWords = <(List<String>, IconData)>[
     ],
     Icons.kebab_dining_outlined,
   ),
-  (['rice', 'bhaat', 'polao', 'biryani', 'kacchi', 'tehari', 'khichuri', 'muri', 'chira'], Icons.rice_bowl_outlined),
   (
-    ['roti', 'ruti', 'paratha', 'porota', 'naan', 'bread', 'toast', 'puri', 'luchi', 'bun', 'oats'],
+    [
+      'rice',
+      'bhaat',
+      'polao',
+      'biryani',
+      'kacchi',
+      'tehari',
+      'khichuri',
+      'muri',
+      'chira',
+    ],
+    Icons.rice_bowl_outlined,
+  ),
+  (
+    [
+      'roti',
+      'ruti',
+      'paratha',
+      'porota',
+      'naan',
+      'bread',
+      'toast',
+      'puri',
+      'luchi',
+      'bun',
+      'oats',
+    ],
     Icons.bakery_dining_outlined,
   ),
-  (['dal', 'chola', 'chana', 'bhorta', 'bhaji', 'sabji', 'torkari', 'shak', 'curry'], Icons.soup_kitchen_outlined),
+  (
+    [
+      'dal',
+      'chola',
+      'chana',
+      'bhorta',
+      'bhaji',
+      'sabji',
+      'torkari',
+      'shak',
+      'curry',
+    ],
+    Icons.soup_kitchen_outlined,
+  ),
   (
     [
       'banana',
@@ -147,7 +198,18 @@ const _foodWords = <(List<String>, IconData)>[
   ),
   (['whey', 'protein'], Icons.fitness_center_rounded),
   (
-    ['singara', 'samosa', 'piyaju', 'beguni', 'pakora', 'chop', 'fuchka', 'chotpoti', 'jhalmuri', 'velpuri'],
+    [
+      'singara',
+      'samosa',
+      'piyaju',
+      'beguni',
+      'pakora',
+      'chop',
+      'fuchka',
+      'chotpoti',
+      'jhalmuri',
+      'velpuri',
+    ],
     Icons.storefront_outlined,
   ),
 ];
@@ -163,7 +225,14 @@ IconData foodIcon(String name, [String cat = '']) {
 
 /// An icon in a soft disc: the leading visual of every food row and meal leg.
 class IconDisc extends StatelessWidget {
-  const IconDisc(this.icon, {super.key, this.size = 44, this.onSheet = false, this.rare = false, this.color});
+  const IconDisc(
+    this.icon, {
+    super.key,
+    this.size = 44,
+    this.onSheet = false,
+    this.rare = false,
+    this.color,
+  });
   final IconData icon;
   final double size;
   final bool onSheet, rare;
@@ -190,14 +259,17 @@ class IconDisc extends StatelessWidget {
               right: -3,
               top: -3,
               child: Tooltip(
-                message: 'Junk food',
+                message: tr(context, 'Junk food'),
                 child: Container(
                   width: size * .42,
                   height: size * .42,
                   decoration: BoxDecoration(
                     color: onSheet ? t.sheetRed : t.ink,
                     shape: BoxShape.circle,
-                    border: Border.all(color: onSheet ? t.sheet : t.ground, width: 2),
+                    border: Border.all(
+                      color: onSheet ? t.sheet : t.ground,
+                      width: 2,
+                    ),
                   ),
                   child: Icon(
                     Icons.local_fire_department_rounded,
@@ -249,13 +321,16 @@ class GoogleG extends StatelessWidget {
   const GoogleG({super.key, this.size = 20});
   final double size;
   @override
-  Widget build(BuildContext context) => CustomPaint(size: Size.square(size), painter: _GPainter());
+  Widget build(BuildContext context) =>
+      CustomPaint(size: Size.square(size), painter: _GPainter());
 }
 
 class _GPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final w = size.width * .2, r = (size.width - w) / 2, c = size.center(Offset.zero);
+    final w = size.width * .2,
+        r = (size.width - w) / 2,
+        c = size.center(Offset.zero);
     final rect = Rect.fromCircle(center: c, radius: r);
     double rad(double d) => d * 3.1415926535 / 180;
     Paint p(int color) => Paint()
@@ -263,9 +338,27 @@ class _GPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = w;
     canvas.drawArc(rect, rad(215), rad(105), false, p(0xFFEA4335)); // red, top
-    canvas.drawArc(rect, rad(145), rad(70), false, p(0xFFFBBC05)); // yellow, left
-    canvas.drawArc(rect, rad(40), rad(105), false, p(0xFF34A853)); // green, bottom
-    canvas.drawArc(rect, rad(0), rad(40), false, p(0xFF4285F4)); // blue, lower right
+    canvas.drawArc(
+      rect,
+      rad(145),
+      rad(70),
+      false,
+      p(0xFFFBBC05),
+    ); // yellow, left
+    canvas.drawArc(
+      rect,
+      rad(40),
+      rad(105),
+      false,
+      p(0xFF34A853),
+    ); // green, bottom
+    canvas.drawArc(
+      rect,
+      rad(0),
+      rad(40),
+      false,
+      p(0xFF4285F4),
+    ); // blue, lower right
     canvas.drawRect(
       Rect.fromLTRB(c.dx, c.dy - w / 2, c.dx + r + w / 2, c.dy + w / 2),
       Paint()..color = const Color(0xFF4285F4),
@@ -278,33 +371,54 @@ class _GPainter extends CustomPainter {
 
 /// "Continue with Google": white pill, the G, dark label (Google's sign-in button guidelines).
 class GoogleButton extends StatelessWidget {
-  const GoogleButton({super.key, required this.onPressed, this.busy = false, this.label = 'Continue with Google'});
+  const GoogleButton({
+    super.key,
+    required this.onPressed,
+    this.busy = false,
+    this.label = 'Continue with Google',
+  });
   final VoidCallback? onPressed;
   final bool busy;
   final String label;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 52,
-    width: double.infinity,
-    child: FilledButton(
-      onPressed: busy ? null : onPressed,
-      style: FilledButton.styleFrom(
-        backgroundColor: Colors.white,
-        disabledBackgroundColor: Colors.white70,
-        foregroundColor: const Color(0xFF1F1F1F),
-        shape: const StadiumBorder(side: BorderSide(color: Color(0xFF747775))),
-        elevation: 0,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          busy
-              ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator.adaptive(strokeWidth: 2))
-              : const GoogleG(size: 20),
-          const SizedBox(width: 12),
-          Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-        ],
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(minHeight: 52),
+    child: SizedBox(
+      width: double.infinity,
+      child: FilledButton(
+        onPressed: busy ? null : onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: Colors.white,
+          disabledBackgroundColor: Colors.white70,
+          foregroundColor: const Color(0xFF1F1F1F),
+          shape: const StadiumBorder(
+            side: BorderSide(color: Color(0xFF747775)),
+          ),
+          elevation: 0,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            busy
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                  )
+                : const GoogleG(size: 20),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Text(
+                tr(context, label),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     ),
   );
@@ -328,8 +442,11 @@ class Tip extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              text,
-              style: t.body(weight: FontWeight.w400, color: onSheet ? t.sheetInk : null),
+              tr(context, text),
+              style: t.body(
+                weight: FontWeight.w400,
+                color: onSheet ? t.sheetInk : null,
+              ),
             ),
           ),
         ],
@@ -340,7 +457,12 @@ class Tip extends StatelessWidget {
 
 /// The day's targets as icon pills, not a sentence.
 class TargetChips extends StatelessWidget {
-  const TargetChips({super.key, required this.kcal, required this.protein, required this.litres});
+  const TargetChips({
+    super.key,
+    required this.kcal,
+    required this.protein,
+    required this.litres,
+  });
   final int kcal;
   final (int, int) protein;
   final String litres;
@@ -348,7 +470,9 @@ class TargetChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
-    final k = kcal >= 1000 ? '${kcal ~/ 1000},${(kcal % 1000).toString().padLeft(3, '0')}' : '$kcal';
+    final k = kcal >= 1000
+        ? '${kcal ~/ 1000},${(kcal % 1000).toString().padLeft(3, '0')}'
+        : '$kcal';
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -375,33 +499,68 @@ class TargetChips extends StatelessWidget {
 /// This week's weight change on a bar, against the goal's pace: Lose 0.6–0.9 kg down a week,
 /// Gain 0.2–0.4 kg up, Keep within 0.2 kg either way. The dot is this week.
 class PaceGauge extends StatelessWidget {
-  const PaceGauge({super.key, required this.change, this.goal = 0, this.kcal, this.stalled = false});
-  final double? change; // kg a week, negative = down; null = not enough weigh-ins
+  const PaceGauge({
+    super.key,
+    required this.change,
+    this.goal = 0,
+    this.kcal,
+    this.stalled = false,
+  });
+  final double?
+  change; // kg a week, negative = down; null = not enough weigh-ins
   final int goal; // 0 lose, 1 keep, 2 gain
   final int? kcal; // the day's goal, for "stay at"
   final bool stalled;
 
   /// Each goal's scale: shown range, on-pace band, labels, in kg toward the goal a week.
   static const scales = {
-    0: (lo: -.25, hi: 1.5, band: (.6, .9), labels: [('slow', .15), ('0.6–0.9', .75), ('fast', 1.3)]),
-    1: (lo: -.6, hi: .6, band: (-.2, .2), labels: [('down', -.45), ('steady', 0.0), ('up', .45)]),
-    2: (lo: -.25, hi: .8, band: (.2, .4), labels: [('slow', 0.0), ('0.2–0.4', .3), ('fast', .65)]),
+    0: (
+      lo: -.25,
+      hi: 1.5,
+      band: (.6, .9),
+      labels: [('slow', .15), ('0.6–0.9', .75), ('fast', 1.3)],
+    ),
+    1: (
+      lo: -.6,
+      hi: .6,
+      band: (-.2, .2),
+      labels: [('down', -.45), ('steady', 0.0), ('up', .45)],
+    ),
+    2: (
+      lo: -.25,
+      hi: .8,
+      band: (.2, .4),
+      labels: [('slow', 0.0), ('0.2–0.4', .3), ('fast', .65)],
+    ),
   };
 
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     final c = change;
-    final v = c == null ? null : (goal == 0 ? -c : c); // toward the goal: down for Lose, up otherwise
+    final v = c == null
+        ? null
+        : (goal == 0 ? -c : c); // toward the goal: down for Lose, up otherwise
     final sc = scales[goal]!;
-    final kcalS = kcal == null ? '' : ' · stay at ${kcal! ~/ 1000},${(kcal! % 1000).toString().padLeft(3, '0')} kcal';
+    final kcalS = kcal == null
+        ? ''
+        : tr(context, ' · stay at {kcal} kcal', {
+            'kcal':
+                '${kcal! ~/ 1000},${(kcal! % 1000).toString().padLeft(3, '0')}',
+          });
     final onPace = v != null && v >= sc.band.$1 && v <= sc.band.$2 && !stalled;
     final (icon, verdict) = stalled
         ? (Icons.trending_flat_rounded, 'Stalled · −150 kcal or +2,000 steps')
         : v == null
-        ? (Icons.monitor_weight_outlined, 'Weigh 3–7 mornings, before breakfast · tap +')
+        ? (
+            Icons.monitor_weight_outlined,
+            'Weigh 3–7 mornings, before breakfast · tap +',
+          )
         : onPace
-        ? (Icons.check_circle_outline_rounded, '${goal == 1 ? 'Steady' : 'On pace'}$kcalS')
+        ? (
+            Icons.check_circle_outline_rounded,
+            '${tr(context, goal == 1 ? 'Steady' : 'On pace')}$kcalS',
+          )
         : switch (goal) {
             1 =>
               v < 0
@@ -409,15 +568,26 @@ class PaceGauge extends StatelessWidget {
                   : (Icons.trending_up_rounded, 'Rising · eat a bit less'),
             2 =>
               v < sc.band.$1
-                  ? (Icons.trending_flat_rounded, 'Slow · add a snack, about 200 kcal')
+                  ? (
+                      Icons.trending_flat_rounded,
+                      'Slow · add a snack, about 200 kcal',
+                    )
                   : (Icons.speed_rounded, 'Fast · trim the extra a little'),
             _ =>
               v < .6
-                  ? (Icons.trending_flat_rounded, 'Slow · give it one more week')
+                  ? (
+                      Icons.trending_flat_rounded,
+                      'Slow · give it one more week',
+                    )
                   : (Icons.speed_rounded, 'Fast · eat a bit more if tired'),
           };
     return Semantics(
-      label: c == null ? verdict : '${c.toStringAsFixed(1)} kilos a week. $verdict',
+      label: c == null
+          ? tr(context, verdict)
+          : tr(context, '{change} kilos a week. {verdict}', {
+              'change': c.toStringAsFixed(1),
+              'verdict': tr(context, verdict),
+            }),
       excludeSemantics: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -425,14 +595,22 @@ class PaceGauge extends StatelessWidget {
           SizedBox(
             height: 56,
             width: double.infinity,
-            child: CustomPaint(painter: _PacePainter(t, v, c, goal)),
+            child: CustomPaint(
+              painter: _PacePainter(
+                t,
+                v,
+                c,
+                goal,
+                Localizations.localeOf(context).languageCode,
+              ),
+            ),
           ),
           const SizedBox(height: 4),
           Row(
             children: [
               Icon(icon, size: 20, color: onPace ? t.accent : t.ink),
               const SizedBox(width: 8),
-              Expanded(child: Text(verdict, style: t.body())),
+              Expanded(child: Text(tr(context, verdict), style: t.body())),
             ],
           ),
         ],
@@ -442,7 +620,8 @@ class PaceGauge extends StatelessWidget {
 }
 
 class _PacePainter extends CustomPainter {
-  _PacePainter(this.t, this.v, this.change, this.goal);
+  _PacePainter(this.t, this.v, this.change, this.goal, this.language);
+  final String language;
   final Daur t;
   final double? v, change; // v: toward the goal; change: signed, for the label
   final int goal;
@@ -467,10 +646,13 @@ class _PacePainter extends CustomPainter {
     );
     for (final (s, kg) in sc.labels) {
       final tp = TextPainter(
-        text: TextSpan(text: s, style: t.meta()),
+        text: TextSpan(text: trLanguage(language, s), style: t.meta()),
         textDirection: TextDirection.ltr,
       )..layout();
-      tp.paint(canvas, Offset((x(kg) - tp.width / 2).clamp(0, size.width - tp.width), y + 9));
+      tp.paint(
+        canvas,
+        Offset((x(kg) - tp.width / 2).clamp(0, size.width - tp.width), y + 9),
+      );
     }
     final value = v, c = change;
     if (value == null || c == null) return;
@@ -485,21 +667,37 @@ class _PacePainter extends CustomPainter {
         ..color = t.ground,
     );
     final tp = TextPainter(
-      text: TextSpan(text: '${c <= 0 ? '−' : '+'}${c.abs().toStringAsFixed(1)} kg/wk', style: t.sec(t.ink)),
+      text: TextSpan(
+        text: trLanguage(language, '{change} kg/wk', {
+          'change': '${c <= 0 ? '−' : '+'}${c.abs().toStringAsFixed(1)}',
+        }),
+        style: t.sec(t.ink),
+      ),
       textDirection: TextDirection.ltr,
     )..layout();
-    tp.paint(canvas, Offset((p.dx - tp.width / 2).clamp(0, size.width - tp.width), 0));
+    tp.paint(
+      canvas,
+      Offset((p.dx - tp.width / 2).clamp(0, size.width - tp.width), 0),
+    );
   }
 
   @override
-  bool shouldRepaint(_PacePainter o) => o.v != v || o.t != t || o.goal != goal;
+  bool shouldRepaint(_PacePainter o) =>
+      o.v != v || o.t != t || o.goal != goal || o.language != language;
 }
 
 /// The one header for every screen you open: back (or a down chevron for a session you close),
 /// the big title on the same line, actions on the right, one short line under it. The same shape
 /// as the tabs' header, where the menu button sits in place of back.
 class PageHeader extends StatelessWidget {
-  const PageHeader(this.title, {super.key, this.sub, this.actions = const [], this.onBack, this.close = false});
+  const PageHeader(
+    this.title, {
+    super.key,
+    this.sub,
+    this.actions = const [],
+    this.onBack,
+    this.close = false,
+  });
   final String title;
   final String? sub;
   final List<Widget> actions;
@@ -516,16 +714,21 @@ class PageHeader extends StatelessWidget {
           children: [
             IconButton(
               onPressed: onBack ?? () => Navigator.maybePop(context),
-              tooltip: close ? 'Close' : 'Back',
+              tooltip: tr(context, close ? 'Close' : 'Back'),
               icon: Icon(backIcon(context, close: close), color: t.ink),
             ),
             Expanded(
-              child: Text(title, style: t.title(), maxLines: 2, overflow: TextOverflow.ellipsis),
+              child: Text(
+                tr(context, title),
+                style: t.title(),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             ...actions,
           ],
         ),
-        if (sub != null) Text(sub!, style: t.sec()),
+        if (sub != null) Text(tr(context, sub!), style: t.sec()),
       ],
     );
   }
@@ -539,16 +742,18 @@ Widget _popCard(BuildContext context, String title, List<Widget> children) {
     backgroundColor: t.infield,
     surfaceTintColor: Colors.transparent,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(title, style: t.x(22)),
-          const SizedBox(height: 12),
-          ...children,
-        ],
+    child: SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(tr(context, title), style: t.x(22)),
+            const SizedBox(height: 12),
+            ...children,
+          ],
+        ),
       ),
     ),
   );
@@ -588,15 +793,18 @@ Future<bool> confirmPop(
     return await showCupertinoDialog<bool>(
           context: context,
           builder: (ctx) => CupertinoAlertDialog(
-            title: Text(title),
-            content: Text(body),
+            title: Text(tr(context, title)),
+            content: Text(tr(context, body)),
             actions: [
-              CupertinoDialogAction(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              CupertinoDialogAction(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(tr(context, 'Cancel')),
+              ),
               CupertinoDialogAction(
                 isDefaultAction: !destructive,
                 isDestructiveAction: destructive,
                 onPressed: () => Navigator.pop(ctx, true),
-                child: Text(action),
+                child: Text(tr(context, action)),
               ),
             ],
           ),
@@ -608,10 +816,10 @@ Future<bool> confirmPop(
         builder: (ctx) {
           final t = Daur.of(ctx);
           return _popCard(ctx, title, [
-            Text(body, style: t.sec()),
+            Text(tr(context, body), style: t.sec()),
             const SizedBox(height: 20),
-            _popMain(t, action, () => Navigator.pop(ctx, true)),
-            _popSide(t, 'Cancel', () => Navigator.pop(ctx, false)),
+            _popMain(t, tr(context, action), () => Navigator.pop(ctx, true)),
+            _popSide(t, tr(context, 'Cancel'), () => Navigator.pop(ctx, false)),
           ]);
         },
       ) ??
@@ -634,18 +842,33 @@ Future<double?> askNumber(
     return showCupertinoDialog<double>(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: Text(title),
+        title: Text(tr(context, title)),
         content: Padding(
           padding: const EdgeInsets.only(top: 12),
           child: CupertinoTextField(
             controller: c,
             autofocus: true,
-            placeholder: hint,
-            prefix: prefix == null ? null : Padding(padding: const EdgeInsets.only(left: 8), child: Text(prefix)),
-            suffix: suffix == null ? null : Padding(padding: const EdgeInsets.only(right: 8), child: Text(suffix)),
+            placeholder: hint == null ? null : tr(context, hint),
+            prefix: prefix == null
+                ? null
+                : Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Text(prefix),
+                  ),
+            suffix: suffix == null
+                ? null
+                : Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Text(suffix),
+                  ),
             keyboardType: TextInputType.numberWithOptions(decimal: decimal),
-            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(decimal ? r'[0-9.]' : r'[0-9]'))],
-            onSubmitted: (_) => Navigator.pop(ctx, double.tryParse(c.text.trim())),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(
+                RegExp(decimal ? r'[0-9.]' : r'[0-9]'),
+              ),
+            ],
+            onSubmitted: (_) =>
+                Navigator.pop(ctx, double.tryParse(c.text.trim())),
           ),
         ),
         actions: [
@@ -655,13 +878,16 @@ Future<double?> askNumber(
                 Navigator.pop(ctx);
                 side.$2();
               },
-              child: Text(side.$1),
+              child: Text(tr(context, side.$1)),
             ),
-          CupertinoDialogAction(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(tr(context, 'Cancel')),
+          ),
           CupertinoDialogAction(
             isDefaultAction: true,
             onPressed: () => Navigator.pop(ctx, double.tryParse(c.text.trim())),
-            child: const Text('Save'),
+            child: Text(tr(context, 'Save')),
           ),
         ],
       ),
@@ -672,18 +898,23 @@ Future<double?> askNumber(
     builder: (ctx) {
       final t = Daur.of(ctx);
       void save() => Navigator.pop(ctx, double.tryParse(c.text.trim()));
-      UnderlineInputBorder line(Color color) => UnderlineInputBorder(borderSide: BorderSide(color: color, width: 2));
+      UnderlineInputBorder line(Color color) =>
+          UnderlineInputBorder(borderSide: BorderSide(color: color, width: 2));
       return _popCard(ctx, title, [
         TextField(
           controller: c,
           autofocus: true,
           keyboardType: TextInputType.numberWithOptions(decimal: decimal),
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(decimal ? r'[0-9.]' : r'[0-9]'))],
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(
+              RegExp(decimal ? r'[0-9.]' : r'[0-9]'),
+            ),
+          ],
           onSubmitted: (_) => save(),
           style: t.x(36),
           cursorColor: t.accent,
           decoration: InputDecoration(
-            hintText: hint,
+            hintText: hint == null ? null : tr(context, hint),
             hintStyle: t.sec(t.ink2),
             prefixText: prefix,
             suffixText: suffix,
@@ -694,9 +925,9 @@ Future<double?> askNumber(
           ),
         ),
         const SizedBox(height: 20),
-        _popMain(t, 'Save', save),
+        _popMain(t, tr(context, 'Save'), save),
         if (side != null)
-          _popSide(t, side.$1, () {
+          _popSide(t, tr(context, side.$1), () {
             Navigator.pop(ctx);
             side.$2();
           }),

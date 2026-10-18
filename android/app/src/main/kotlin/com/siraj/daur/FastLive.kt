@@ -28,9 +28,9 @@ object FastLive {
     private const val PREFS = "daur_fast_live"
     private val shades = longArrayOf(0xFFB6D3C9, 0xFF89B8A8, 0xFF5B9584, 0xFF3C7B6F, 0xFF28645D)
 
-    fun show(ctx: Context, from: Long, goalHours: Int, hours: List<Int>, names: List<String>) {
+    fun show(ctx: Context, from: Long, goalHours: Int, hours: List<Int>, names: List<String>, language: String = "en") {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putLong("from", from).putInt("goal", goalHours)
+            .putLong("from", from).putInt("goal", goalHours).putString("language", language)
             .putString("hours", hours.joinToString(",")).putString("names", names.joinToString("|"))
             .apply()
         post(ctx)
@@ -47,6 +47,7 @@ object FastLive {
         val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val from = p.getLong("from", 0L)
         if (from == 0L) return
+        val bn = p.getString("language", "en") == "bn"
         val goal = p.getInt("goal", 16)
         val hours = p.getString("hours", "")!!.split(",").mapNotNull { it.toIntOrNull() }
         val names = p.getString("names", "")!!.split("|")
@@ -55,17 +56,14 @@ object FastLive {
         val goalMin = goal * 60
         val stage = hours.indexOfLast { min >= it * 60 }.coerceAtLeast(0)
         val done = min >= goalMin
-        val at = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(from + goalMin * 60000L))
+        val at = SimpleDateFormat("HH:mm", if (bn) Locale.forLanguageTag("bn-BD") else Locale.getDefault()).format(Date(from + goalMin * 60000L))
 
         val nm = ctx.getSystemService(NotificationManager::class.java)
-        if (nm.getNotificationChannel(CHANNEL) == null) {
-            nm.createNotificationChannel(
-                NotificationChannel(CHANNEL, "Fasting timer", NotificationManager.IMPORTANCE_LOW).apply {
-                    description = "The fast you are on, live, while it runs"
-                    setShowBadge(false)
-                },
-            )
-        }
+        val channel = nm.getNotificationChannel(CHANNEL)
+            ?: NotificationChannel(CHANNEL, "Fasting timer", NotificationManager.IMPORTANCE_LOW).apply { setShowBadge(false) }
+        channel.name = if (bn) "উপবাসের সময়" else "Fasting timer"
+        channel.description = if (bn) "চলমান উপবাসের সরাসরি অগ্রগতি" else "The fast you are on, live, while it runs"
+        nm.createNotificationChannel(channel) // update translated metadata; preserve user notification preferences
         val open = PendingIntent.getActivity(
             ctx, 0,
             Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
@@ -75,10 +73,14 @@ object FastLive {
             .setSmallIcon(R.drawable.ic_stat_daur)
             .setLargeIcon(Icon.createWithResource(ctx, R.drawable.notif_fasting))
             .setColor(0xFF28645D.toInt())
-            .setContentTitle("Fasting · ${names.getOrElse(stage) { "" }}")
+            .setContentTitle("${if (bn) "উপবাস" else "Fasting"} · ${names.getOrElse(stage) { "" }}")
             .setContentText(
-                if (done) "Goal done · ${goal}h · end it in Daur"
-                else "${(goalMin - min) / 60}h ${"%02d".format((goalMin - min) % 60)}m to go · goal at $at",
+                if (done) {
+                    if (bn) "লক্ষ্য পূর্ণ · $goal ঘণ্টা · Daur-এ শেষ করুন" else "Goal done · ${goal}h · end it in Daur"
+                } else {
+                    if (bn) "আর ${(goalMin - min) / 60} ঘণ্টা ${(goalMin - min) % 60} মিনিট · লক্ষ্য $at"
+                    else "${(goalMin - min) / 60}h ${"%02d".format((goalMin - min) % 60)}m to go · goal at $at"
+                },
             )
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -105,7 +107,7 @@ object FastLive {
                     .setProgress(min.coerceAtMost(goalMin))
                     .setProgressTrackerIcon(Icon.createWithResource(ctx, R.drawable.ic_stat_daur)),
             )
-            b.setShortCriticalText("${min / 60}h") // the status-bar chip
+            b.setShortCriticalText(if (bn) "${min / 60}ঘ" else "${min / 60}h") // the status-bar chip
             b.setRequestPromotedOngoing(true) // ask to be a Live Update
         } else {
             b.setProgress(goalMin, min.coerceAtMost(goalMin), false)

@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -16,9 +18,9 @@ class AboutScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: t.title()),
+          Text(tr(context, title), style: t.title()),
           const SizedBox(height: 8),
-          Text(body, style: t.body()),
+          Text(tr(context, body), style: t.body()),
         ],
       ),
     );
@@ -27,7 +29,7 @@ class AboutScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
           children: [
-            const PageHeader('Privacy and support'),
+            PageHeader(tr(context, 'Privacy and support')),
             section(
               'Saved on this phone',
               'Daur saves your profile, programme and tracking history locally. You can export a backup from Your data. Protect exported files: they can contain health and personal information.',
@@ -70,18 +72,27 @@ class AboutScreen extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
                 icon: const Icon(Icons.copy),
-                label: const Text('Copy support email'),
+                label: Text(tr(context, 'Copy support email')),
                 onPressed: () async {
-                  await Clipboard.setData(const ClipboardData(text: 'siraajulislaaam@gmail.com'));
+                  await Clipboard.setData(
+                    const ClipboardData(text: 'siraajulislaaam@gmail.com'),
+                  );
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Support email copied.')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(tr(context, 'Support email copied.')),
+                      ),
+                    );
                   }
                 },
               ),
             ),
             const SizedBox(height: 20),
             Text(
-              'This screen describes how the app works. Store publication also requires a maintained, public privacy policy and the applicable platform disclosures.',
+              tr(
+                context,
+                'This screen describes how the app works. Store publication also requires a maintained, public privacy policy and the applicable platform disclosures.',
+              ),
               style: t.sec(),
             ),
           ],

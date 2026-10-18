@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'package:flutter/material.dart';
 
 import 'motion.dart';
@@ -15,8 +17,10 @@ class Milestone {
 
 /// Loss on the 7-day trend (3+ weigh-ins), so one light morning can't mint a medal. Only a Lose
 /// goal earns kg-down medals; a Gain goal earns kg-up ones.
-double _lost(Store s) => s.goal != 0 || s.trendKg == null ? 0 : s.startKg - s.trendKg!;
-double _gained(Store s) => s.goal != 2 || s.trendKg == null ? 0 : s.trendKg! - s.startKg;
+double _lost(Store s) =>
+    s.goal != 0 || s.trendKg == null ? 0 : s.startKg - s.trendKg!;
+double _gained(Store s) =>
+    s.goal != 2 || s.trendKg == null ? 0 : s.trendKg! - s.startKg;
 
 /// Month targets are the person's own (plan.dart's for the original plan); medals are by name.
 /// Reached = the trend is past the range's near edge in the goal's direction (Keep: inside it).
@@ -47,8 +51,20 @@ final medals = <Milestone>[
     'The first one is the hardest to see. Keep logging.',
     (s) => _lost(s) >= 1,
   ),
-  Milestone('kg-2.5', Icons.trending_down_rounded, '2.5 kg down', 'Right on the plan\'s pace.', (s) => _lost(s) >= 2.5),
-  Milestone('kg-5', Icons.emoji_events_outlined, '5 kg down', 'Five kilos lighter than day 1.', (s) => _lost(s) >= 5),
+  Milestone(
+    'kg-2.5',
+    Icons.trending_down_rounded,
+    '2.5 kg down',
+    'Right on the plan\'s pace.',
+    (s) => _lost(s) >= 2.5,
+  ),
+  Milestone(
+    'kg-5',
+    Icons.emoji_events_outlined,
+    '5 kg down',
+    'Five kilos lighter than day 1.',
+    (s) => _lost(s) >= 5,
+  ),
   Milestone(
     'kg-7.5',
     Icons.emoji_events_outlined,
@@ -56,10 +72,34 @@ final medals = <Milestone>[
     'Most people never get this far. You did.',
     (s) => _lost(s) >= 7.5,
   ),
-  Milestone('kg-10', Icons.workspace_premium_outlined, '10 kg down', 'Double digits.', (s) => _lost(s) >= 10),
-  Milestone('up-1', Icons.trending_up_rounded, '1 kg up', 'Eating enough, and it shows.', (s) => _gained(s) >= 1),
-  Milestone('up-2.5', Icons.trending_up_rounded, '2.5 kg up', 'Right on the plan\'s pace.', (s) => _gained(s) >= 2.5),
-  Milestone('up-5', Icons.emoji_events_outlined, '5 kg up', 'Five kilos on since day 1.', (s) => _gained(s) >= 5),
+  Milestone(
+    'kg-10',
+    Icons.workspace_premium_outlined,
+    '10 kg down',
+    'Double digits.',
+    (s) => _lost(s) >= 10,
+  ),
+  Milestone(
+    'up-1',
+    Icons.trending_up_rounded,
+    '1 kg up',
+    'Eating enough, and it shows.',
+    (s) => _gained(s) >= 1,
+  ),
+  Milestone(
+    'up-2.5',
+    Icons.trending_up_rounded,
+    '2.5 kg up',
+    'Right on the plan\'s pace.',
+    (s) => _gained(s) >= 2.5,
+  ),
+  Milestone(
+    'up-5',
+    Icons.emoji_events_outlined,
+    '5 kg up',
+    'Five kilos on since day 1.',
+    (s) => _gained(s) >= 5,
+  ),
   for (final (name, _, day) in plan.milestones)
     Milestone(
       'target-$name',
@@ -108,17 +148,26 @@ final medals = <Milestone>[
 /// The medals that fit this person's goal: kg-down for Lose, kg-up for Gain, neither for Keep.
 List<Milestone> medalsFor(Store s) => [
   for (final m in medals)
-    if (!(m.id.startsWith('kg-') && s.goal != 0) && !(m.id.startsWith('up-') && s.goal != 2)) m,
+    if (!(m.id.startsWith('kg-') && s.goal != 0) &&
+        !(m.id.startsWith('up-') && s.goal != 2))
+      m,
 ];
 
 /// Show medals for anything newly earned, one after another. Call after a weigh-in or a lap.
 Future<void> checkBadges(BuildContext context, Store s) async {
-  final fresh = medals.where((b) => !s.seenHints.contains('badge:${b.id}') && b.earned(s)).toList();
+  final fresh = medals
+      .where((b) => !s.seenHints.contains('badge:${b.id}') && b.earned(s))
+      .toList();
   for (final b in fresh) {
     s.dismissHint('badge:${b.id}');
   }
   // several at once (e.g. a big first weigh-in): show the most impressive, mark the rest earned
   if (fresh.isEmpty || !context.mounted) return;
   final b = fresh.last;
-  await showMedal(context, icon: b.icon, title: b.title, sub: b.sub);
+  await showMedal(
+    context,
+    icon: b.icon,
+    title: tr(context, b.title),
+    sub: tr(context, b.sub),
+  );
 }

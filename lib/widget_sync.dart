@@ -1,3 +1,4 @@
+import 'l10n.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -125,24 +126,25 @@ class WidgetSync {
           ? 'next'
           : 'todo';
       final data = <String, Object>{
+        'language': s.appLanguage,
         // Today (medium + large)
         'lap_n': s.lap,
         'meters': s.legsDone * 100,
-        'date': niceDate(DateTime.now()),
-        'next_name': allDone ? 'All meals logged' : next.name,
-        'next_when': allDone ? 'Tomorrow · ${meals.first.window.split('–').first}' : next.window,
+        'date': niceDate(DateTime.now(), language: s.appLanguage),
+        'next_name': allDone ? trLanguage(s.appLanguage, 'All meals logged') : trLanguage(s.appLanguage, next.name),
+        'next_when': allDone ? trLanguage(s.appLanguage, 'Tomorrow · {value1}', {'value1': meals.first.window.split('–').first}) : next.window,
         // over today's target, the kcal line says what's left to burn (yellow on the widget)
         'kcal_text': s.burnLeft > 0
-            ? '${thousands(s.burnLeft)} kcal to burn · ${hoursMinutes(s.minutesFor(s.burnLeft, burnWays.first.$4))} walk'
-            : '${thousands(s.kcal)} / ${thousands(s.kcalGoal)} kcal',
+            ? trLanguage(s.appLanguage, '{value1} kcal to burn · {value2} walk', {'value1': thousands(s.burnLeft), 'value2': hoursMinutes(s.minutesFor(s.burnLeft, burnWays.first.$4))})
+            : trLanguage(s.appLanguage, '{value1} / {value2} kcal', {'value1': thousands(s.kcal), 'value2': thousands(s.kcalGoal)}),
         'burn_over': s.burnLeft > 0 ? 1 : 0,
         'kcal_pct': math.min(100, s.kcal * 100 ~/ s.kcalGoal),
         'finish': s.lap >= laps && allDone ? 1 : 0,
         for (final (i, m) in meals.indexed) ...{
-          'leg${i + 1}_name': m.name,
+          'leg${i + 1}_name': trLanguage(s.appLanguage, m.name),
           'leg${i + 1}_sub': switch (legState(m)) {
-            'done' => '${s.done[m.id]} · ${s.mealKcal(m)} kcal',
-            'skip' => 'Skipped',
+            'done' => trLanguage(s.appLanguage, '{value1} · {value2} kcal', {'value1': s.done[m.id] ?? '', 'value2': s.mealKcal(m)}),
+            'skip' => trLanguage(s.appLanguage, 'Skipped'),
             _ => m.window,
           },
           'leg${i + 1}_state': legState(m),
@@ -152,24 +154,24 @@ class WidgetSync {
         'water_glasses': s.water,
         'water_goal': s.waterGoal,
         'water_slots': (s.water * 14 ~/ s.waterGoal).clamp(0, 14), // the widget draws 14 glasses
-        'water_goal_text': 'of ${litres(s.waterGoal)} L',
+        'water_goal_text': trLanguage(s.appLanguage, 'of {value1} L', {'value1': litres(s.waterGoal)}),
         // Next meal
         'meal_num': allDone ? 400 : (meals.indexOf(next) + 1) * 100,
-        'meal_title': allDone ? 'All meals logged' : next.name,
+        'meal_title': allDone ? trLanguage(s.appLanguage, 'All meals logged') : trLanguage(s.appLanguage, next.name),
         'meal_sub': allDone
-            ? '${thousands(s.kcal)} kcal · ${s.protein} g protein'
-            : '${s.chosen(next).name} · ${s.mealKcal(next)} kcal',
+            ? trLanguage(s.appLanguage, '{value1} kcal · {value2} g protein', {'value1': thousands(s.kcal), 'value2': s.protein})
+            : trLanguage(s.appLanguage, '{value1} · {value2} kcal', {'value1': (s.ramadan ? s.ramadanChart : s.chart) == null ? trLanguage(s.appLanguage, s.chosen(next).name) : s.chosen(next).name, 'value2': s.mealKcal(next)}),
         'meal_when': allDone ? (s.done[meals.last.id] ?? '') : next.window,
-        'meal_btn': allDone ? 'Open' : 'Log',
+        'meal_btn': allDone ? trLanguage(s.appLanguage, 'Open') : trLanguage(s.appLanguage, 'Log'),
         'meal_done': allDone ? 1 : 0,
-        'meal_cap': 'Tomorrow · ${meals.first.window.split('–').first}',
+        'meal_cap': trLanguage(s.appLanguage, 'Tomorrow · {value1}', {'value1': meals.first.window.split('–').first}),
         // Walk: only when steps are known (a background tap mustn't reset them to 0)
         if (walked != null) ...{
           'walk_steps': walked,
           'walk_target': target,
           'walk_sub': walked >= target
-              ? '${thousands(target)} done · bonus now'
-              : '${thousands(target - walked)} to go',
+              ? trLanguage(s.appLanguage, '{value1} done · bonus now', {'value1': thousands(target)})
+              : trLanguage(s.appLanguage, '{value1} to go', {'value1': thousands(target - walked)}),
         },
       };
       await Future.wait([for (final e in data.entries) HomeWidget.saveWidgetData(e.key, e.value)]);

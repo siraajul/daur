@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,7 +14,7 @@ import 'steps.dart';
 import 'store.dart';
 import 'targets.dart';
 import 'theme.dart';
-import 'today.dart' show Cta, niceDate, thousands;
+import 'today.dart' show Cta, thousands;
 import 'track.dart';
 import 'visuals.dart';
 import 'water_walk.dart' show litres;
@@ -35,8 +37,18 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   static const _roles = [
     ('me', Icons.person_rounded, 'Just me', 'My own diet and fitness'),
-    ('trainer', Icons.sports_rounded, 'I\'m a trainer', 'Follow my students\' progress'),
-    ('family', Icons.family_restroom_rounded, 'I help family', 'Follow a family member\'s diet'),
+    (
+      'trainer',
+      Icons.sports_rounded,
+      'I\'m a trainer',
+      'Follow my students\' progress',
+    ),
+    (
+      'family',
+      Icons.family_restroom_rounded,
+      'I help family',
+      'Follow a family member\'s diet',
+    ),
   ];
 
   Future<void> _signIn() async {
@@ -73,9 +85,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
                     children: [
-                      Text('Daur', style: t.x(40, weight: FontWeight.w900)),
+                      Text(
+                        tr(context, 'Daur'),
+                        style: t.x(40, weight: FontWeight.w900),
+                      ),
                       const SizedBox(height: 4),
-                      Text('12 weeks of meals, walks and the gym', style: t.sec()),
+                      Text(
+                        tr(context, '12 weeks of meals, walks and the gym'),
+                        style: t.sec(),
+                      ),
                       const SizedBox(height: 24),
                       // the lap closes once there's an account; smaller then, to leave room for the choice
                       AnimatedContainer(
@@ -85,7 +103,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         curve: Curves.easeOutCubic,
                         height: _account || signedIn ? 110 : 160,
                         child: TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0, end: _account || signedIn ? 400 : 100),
+                          tween: Tween(
+                            begin: 0,
+                            end: _account || signedIn ? 400 : 100,
+                          ),
                           duration: MediaQuery.disableAnimationsOf(context)
                               ? Duration.zero
                               : const Duration(milliseconds: 1200),
@@ -100,12 +121,21 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       ),
                       const SizedBox(height: 24),
                       if (!_account && !signedIn) ...[
-                        Text('Make your account', style: t.title()),
+                        Text(
+                          tr(context, 'Make your account'),
+                          style: t.title(),
+                        ),
                         const SizedBox(height: 8),
-                        const Tip(Icons.cloud_done_outlined, 'Optional cloud backup for a new phone'),
-                        const Tip(
+                        Tip(
+                          Icons.cloud_done_outlined,
+                          tr(context, 'Optional cloud backup for a new phone'),
+                        ),
+                        Tip(
                           Icons.family_restroom_rounded,
-                          'Needed to follow, or be followed by, a trainer or family',
+                          tr(
+                            context,
+                            'Needed to follow, or be followed by, a trainer or family',
+                          ),
                         ),
                         const SizedBox(height: 16),
                         GoogleButton(busy: c.busy, onPressed: _signIn),
@@ -113,11 +143,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         Center(
                           child: TextButton(
                             onPressed: () => setState(() => _account = true),
-                            child: Text('Not now · this phone only', style: t.sec(t.ink)),
+                            child: Text(
+                              tr(context, 'Not now · this phone only'),
+                              style: t.sec(t.ink),
+                            ),
                           ),
                         ),
                       ] else ...[
-                        Text('How will you use Daur?', style: t.title()),
+                        Text(
+                          tr(context, 'How will you use Daur?'),
+                          style: t.title(),
+                        ),
                         const SizedBox(height: 16),
                         for (final (r, icon, title, sub) in _roles)
                           Padding(
@@ -139,17 +175,42 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                     });
                                   },
                                   child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      14,
+                                      16,
+                                      14,
+                                    ),
                                     child: Row(
                                       children: [
-                                        Icon(icon, color: _role == r ? t.onAccent : t.ink),
+                                        Icon(
+                                          icon,
+                                          color: _role == r
+                                              ? t.onAccent
+                                              : t.ink,
+                                        ),
                                         const SizedBox(width: 14),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              Text(title, style: t.body(color: _role == r ? t.onAccent : t.ink)),
-                                              Text(sub, style: t.meta(_role == r ? t.onAccent : null)),
+                                              Text(
+                                                tr(context, title),
+                                                style: t.body(
+                                                  color: _role == r
+                                                      ? t.onAccent
+                                                      : t.ink,
+                                                ),
+                                              ),
+                                              Text(
+                                                tr(context, sub),
+                                                style: t.meta(
+                                                  _role == r
+                                                      ? t.onAccent
+                                                      : null,
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
@@ -167,23 +228,48 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             onChanged: (v) => setState(() => _own = v),
                             activeThumbColor: t.ground,
                             activeTrackColor: t.ink,
-                            title: Text('Also track my own fitness', style: t.body()),
+                            title: Text(
+                              tr(context, 'Also track my own fitness'),
+                              style: t.body(),
+                            ),
                             subtitle: Text(
-                              _own
-                                  ? 'Your own plan, plus a ${_role == 'trainer' ? 'Students' : 'Family'} tab'
-                                  : 'Only follow others',
+                              tr(
+                                context,
+                                _own
+                                    ? tr(
+                                        context,
+                                        'Your own plan, plus a {tab} tab',
+                                        {
+                                          'tab': tr(
+                                            context,
+                                            _role == 'trainer'
+                                                ? 'Students'
+                                                : 'Family',
+                                          ),
+                                        },
+                                      )
+                                    : 'Only follow others',
+                              ),
                               style: t.meta(),
                             ),
                           ),
                       ],
                       // following people needs an account: sign in right here (skipped earlier)
-                      if ((_account || signedIn) && _role != 'me' && !signedIn) ...[
+                      if ((_account || signedIn) &&
+                          _role != 'me' &&
+                          !signedIn) ...[
                         const SizedBox(height: 8),
-                        const Tip(Icons.vpn_key_outlined, 'Following someone needs an account'),
+                        Tip(
+                          Icons.vpn_key_outlined,
+                          tr(context, 'Following someone needs an account'),
+                        ),
                         const SizedBox(height: 8),
                         GoogleButton(busy: c.busy, onPressed: _signIn),
                       ],
-                      if (_error != null) ...[const SizedBox(height: 12), Text(_error!, style: t.body())],
+                      if (_error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(tr(context, _error!), style: t.body()),
+                      ],
                     ],
                   ),
                 ),
@@ -191,8 +277,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                     child: _role != 'me' && !signedIn
-                        ? const Cta(label: 'Sign in to continue', muted: true)
-                        : Cta(label: _role != 'me' && !_own ? 'Enter their code' : 'Set up my plan', onTap: _go),
+                        ? Cta(
+                            label: tr(context, 'Sign in to continue'),
+                            muted: true,
+                          )
+                        : Cta(
+                            label: tr(
+                              context,
+                              _role != 'me' && !_own
+                                  ? 'Enter their code'
+                                  : 'Set up my plan',
+                            ),
+                            onTap: _go,
+                          ),
                   ),
               ],
             ),
@@ -246,13 +343,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           goal: p.goal.clamp(0, 2),
         );
         final savedPage = j['page'] as int;
-        _page = (j['version'] == 2 || savedPage < 3 || savedPage > 4 ? savedPage : savedPage + 1).clamp(0, 5);
+        _page =
+            (j['version'] == 2 || savedPage < 3 || savedPage > 4
+                    ? savedPage
+                    : savedPage + 1)
+                .clamp(0, 5);
       }
     } catch (_) {
       // A damaged draft must never prevent setup from opening.
     }
     final now = DateTime.now();
-    final earliest = DateUtils.dateOnly(now).subtract(const Duration(days: laps - 1));
+    final earliest = DateUtils.dateOnly(now)
+        .subtract(const Duration(days: laps - 1));
     if (_start.isBefore(earliest) || _start.isAfter(now)) _start = now;
     if (!mounted) return;
     setState(() => _loading = false);
@@ -294,26 +396,40 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, update) => AlertDialog(
-          title: Text(current ? 'Today’s weight' : 'Starting weight'),
+          title: Text(
+            tr(context, current ? 'Today’s weight' : 'Starting weight'),
+          ),
           content: TextFormField(
             initialValue: input,
             onChanged: (value) => input = value,
             autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(labelText: 'Weight in kg', helperText: '30–300 kg', errorText: error),
+            decoration: InputDecoration(
+              labelText: tr(context, 'Weight in kg'),
+              helperText: tr(context, '30–300 kg'),
+              errorText: error,
+            ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(tr(context, 'Cancel')),
+            ),
             TextButton(
               onPressed: () {
                 final kg = double.tryParse(input.replaceAll(',', '.'));
                 if (kg == null || !kg.isFinite || kg < 30 || kg > 300) {
-                  update(() => error = 'Enter a weight between 30 and 300 kg');
+                  update(
+                    () => error = tr(
+                      context,
+                      'Enter a weight between 30 and 300 kg',
+                    ),
+                  );
                 } else {
                   Navigator.pop(context, kg);
                 }
               },
-              child: const Text('Save'),
+              child: Text(tr(context, 'Save')),
             ),
           ],
         ),
@@ -333,7 +449,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   int get _lap {
     final n = DateTime.now();
-    return DateTime.utc(n.year, n.month, n.day).difference(DateTime.utc(_start.year, _start.month, _start.day)).inDays +
+    return DateTime.utc(n.year, n.month, n.day)
+            .difference(DateTime.utc(_start.year, _start.month, _start.day))
+            .inDays +
         1;
   }
 
@@ -342,13 +460,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (_page == 5) {
       if (!_confirmed) return;
       widget.store.setProfile(_profile);
-      widget.store.finishOnboarding(start: _start, kg: _kg, todayKg: _isToday ? null : _todayKg);
+      widget.store.finishOnboarding(
+        start: _start,
+        kg: _kg,
+        todayKg: _isToday ? null : _todayKg,
+      );
       SharedPreferences.getInstance().then((p) => p.remove(_draftKey));
       HapticFeedback.heavyImpact();
       return;
     }
     _pages.nextPage(
-      duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 350),
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 350),
       curve: Curves.easeOutCubic,
     );
   }
@@ -382,7 +506,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       initial: _start,
       first: DateTime.now().subtract(const Duration(days: laps - 1)),
       last: DateTime.now(),
-      help: 'Day 1 of the 12-week plan',
+      help: tr(context, 'Day 1 of the 12-week plan'),
     );
     if (d != null) {
       setState(() {
@@ -406,68 +530,98 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
-              child: Wrap(
-                spacing: 16,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
+                  child: Wrap(
+                    spacing: 16,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      for (var i = 0; i < 6; i++)
-                        AnimatedContainer(
-                          duration: MediaQuery.disableAnimationsOf(context)
-                              ? Duration.zero
-                              : const Duration(milliseconds: 250),
-                          width: i == _page ? 28 : 8,
-                          height: 8,
-                          margin: const EdgeInsets.only(right: 6),
-                          decoration: BoxDecoration(
-                            color: i == _page ? t.accent : t.faint,
-                            borderRadius: BorderRadius.circular(4),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (var i = 0; i < 6; i++)
+                            AnimatedContainer(
+                              duration: MediaQuery.disableAnimationsOf(context)
+                                  ? Duration.zero
+                                  : const Duration(milliseconds: 250),
+                              width: i == _page ? 28 : 8,
+                              height: 8,
+                              margin: const EdgeInsets.only(right: 6),
+                              decoration: BoxDecoration(
+                                color: i == _page ? t.accent : t.faint,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                        ],
+                      ),
+                      Semantics(
+                        liveRegion: true,
+                        child: Text(
+                          tr(context, 'Step {step} of {total}', {
+                            'step': _page + 1,
+                            'total': 6,
+                          }),
+                          style: t.meta(),
+                        ),
+                      ),
+                      if (_page > 0)
+                        TextButton(
+                          onPressed: () => _pages.previousPage(
+                            duration: MediaQuery.disableAnimationsOf(context)
+                                ? Duration.zero
+                                : const Duration(milliseconds: 250),
+                            curve: Curves.easeOutCubic,
                           ),
+                          child: Text(tr(context, 'Back'), style: t.sec(t.ink)),
                         ),
                     ],
                   ),
-                  Semantics(liveRegion: true, child: Text('Step ${_page + 1} of 6', style: t.meta())),
-                  if (_page > 0)
-                    TextButton(
-                      onPressed: () => _pages.previousPage(
-                        duration: MediaQuery.disableAnimationsOf(context)
-                            ? Duration.zero
-                            : const Duration(milliseconds: 250),
-                        curve: Curves.easeOutCubic,
-                      ),
-                      child: Text('Back', style: t.sec(t.ink)),
+                ),
+                Expanded(
+                  child: PageView(
+                    controller: _pages,
+                    physics: const NeverScrollableScrollPhysics(),
+                    onPageChanged: (i) => setState(() => _page = i),
+                    children: [
+                      _lapPage(t),
+                      _startPage(t),
+                      _goalPage(t),
+                      _aboutPage(t),
+                      _stepsPage(t),
+                      _reviewPage(t),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                  child: Cta(
+                    label: tr(
+                      context,
+                      _page == 5
+                          ? 'Start my plan'
+                          : _page == 4
+                          ? 'Review my plan'
+                          : 'Next',
                     ),
-                ],
-              ),
+                    trailing: _page == 1
+                        ? tr(context, '{weight} kg', {
+                            'weight': _kg.toStringAsFixed(1),
+                          })
+                        : null,
+                    onTap: _lap < 1 || (_page == 5 && !_confirmed)
+                        ? null
+                        : _next,
+                  ),
+                ),
+              ],
             ),
-            Expanded(
-              child: PageView(
-                controller: _pages,
-                physics: const NeverScrollableScrollPhysics(),
-                onPageChanged: (i) => setState(() => _page = i),
-                children: [_lapPage(t), _startPage(t), _goalPage(t), _aboutPage(t), _stepsPage(t), _reviewPage(t)],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-              child: Cta(
-                label: _page == 5
-                    ? 'Start my plan'
-                    : _page == 4
-                    ? 'Review my plan'
-                    : 'Next',
-                trailing: _page == 1 ? '${_kg.toStringAsFixed(1)} kg' : null,
-                onTap: _lap < 1 || (_page == 5 && !_confirmed) ? null : _next,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -475,7 +629,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _page0Track() => TweenAnimationBuilder<double>(
     tween: Tween(begin: 0, end: 100),
-    duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 1200),
+    duration: MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 1200),
     curve: Curves.easeOutCubic,
     builder: (context, m, _) => AspectRatio(
       aspectRatio: 402 / 250,
@@ -486,31 +642,51 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _lapPage(Daur t) => ListView(
     padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
     children: [
-      _page0Track(),
+      Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: _page0Track(),
+        ),
+      ),
       const SizedBox(height: 32),
-      Text('Log your 4 meals a day.', style: t.title()),
+      Text(tr(context, 'Log your 4 meals a day.'), style: t.title()),
       const SizedBox(height: 24),
       // 4 legs = 1 lap, drawn: each meal and its 100 m
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           for (final m in meals)
-            Column(
-              children: [
-                IconDisc(mealIcon(m.id), size: 48),
-                const SizedBox(height: 6),
-                Text(m.name, style: t.meta()),
-              ],
+            Expanded(
+              child: Column(
+                children: [
+                  IconDisc(mealIcon(m.id), size: 48),
+                  const SizedBox(height: 6),
+                  Text(
+                    tr(context, m.name),
+                    style: t.meta(),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
         ],
       ),
       const SizedBox(height: 20),
-      const Tip(Icons.flag_outlined, '$laps days = your 12-week plan'),
-      const Tip(
-        Icons.info_outline,
-        'The track shows meal logging, not distance walked. Skipped meals are marked separately.',
+      Tip(
+        Icons.flag_outlined,
+        tr(context, '{days} days = your 12-week plan', {'days': laps}),
       ),
-      const Tip(Icons.swap_horiz_rounded, 'Ate something else? Log what you ate'),
+      Tip(
+        Icons.info_outline,
+        tr(
+          context,
+          'The track shows meal logging, not distance walked. Skipped meals are marked separately.',
+        ),
+      ),
+      Tip(
+        Icons.swap_horiz_rounded,
+        tr(context, 'Ate something else? Log what you ate'),
+      ),
     ],
   );
 
@@ -519,27 +695,55 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
       children: [
-        Text('Where you start', style: t.title()),
+        Text(tr(context, 'Where you start'), style: t.title()),
         const SizedBox(height: 8),
-        Text('Started earlier? Pick your real day 1.', style: t.sec()),
+        Text(
+          tr(context, 'Started earlier? Pick your real day 1.'),
+          style: t.sec(),
+        ),
         const SizedBox(height: 28),
-        Text('Day 1', style: t.meta()),
+        Text(tr(context, 'Day 1'), style: t.meta()),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           children: [
-            groundChip(context, 'Today', today, () => setState(() => _start = DateTime.now())),
-            groundChip(context, today ? 'Earlier…' : niceDate(_start), !today, _pickStart),
+            groundChip(
+              context,
+              'Today',
+              today,
+              () => setState(() => _start = DateTime.now()),
+            ),
+            groundChip(
+              context,
+              today
+                  ? tr(context, 'Earlier…')
+                  : MaterialLocalizations.of(context).formatMediumDate(_start),
+              !today,
+              _pickStart,
+            ),
           ],
         ),
         const SizedBox(height: 8),
-        Text('Today is day $_lap of $laps', style: t.sec()),
+        Text(
+          tr(context, 'Today is day {day} of {total}', {
+            'day': _lap,
+            'total': laps,
+          }),
+          style: t.sec(),
+        ),
         const SizedBox(height: 28),
-        Text(_isToday ? 'Starting weight' : 'Weight on day 1', style: t.meta()),
+        Text(
+          tr(context, _isToday ? 'Starting weight' : 'Weight on day 1'),
+          style: t.meta(),
+        ),
         const SizedBox(height: 8),
         Row(
           children: [
-            _round(t, Icons.remove, () => setState(() => _kg = (_kg - .1).clamp(30, 300))),
+            _round(
+              t,
+              Icons.remove,
+              () => setState(() => _kg = (_kg - .1).clamp(30, 300)),
+            ),
             Expanded(
               child: InkWell(
                 onTap: () => _editWeight(),
@@ -550,18 +754,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         text: _kg.toStringAsFixed(1),
                         style: t.x(52, weight: FontWeight.w900),
                       ),
-                      TextSpan(text: ' kg', style: t.x(20)),
+                      TextSpan(text: tr(context, ' kg'), style: t.x(20)),
                     ],
                   ),
                   textAlign: TextAlign.center,
                 ),
               ),
             ),
-            _round(t, Icons.add, () => setState(() => _kg = (_kg + .1).clamp(30, 300))),
+            _round(
+              t,
+              Icons.add,
+              () => setState(() => _kg = (_kg + .1).clamp(30, 300)),
+            ),
           ],
         ),
         const SizedBox(height: 8),
-        Text('Example weight · tap the number to enter yours', style: t.meta(), textAlign: TextAlign.center),
+        Text(
+          tr(context, 'Example weight · tap the number to enter yours'),
+          style: t.meta(),
+          textAlign: TextAlign.center,
+        ),
         if (!_isToday) ...[
           const SizedBox(height: 24),
           // a past day 1 leaves no current weight: offer today's, optional
@@ -574,14 +786,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 minimumSize: const Size.fromHeight(48),
                 shape: const StadiumBorder(),
               ),
-              child: const Text('Add today\'s weight too'),
+              child: Text(tr(context, 'Add today\'s weight too')),
             )
           else ...[
-            Text('Today\'s weight', style: t.meta()),
+            Text(tr(context, 'Today\'s weight'), style: t.meta()),
             const SizedBox(height: 8),
             Row(
               children: [
-                _round(t, Icons.remove, () => setState(() => _todayKg = (_todayKg! - .1).clamp(30, 300))),
+                _round(
+                  t,
+                  Icons.remove,
+                  () => setState(
+                    () => _todayKg = (_todayKg! - .1).clamp(30, 300),
+                  ),
+                ),
                 Expanded(
                   child: Text.rich(
                     TextSpan(
@@ -590,13 +808,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           text: _todayKg!.toStringAsFixed(1),
                           style: t.x(40, weight: FontWeight.w900),
                         ),
-                        TextSpan(text: ' kg', style: t.x(18)),
+                        TextSpan(text: tr(context, ' kg'), style: t.x(18)),
                       ],
                     ),
                     textAlign: TextAlign.center,
                   ),
                 ),
-                _round(t, Icons.add, () => setState(() => _todayKg = (_todayKg! + .1).clamp(30, 300))),
+                _round(
+                  t,
+                  Icons.add,
+                  () => setState(
+                    () => _todayKg = (_todayKg! + .1).clamp(30, 300),
+                  ),
+                ),
               ],
             ),
           ],
@@ -620,19 +844,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       },
       icon: Icon(i, color: t.ink),
       iconSize: 28,
-      style: IconButton.styleFrom(backgroundColor: t.ink.withValues(alpha: .18), minimumSize: const Size(56, 56)),
+      style: IconButton.styleFrom(
+        backgroundColor: t.ink.withValues(alpha: .18),
+        minimumSize: const Size(56, 56),
+      ),
     ),
   );
 
-  Widget _chips() =>
-      TargetChips(kcal: _profile.kcal(_kg), protein: _profile.protein(_kg), litres: litres(_profile.glasses(_kg)));
+  Widget _chips() => TargetChips(
+    kcal: _profile.kcal(_kg),
+    protein: _profile.protein(_kg),
+    litres: litres(_profile.glasses(_kg)),
+  );
 
   Widget _goalPage(Daur t) => ListView(
     padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
     children: [
-      Text('What is your goal?', style: t.title()),
+      Text(tr(context, 'What is your goal?'), style: t.title()),
       const SizedBox(height: 12),
-      Text('Choose the direction for your next 12 weeks. You can change this later in Your targets.', style: t.sec()),
+      Text(
+        tr(
+          context,
+          'Choose the direction for your next 12 weeks. You can change this later in Your targets.',
+        ),
+        style: t.sec(),
+      ),
       const SizedBox(height: 28),
       for (final (i, name) in Profile.goalNames.indexed)
         Padding(
@@ -642,30 +878,52 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             inMutuallyExclusiveGroup: true,
             child: OutlinedButton(
               style: OutlinedButton.styleFrom(
-                backgroundColor: _profile.goal == i ? t.accent : Colors.transparent,
+                backgroundColor: _profile.goal == i
+                    ? t.accent
+                    : Colors.transparent,
                 foregroundColor: _profile.goal == i ? t.onAccent : t.ink,
                 side: BorderSide(color: _profile.goal == i ? t.accent : t.lane),
                 alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 18,
+                ),
               ),
-              onPressed: () => setState(() => _profile = _profile.copyWith(goal: i)),
-              child: Text('$name weight', style: t.body(color: _profile.goal == i ? t.onAccent : t.ink)),
+              onPressed: () =>
+                  setState(() => _profile = _profile.copyWith(goal: i)),
+              child: Text(
+                tr(context, '$name weight'),
+                style: t.body(color: _profile.goal == i ? t.onAccent : t.ink),
+              ),
             ),
           ),
         ),
       const SizedBox(height: 24),
-      Text(_profile.paceText, style: t.body()),
+      Text(tr(context, _profile.paceText), style: t.body()),
       const SizedBox(height: 12),
-      Text('Your body details on the next step help estimate a starting calorie target.', style: t.sec()),
+      Text(
+        tr(
+          context,
+          'Your body details on the next step help estimate a starting calorie target.',
+        ),
+        style: t.sec(),
+      ),
     ],
   );
 
   Widget _aboutPage(Daur t) => ListView(
     padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
     children: [
-      Text('Your body details', style: t.title()),
+      Text(tr(context, 'Your body details'), style: t.title()),
       const SizedBox(height: 8),
-      Text('These are example values. Check every detail before starting. ${_profile.paceText}.', style: t.sec()),
+      Text(
+        tr(
+          context,
+          'These are example values. Check every detail before starting. {pace}.',
+          {'pace': tr(context, _profile.paceText)},
+        ),
+        style: t.sec(),
+      ),
       const SizedBox(height: 20),
       ProfileFields(
         showGoal: false,
@@ -676,7 +934,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         }),
       ),
       const SizedBox(height: 24),
-      Text('Your day', style: t.meta()),
+      Text(tr(context, 'Your day'), style: t.meta()),
       const SizedBox(height: 10),
       _chips(),
     ],
@@ -687,19 +945,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
       children: [
-        Text('Steps from your phone', style: t.title()),
+        Text(tr(context, 'Steps from your phone'), style: t.title()),
         const SizedBox(height: 12),
         Steps.supported
             ? Tip(
                 Icons.favorite_border_rounded,
-                defaultTargetPlatform == TargetPlatform.iOS
-                    ? 'Read step totals from Apple Health. Connecting is optional.'
-                    : 'Read step totals from Health Connect. Connecting is optional.',
+                tr(
+                  context,
+                  defaultTargetPlatform == TargetPlatform.iOS
+                      ? 'Read step totals from Apple Health. Connecting is optional.'
+                      : 'Read step totals from Health Connect. Connecting is optional.',
+                ),
               )
-            : const Tip(Icons.edit_outlined, 'Type steps on the Walk row'),
+            : Tip(
+                Icons.edit_outlined,
+                tr(context, 'Type steps on the Walk row'),
+              ),
         const SizedBox(height: 12),
         Text(
-          'Recorded step totals may be included in cloud backups when signed in, and in summaries shared with people you authorise. You can connect later from Walk.',
+          tr(
+            context,
+            'Recorded step totals may be included in cloud backups when signed in, and in summaries shared with people you authorise. You can connect later from Walk.',
+          ),
           style: t.sec(),
         ),
         const SizedBox(height: 28),
@@ -709,7 +976,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               children: [
                 Icon(Icons.check_circle, color: t.accent),
                 const SizedBox(width: 10),
-                Expanded(child: Text('Connected · ${thousands(_steps!)} steps today', style: t.body())),
+                Expanded(
+                  child: Text(
+                    tr(context, 'Connected · {steps} steps today', {
+                      'steps': thousands(_steps!),
+                    }),
+                    style: t.body(),
+                  ),
+                ),
               ],
             )
           else if (!_triedConnect)
@@ -727,7 +1001,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             ),
                           )
                         : Icon(Icons.favorite_border, color: t.onAccent),
-                    label: Text('Connect', style: t.body(color: t.onAccent)),
+                    label: Text(
+                      tr(context, 'Connect'),
+                      style: t.body(color: t.onAccent),
+                    ),
                     style: FilledButton.styleFrom(
                       backgroundColor: t.accent,
                       minimumSize: const Size.fromHeight(54),
@@ -738,23 +1015,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const SizedBox(width: 10),
                 TextButton(
                   onPressed: () => setState(() => _triedConnect = true),
-                  child: Text('Later', style: t.body(color: t.ink)),
+                  child: Text(
+                    tr(context, 'Later'),
+                    style: t.body(color: t.ink),
+                  ),
                 ),
               ],
             ),
           if (_triedConnect && !connected) ...[
             const SizedBox(height: 12),
             Text(
-              defaultTargetPlatform == TargetPlatform.iOS
-                  ? 'Later: Health → Sharing → Apps → Daur'
-                  : 'Later: Settings → Health Connect → Daur',
+              tr(
+                context,
+                defaultTargetPlatform == TargetPlatform.iOS
+                    ? 'Later: Health → Sharing → Apps → Daur'
+                    : 'Later: Settings → Health Connect → Daur',
+              ),
               style: t.sec(),
             ),
           ],
         ],
         const SizedBox(height: 32),
-        if (_healthError != null) Text(_healthError!, style: t.body()),
-        Text('Back up', style: t.meta()),
+        if (_healthError != null)
+          Text(tr(context, _healthError!), style: t.body()),
+        Text(tr(context, 'Back up'), style: t.meta()),
         const SizedBox(height: 10),
         ListenableBuilder(
           listenable: Cloud.instance,
@@ -767,7 +1051,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Signed in · ${c.user!.email ?? ''}',
+                      tr(context, 'Signed in · {email}', {
+                        'email': c.user!.email ?? '',
+                      }),
                       style: t.body(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -787,10 +1073,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           },
         ),
         const SizedBox(height: 8),
-        Text('Optional · sign-in enables backup; check its status in Your data.', style: t.meta()),
-        if (_backupError != null) Text(_backupError!, style: t.body()),
+        Text(
+          tr(
+            context,
+            'Optional · sign-in enables backup; check its status in Your data.',
+          ),
+          style: t.meta(),
+        ),
+        if (_backupError != null)
+          Text(tr(context, _backupError!), style: t.body()),
         const SizedBox(height: 32),
-        Text('Your targets', style: t.meta()),
+        Text(tr(context, 'Your targets'), style: t.meta()),
         const SizedBox(height: 10),
         _chips(),
       ],
@@ -800,19 +1093,56 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _reviewPage(Daur t) => ListView(
     padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
     children: [
-      Text('Review your plan', style: t.title()),
+      Text(tr(context, 'Review your plan'), style: t.title()),
       const SizedBox(height: 12),
-      Text('Starting estimates, adjustable in Your targets. Use Back to correct any detail.', style: t.sec()),
+      Text(
+        tr(
+          context,
+          'Starting estimates, adjustable in Your targets. Use Back to correct any detail.',
+        ),
+        style: t.sec(),
+      ),
       const SizedBox(height: 20),
       for (final row in [
         ('Goal', '${Profile.goalNames[_profile.goal]} weight'),
-        ('Start', '${niceDate(_start)} · day $_lap of $laps'),
-        ('Starting weight', '${_kg.toStringAsFixed(1)} kg'),
-        ('Body details', '${_profile.male ? 'Man' : 'Woman'} · ${_profile.age} years · ${_profile.heightCm} cm'),
+        (
+          'Start',
+          tr(context, '{date} · day {day} of {total}', {
+            'date': MaterialLocalizations.of(context).formatMediumDate(_start),
+            'day': _lap,
+            'total': laps,
+          }),
+        ),
+        (
+          'Starting weight',
+          tr(context, '{weight} kg', {'weight': _kg.toStringAsFixed(1)}),
+        ),
+        (
+          'Body details',
+          tr(context, '{sex} · {age} years · {height} cm', {
+            'sex': tr(context, _profile.male ? 'Man' : 'Woman'),
+            'age': _profile.age,
+            'height': _profile.heightCm,
+          }),
+        ),
         ('Daily activity', Profile.activityNames[_profile.activity]),
-        ('Calories per day', '${thousands(_profile.kcal(_kg))} kcal'),
-        ('Protein per day', '${_profile.protein(_kg)} g'),
-        ('Water per day', '${litres(_profile.glasses(_kg))} L'),
+        (
+          'Calories per day',
+          tr(context, '{calories} kcal', {
+            'calories': thousands(_profile.kcal(_kg)),
+          }),
+        ),
+        (
+          'Protein per day',
+          tr(context, '{low}–{high} g', {
+            'low': _profile.protein(_kg).$1,
+            'high': _profile.protein(_kg).$2,
+          }),
+        ),
+        (
+          'Water per day',
+          tr(context, '{water} L', {'water': litres(_profile.glasses(_kg))}),
+        ),
         ('Movement', 'Build towards 7,000–10,000 steps a day'),
       ])
         Padding(
@@ -820,9 +1150,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(row.$1, style: t.meta()),
+              Text(tr(context, row.$1), style: t.meta()),
               const SizedBox(height: 4),
-              Text(row.$2, style: t.body()),
+              Text(tr(context, row.$2), style: t.body()),
             ],
           ),
         ),
@@ -833,7 +1163,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         activeColor: t.accent,
         checkColor: t.onAccent,
         onChanged: (v) => setState(() => _confirmed = v ?? false),
-        title: Text('I have checked my weight, age, height, goal and activity.', style: t.body()),
+        title: Text(
+          tr(
+            context,
+            'I have checked my weight, age, height, goal and activity.',
+          ),
+          style: t.body(),
+        ),
       ),
     ],
   );

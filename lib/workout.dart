@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -15,11 +17,17 @@ import 'today.dart' show Cta, niceDate;
 import 'track.dart';
 import 'visuals.dart';
 
-String clock(int seconds) => '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
+String clock(int seconds) =>
+    '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
 
 /// Log one exercise set by set: reps (or seconds) and weight steppers, last session, rest between sets.
 class ExerciseScreen extends StatefulWidget {
-  const ExerciseScreen({super.key, required this.store, required this.ex, required this.index});
+  const ExerciseScreen({
+    super.key,
+    required this.store,
+    required this.ex,
+    required this.index,
+  });
   final Store store;
   final String ex;
   final int index;
@@ -39,7 +47,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       // let the runner clear the last hurdle and land before leaving the screen
       HapticFeedback.heavyImpact();
       final messenger = ScaffoldMessenger.of(context);
-      await Future.delayed(Duration(milliseconds: reduceMotion(context) ? 0 : 950));
+      await Future.delayed(
+        Duration(milliseconds: reduceMotion(context) ? 0 : 950),
+      );
       if (mounted) Navigator.pop(context);
       messenger.showSnackBar(
         SnackBar(
@@ -48,7 +58,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
             stepUp ??
                 (s.setsToday(ex).any((x) => x.reps < p.reps)
                     ? 'A few reps short · same plan next time'
-                    : 'Lighter today · plan stays ${planText(p)}'),
+                    : 'Lighter today · plan stays ${planText(p, language: s.appLanguage)}'),
           ),
         ),
       );
@@ -79,7 +89,13 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     messenger.showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        content: Text(eased ?? '$n of ${p.sets} sets · same plan next time'),
+        content: Text(
+          eased ??
+              tr(context, '{value1} of {value2} sets · same plan next time', {
+                'value1': n,
+                'value2': p.sets,
+              }),
+        ),
       ),
     );
   }
@@ -95,7 +111,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         final all = s.exerciseDone(ex); // every set in, or stopped early
         final stopped = all && logged.length < p.sets;
         final last = s.lastSession(ex);
-        String setText(SetLog x) => p.timed ? '${x.reps} s hold' : '${x.reps} reps × ${kgText(x.kg)} kg';
+        String setText(SetLog x) => p.timed
+            ? '${x.reps} s hold'
+            : '${x.reps} reps × ${kgText(x.kg)} kg';
 
         return Scaffold(
           body: SafeArea(
@@ -106,26 +124,34 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                     children: [
                       PageHeader(
-                        ex,
+                        gymPlans.containsKey(ex) ? tr(context, ex) : ex,
                         sub:
-                            '${s.splitDayOf(ex)} · ${widget.index + 1} of ${s.exercisesOn(s.splitDayOf(ex)).length} · plan ${planText(p)}',
+                            '${s.splitDayOf(ex)} · ${widget.index + 1} of ${s.exercisesOn(s.splitDayOf(ex)).length} · plan ${planText(p, language: s.appLanguage)}',
                         actions: [
-                          MoreButton(tooltip: 'Move or remove', [
+                          MoreButton(tooltip: tr(context, 'Move or remove'), [
                             for (final d in Store.splitDays)
-                              if (d != s.splitDayOf(ex)) MenuItem('Move to $d day', () => s.moveExercise(ex, d)),
-                            MenuItem('Remove from the list', destructive: true, () async {
-                              final ok = await confirmPop(
-                                context,
-                                'Remove $ex?',
-                                'Its history stays. Add it back any time.',
-                                'Remove',
-                                destructive: true,
-                              );
-                              if (ok && context.mounted) {
-                                s.removeExercise(ex);
-                                Navigator.pop(context);
-                              }
-                            }),
+                              if (d != s.splitDayOf(ex))
+                                MenuItem(
+                                  'Move to $d day',
+                                  () => s.moveExercise(ex, d),
+                                ),
+                            MenuItem(
+                              'Remove from the list',
+                              destructive: true,
+                              () async {
+                                final ok = await confirmPop(
+                                  context,
+                                  'Remove $ex?',
+                                  'Its history stays. Add it back any time.',
+                                  'Remove',
+                                  destructive: true,
+                                );
+                                if (ok && context.mounted) {
+                                  s.removeExercise(ex);
+                                  Navigator.pop(context);
+                                }
+                              },
+                            ),
                           ]),
                         ],
                       ),
@@ -138,15 +164,32 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                             textBaseline: TextBaseline.alphabetic,
                             children: [
                               Text(
-                                all ? '${logged.length}' : '${logged.length + 1}',
+                                all
+                                    ? tr(context, '{value1}', {
+                                        'value1': logged.length,
+                                      })
+                                    : tr(context, '{value1}', {
+                                        'value1': logged.length + 1,
+                                      }),
                                 style: t.x(68, weight: FontWeight.w900),
                               ),
                               const SizedBox(width: 10),
-                              Text(all ? 'sets done' : 'of ${p.sets} sets', style: t.x(24)),
+                              Text(
+                                all
+                                    ? tr(context, 'sets done')
+                                    : tr(context, 'of {value1} sets', {
+                                        'value1': p.sets,
+                                      }),
+                                style: t.x(24),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 16),
-                          Hurdles(n: p.sets, cleared: logged.length, height: 40),
+                          Hurdles(
+                            n: p.sets,
+                            cleared: logged.length,
+                            height: 40,
+                          ),
                           const SizedBox(height: 12),
                           for (var i = 0; i < p.sets || i < logged.length; i++)
                             _line(
@@ -170,41 +213,79 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                           if (!all) ...[
                             const SizedBox(height: 8),
                             NumberStepper(
-                              label: p.timed ? 'Seconds' : 'Reps',
+                              label: p.timed
+                                  ? tr(context, 'Seconds')
+                                  : tr(context, 'Reps'),
                               sub: 'planned ${p.reps}',
                               value: '$reps',
-                              onMinus: () => setState(() => reps = (reps - (p.timed ? 5 : 1)).clamp(1, 600)),
-                              onPlus: () => setState(() => reps += p.timed ? 5 : 1),
+                              onMinus: () => setState(
+                                () => reps = (reps - (p.timed ? 5 : 1)).clamp(
+                                  1,
+                                  600,
+                                ),
+                              ),
+                              onPlus: () =>
+                                  setState(() => reps += p.timed ? 5 : 1),
                             ),
                             if (!p.timed)
                               NumberStepper(
-                                label: 'Weight',
+                                label: tr(context, 'Weight'),
                                 sub: '2.5 kg steps',
                                 value: kgText(kg),
                                 unit: 'kg',
-                                onMinus: () => setState(() => kg = (kg - 2.5).clamp(0, 500)),
+                                onMinus: () => setState(
+                                  () => kg = (kg - 2.5).clamp(0, 500),
+                                ),
                                 onPlus: () => setState(() => kg += 2.5),
                               ),
                           ],
                           const SizedBox(height: 12),
                           if (last != null)
                             Text(
-                              'Last time, ${niceDate(DateTime.parse(last.$1))}: ${last.$2.length} × '
-                              '${p.timed ? '${last.$2.last.reps} s' : '${last.$2.last.reps} at ${kgText(last.$2.last.kg)} kg'}.',
+                              tr(
+                                context,
+                                'Last time, {date}: {sets} × {detail}.',
+                                {
+                                  'date': niceDate(DateTime.parse(last.$1), language: Localizations.localeOf(context).languageCode),
+                                  'sets': last.$2.length,
+                                  'detail': p.timed
+                                      ? '${last.$2.last.reps} s'
+                                      : '${last.$2.last.reps} at ${kgText(last.$2.last.kg)} kg',
+                                },
+                              ),
                               style: t.sec(),
                             ),
                           // since the first session ever (Progress → Strength has them all)
                           for (final r in s.strength.where((r) => r.ex == ex))
                             Text(
-                              'Since you started: ${ProgressScreen.amount(r.start, r.unit)} → ${ProgressScreen.amount(r.now, r.unit)}',
+                              tr(
+                                context,
+                                'Since you started: {value1} → {value2}',
+                                {
+                                  'value1': ProgressScreen.amount(
+                                    r.start,
+                                    r.unit,
+                                  ),
+                                  'value2': ProgressScreen.amount(
+                                    r.now,
+                                    r.unit,
+                                  ),
+                                },
+                              ),
                               style: t.sec(t.ink),
                             ),
                           if (logged.isNotEmpty)
                             Align(
                               alignment: Alignment.centerLeft,
                               child: TextButton(
-                                onPressed: () => stopped ? s.toggleGym(ex) : s.undoSet(ex),
-                                child: Text(stopped ? 'Undo stop' : 'Undo last set', style: t.sec(t.ink)),
+                                onPressed: () =>
+                                    stopped ? s.toggleGym(ex) : s.undoSet(ex),
+                                child: Text(
+                                  stopped
+                                      ? tr(context, 'Undo stop')
+                                      : tr(context, 'Undo last set'),
+                                  style: t.sec(t.ink),
+                                ),
                               ),
                             ),
                         ],
@@ -215,21 +296,39 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                   child: all
-                      ? Cta(label: 'Back to the session', muted: true, onTap: () => Navigator.pop(context))
+                      ? Cta(
+                          label: tr(context, 'Back to the session'),
+                          muted: true,
+                          onTap: () => Navigator.pop(context),
+                        )
                       : Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Cta(
-                              label: 'Log set ${logged.length + 1}',
-                              trailing: p.timed ? '$reps s' : '$reps × ${kgText(kg)} kg',
+                              label: tr(context, 'Log set {value1}', {
+                                'value1': logged.length + 1,
+                              }),
+                              trailing: p.timed
+                                  ? '$reps s'
+                                  : '$reps × ${kgText(kg)} kg',
                               onTap: _log,
                             ),
                             // no strength left for the rest: end here, honestly
                             if (logged.isNotEmpty)
                               TextButton.icon(
                                 onPressed: _stop,
-                                icon: Icon(Icons.stop_circle_outlined, color: t.ink),
-                                label: Text('Stop at ${logged.length} of ${p.sets} sets', style: t.body()),
+                                icon: Icon(
+                                  Icons.stop_circle_outlined,
+                                  color: t.ink,
+                                ),
+                                label: Text(
+                                  tr(
+                                    context,
+                                    'Stop at {value1} of {value2} sets',
+                                    {'value1': logged.length, 'value2': p.sets},
+                                  ),
+                                  style: t.body(),
+                                ),
                               ),
                           ],
                         ),
@@ -242,7 +341,14 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     );
   }
 
-  Widget _line(Daur t, String n, String text, String right, {bool now = false, bool done = false}) => Container(
+  Widget _line(
+    Daur t,
+    String n,
+    String text,
+    String right, {
+    bool now = false,
+    bool done = false,
+  }) => Container(
     constraints: const BoxConstraints(minHeight: 44),
     decoration: BoxDecoration(
       border: Border(top: BorderSide(color: t.rule, width: .5)),
@@ -266,7 +372,10 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         Expanded(
           child: Text(
             text,
-            style: t.body(weight: now ? FontWeight.w600 : FontWeight.w400, color: done ? t.ink2 : t.ink),
+            style: t.body(
+              weight: now ? FontWeight.w600 : FontWeight.w400,
+              color: done ? t.ink2 : t.ink,
+            ),
           ),
         ),
         Text(right, style: t.sec()),
@@ -293,13 +402,19 @@ class NumberStepper extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     Widget btn(IconData i, VoidCallback f) => IconButton.filledTonal(
-      tooltip: '${i == Icons.add ? 'More' : 'Less'} ${label.toLowerCase()}',
+      tooltip: tr(context, '{value1} {value2}', {
+        'value1': i == Icons.add ? 'More' : 'Less',
+        'value2': label.toLowerCase(),
+      }),
       onPressed: () {
         f();
         HapticFeedback.selectionClick();
       },
       icon: Icon(i, color: t.ink),
-      style: IconButton.styleFrom(backgroundColor: t.ink.withValues(alpha: .18), minimumSize: const Size(44, 44)),
+      style: IconButton.styleFrom(
+        backgroundColor: t.ink.withValues(alpha: .18),
+        minimumSize: const Size(44, 44),
+      ),
     );
     return Container(
       constraints: const BoxConstraints(minHeight: 68),
@@ -313,8 +428,8 @@ class NumberStepper extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(label, style: t.body()),
-                Text(sub, style: t.meta()),
+                Text(tr(context, label), style: t.body()),
+                Text(tr(context, sub), style: t.meta()),
               ],
             ),
           ),
@@ -325,7 +440,8 @@ class NumberStepper extends StatelessWidget {
               TextSpan(
                 children: [
                   TextSpan(text: value, style: t.x(26)),
-                  if (unit.isNotEmpty) TextSpan(text: ' $unit', style: t.meta()),
+                  if (unit.isNotEmpty)
+                    TextSpan(text: ' $unit', style: t.meta()),
                 ],
               ),
               textAlign: TextAlign.center,
@@ -340,7 +456,13 @@ class NumberStepper extends StatelessWidget {
 
 /// Rest between sets: the runner laps the track while the clock runs down. ±15 s; vibrates at zero.
 class RestScreen extends StatefulWidget {
-  const RestScreen({super.key, required this.ex, required this.nextSet, required this.sets, required this.next});
+  const RestScreen({
+    super.key,
+    required this.ex,
+    required this.nextSet,
+    required this.sets,
+    required this.next,
+  });
   final String ex, next;
   final int nextSet, sets;
   @override
@@ -368,7 +490,12 @@ class _RestScreenState extends State<RestScreen> {
       final track = _trackKey.currentContext?.findRenderObject() as RenderBox?;
       if (box != null && track != null) {
         final (sc, o) = TrackPainter.fit(track.size);
-        _chalk.kick(o + TrackPainter.startLine * sc, count: 30, spread: 2.2, power: 1);
+        _chalk.kick(
+          o + TrackPainter.startLine * sc,
+          count: 30,
+          spread: 2.2,
+          power: 1,
+        );
       }
     }
     setState(() {});
@@ -379,7 +506,9 @@ class _RestScreenState extends State<RestScreen> {
     super.initState();
     _timer = Timer.periodic(const Duration(milliseconds: 250), (_) => _tick());
     _goLive();
-    WidgetsBinding.instance.addPostFrameCallback((_) => Live.announce(context, 'The rest timer'));
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => Live.announce(context, 'The rest timer'),
+    );
   }
 
   /// Lock screen / status bar / Dynamic Island countdown, so the phone can go in a pocket.
@@ -417,7 +546,10 @@ class _RestScreenState extends State<RestScreen> {
                 child: Chalk(
                   controller: _chalk,
                   child: CustomPaint(
-                    painter: TrackPainter(400 * (_elapsed / total).clamp(0, 1).toDouble(), t),
+                    painter: TrackPainter(
+                      400 * (_elapsed / total).clamp(0, 1).toDouble(),
+                      t,
+                    ),
                     child: Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -427,14 +559,25 @@ class _RestScreenState extends State<RestScreen> {
                               ? CountdownDigit(
                                   left: _left,
                                   style: t.x(64, weight: FontWeight.w900),
-                                  goStyle: t.x(64, weight: FontWeight.w900, color: t.accent),
+                                  goStyle: t.x(
+                                    64,
+                                    weight: FontWeight.w900,
+                                    color: t.accent,
+                                  ),
                                 )
                               : Odometer(
                                   text: clock(_left),
                                   style: t.x(56, weight: FontWeight.w900),
                                 ),
                           const SizedBox(height: 8),
-                          Text(done ? 'rest done' : 'of ${clock(total)} rest', style: t.meta()),
+                          Text(
+                            done
+                                ? tr(context, 'rest done')
+                                : tr(context, 'of {value1} rest', {
+                                    'value1': clock(total),
+                                  }),
+                            style: t.meta(),
+                          ),
                         ],
                       ),
                     ),
@@ -443,7 +586,13 @@ class _RestScreenState extends State<RestScreen> {
               ),
             ),
             const SizedBox(height: 28),
-            Text('Next · set ${widget.nextSet} of ${widget.sets}', style: t.meta()),
+            Text(
+              tr(context, 'Next · set {value1} of {value2}', {
+                'value1': widget.nextSet,
+                'value2': widget.sets,
+              }),
+              style: t.meta(),
+            ),
             const SizedBox(height: 6),
             Text(widget.next, style: t.x(24)),
             const SizedBox(height: 24),
@@ -467,7 +616,10 @@ class _RestScreenState extends State<RestScreen> {
                       ),
                       child: Text(
                         d < 0 ? '−15 s' : '+15 s',
-                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -476,7 +628,12 @@ class _RestScreenState extends State<RestScreen> {
             const Spacer(),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-              child: Cta(label: 'Start set ${widget.nextSet}', onTap: () => Navigator.pop(context)),
+              child: Cta(
+                label: tr(context, 'Start set {value1}', {
+                  'value1': widget.nextSet,
+                }),
+                onTap: () => Navigator.pop(context),
+              ),
             ),
           ],
         ),
@@ -516,7 +673,8 @@ class _TreadmillScreenState extends State<TreadmillScreen> {
       _kcal += _kcalPerSecond() * dt;
     });
     if (now.inSeconds == cardioTargetMin * 60) HapticFeedback.vibrate();
-    if (now.inSeconds % 15 == 0) _goLive(); // distance on the lock screen stays fresh
+    if (now.inSeconds % 15 == 0)
+      { _goLive(); } // distance on the lock screen stays fresh
   }
 
   /// Elapsed clock ticks by itself from (now − elapsed); paused freezes it.
@@ -550,7 +708,15 @@ class _TreadmillScreenState extends State<TreadmillScreen> {
     _timer?.cancel();
     Live.end();
     if (_watch.elapsed.inSeconds >= 30) {
-      s.addCardio(Cardio(_watch.elapsed.inSeconds, _meters / 1000, _kcal, s.treadSpeed, s.treadIncline));
+      s.addCardio(
+        Cardio(
+          _watch.elapsed.inSeconds,
+          _meters / 1000,
+          _kcal,
+          s.treadSpeed,
+          s.treadIncline,
+        ),
+      );
       HapticFeedback.heavyImpact();
     }
     Navigator.pop(context);
@@ -596,9 +762,18 @@ class _TreadmillScreenState extends State<TreadmillScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(clock(secs), style: t.x(52, weight: FontWeight.w900)),
+                          Text(
+                            clock(secs),
+                            style: t.x(52, weight: FontWeight.w900),
+                          ),
                           const SizedBox(height: 8),
-                          Text('of ${clock(cardioTargetMin * 60)} · lap ${_meters ~/ 400 + 1}', style: t.meta()),
+                          Text(
+                            tr(context, 'of {value1} · lap {value2}', {
+                              'value1': clock(cardioTargetMin * 60),
+                              'value2': _meters ~/ 400 + 1,
+                            }),
+                            style: t.meta(),
+                          ),
                         ],
                       ),
                     ),
@@ -610,34 +785,67 @@ class _TreadmillScreenState extends State<TreadmillScreen> {
                 child: Column(
                   children: [
                     NumberStepper(
-                      label: 'Speed',
+                      label: tr(context, 'Speed'),
                       sub: s.treadSpeed < 6.5 ? 'brisk walk' : 'jog',
                       value: s.treadSpeed.toStringAsFixed(1),
                       unit: 'km/h',
-                      onMinus: () => setState(() => s.setTreadmill(speed: (s.treadSpeed - .1).clamp(1, 16))),
-                      onPlus: () => setState(() => s.setTreadmill(speed: (s.treadSpeed + .1).clamp(1, 16))),
+                      onMinus: () => setState(
+                        () => s.setTreadmill(
+                          speed: (s.treadSpeed - .1).clamp(1, 16),
+                        ),
+                      ),
+                      onPlus: () => setState(
+                        () => s.setTreadmill(
+                          speed: (s.treadSpeed + .1).clamp(1, 16),
+                        ),
+                      ),
                     ),
                     NumberStepper(
-                      label: 'Incline',
+                      label: tr(context, 'Incline'),
                       sub: 'hills burn more',
-                      value: s.treadIncline.toStringAsFixed(1).replaceFirst('.0', ''),
+                      value: s.treadIncline
+                          .toStringAsFixed(1)
+                          .replaceFirst('.0', ''),
                       unit: '%',
-                      onMinus: () => setState(() => s.setTreadmill(incline: (s.treadIncline - .5).clamp(0, 15))),
-                      onPlus: () => setState(() => s.setTreadmill(incline: (s.treadIncline + .5).clamp(0, 15))),
+                      onMinus: () => setState(
+                        () => s.setTreadmill(
+                          incline: (s.treadIncline - .5).clamp(0, 15),
+                        ),
+                      ),
+                      onPlus: () => setState(
+                        () => s.setTreadmill(
+                          incline: (s.treadIncline + .5).clamp(0, 15),
+                        ),
+                      ),
                     ),
                     Container(
                       padding: const EdgeInsets.only(top: 14),
                       decoration: BoxDecoration(
-                        border: Border(top: BorderSide(color: t.rule, width: .5)),
+                        border: Border(
+                          top: BorderSide(color: t.rule, width: .5),
+                        ),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
                         children: [
-                          Text((_meters / 1000).toStringAsFixed(2), style: t.x(28)),
-                          Text(' km', style: t.meta()),
+                          Text(
+                            (_meters / 1000).toStringAsFixed(2),
+                            style: t.x(28),
+                          ),
+                          Text(tr(context, ' km'), style: t.meta()),
                           const Spacer(),
-                          Text('≈ ${_kcal.round()} kcal · ${_meters ~/ 400} laps of 400 m', style: t.sec()),
+                          Text(
+                            tr(
+                              context,
+                              '≈ {value1} kcal · {value2} laps of 400 m',
+                              {
+                                'value1': _kcal.round(),
+                                'value2': _meters ~/ 400,
+                              },
+                            ),
+                            style: t.sec(),
+                          ),
                         ],
                       ),
                     ),
@@ -652,8 +860,13 @@ class _TreadmillScreenState extends State<TreadmillScreen> {
                     if (started) ...[
                       IconButton.filledTonal(
                         onPressed: _toggle,
-                        tooltip: _watch.isRunning ? 'Pause' : 'Start',
-                        icon: Icon(_watch.isRunning ? Icons.pause : Icons.play_arrow, color: t.ink),
+                        tooltip: _watch.isRunning
+                            ? tr(context, 'Pause')
+                            : tr(context, 'Start'),
+                        icon: Icon(
+                          _watch.isRunning ? Icons.pause : Icons.play_arrow,
+                          color: t.ink,
+                        ),
                         style: IconButton.styleFrom(
                           backgroundColor: t.ink.withValues(alpha: .18),
                           minimumSize: const Size(54, 54),
@@ -663,10 +876,15 @@ class _TreadmillScreenState extends State<TreadmillScreen> {
                     ],
                     Expanded(
                       child: started
-                          ? Cta(label: 'End cardio', trailing: '${(secs / 60).round()} min', onTap: _end)
+                          ? Cta(
+                              label: tr(context, 'End cardio'),
+                              trailing: '${(secs / 60).round()} min',
+                              onTap: _end,
+                            )
                           : Cta(
-                              label: 'Start treadmill',
-                              trailing: '${s.treadSpeed.toStringAsFixed(1)} km/h',
+                              label: tr(context, 'Start treadmill'),
+                              trailing:
+                                  '${s.treadSpeed.toStringAsFixed(1)} km/h',
                               onTap: _toggle,
                             ),
                     ),

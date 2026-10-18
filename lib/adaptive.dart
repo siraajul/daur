@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'theme.dart';
+import 'l10n.dart';
 
 /// One look (Daur's red track, yellow, display numerals), two sets of controls: on iPhone the
 /// parts follow Apple's design (action sheets, sliding segments, wheel date picker, chevron back,
 /// a floating glass tab bar); on Android, Material's. Screens ask for the part, not the platform.
-bool isIOS(BuildContext context) => Theme.of(context).platform == TargetPlatform.iOS;
+bool isIOS(BuildContext context) =>
+    Theme.of(context).platform == TargetPlatform.iOS;
 
 /// One entry in a ⋯ menu; [onTap] null = shown disabled; [destructive] = red on iPhone.
 class MenuItem {
@@ -31,17 +33,21 @@ class MoreButton extends StatelessWidget {
     final t = Daur.of(context);
     if (!isIOS(context)) {
       return PopupMenuButton<int>(
-        tooltip: tooltip,
+        tooltip: tr(context, tooltip),
         icon: Icon(Icons.more_vert, color: t.ink),
         onSelected: (i) => items[i].onTap?.call(),
         itemBuilder: (_) => [
           for (final (i, item) in items.indexed)
-            PopupMenuItem(value: i, enabled: item.onTap != null, child: Text(item.label)),
+            PopupMenuItem(
+              value: i,
+              enabled: item.onTap != null,
+              child: Text(tr(context, item.label)),
+            ),
         ],
       );
     }
     return IconButton(
-      tooltip: tooltip,
+      tooltip: tr(context, tooltip),
       icon: Icon(CupertinoIcons.ellipsis_circle, color: t.ink),
       onPressed: () => showCupertinoModalPopup<void>(
         context: context,
@@ -55,13 +61,13 @@ class MoreButton extends StatelessWidget {
                     Navigator.pop(ctx);
                     item.onTap!();
                   },
-                  child: Text(item.label),
+                  child: Text(tr(context, item.label)),
                 ),
           ],
           cancelButton: CupertinoActionSheetAction(
             isDefaultAction: true,
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(tr(context, 'Cancel')),
           ),
         ),
       ),
@@ -72,7 +78,13 @@ class MoreButton extends StatelessWidget {
 /// A row of choices. Android: Material segmented buttons. iPhone: the sliding segmented control.
 /// Both: the chosen one in yellow. [onSheet] = drawn on the cream sheet instead of the red.
 class Segments<T extends Object> extends StatelessWidget {
-  const Segments({super.key, required this.items, required this.value, required this.onChanged, this.onSheet = false});
+  const Segments({
+    super.key,
+    required this.items,
+    required this.value,
+    required this.onChanged,
+    this.onSheet = false,
+  });
   final List<(T, String, IconData?)> items;
   final T value;
   final ValueChanged<T> onChanged;
@@ -103,12 +115,16 @@ class Segments<T extends Object> extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (icon != null) ...[
-                      Icon(icon, size: 16, color: v == value ? t.onAccent : ink),
+                      Icon(
+                        icon,
+                        size: 16,
+                        color: v == value ? t.onAccent : ink,
+                      ),
                       const SizedBox(width: 6),
                     ],
                     Flexible(
                       child: Text(
-                        label,
+                        tr(context, label),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -128,7 +144,11 @@ class Segments<T extends Object> extends StatelessWidget {
     return SegmentedButton<T>(
       segments: [
         for (final (v, label, icon) in items)
-          ButtonSegment(value: v, label: Text(label), icon: icon == null ? null : Icon(icon)),
+          ButtonSegment(
+            value: v,
+            label: Text(tr(context, label)),
+            icon: icon == null ? null : Icon(icon),
+          ),
       ],
       selected: {value},
       showSelectedIcon: false,
@@ -152,7 +172,13 @@ Future<DateTime?> pickDate(
   required String help,
 }) async {
   if (!isIOS(context)) {
-    return showDatePicker(context: context, initialDate: initial, firstDate: first, lastDate: last, helpText: help);
+    return showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: first,
+      lastDate: last,
+      helpText: tr(context, help),
+    );
   }
   var picked = initial;
   final ok = await showCupertinoModalPopup<bool>(
@@ -170,14 +196,20 @@ Future<DateTime?> pickDate(
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(left: 20),
-                    child: Text(help, style: TextStyle(fontSize: 15, color: t.sheetInk2)),
+                    child: Text(
+                      tr(context, help),
+                      style: TextStyle(fontSize: 15, color: t.sheetInk2),
+                    ),
                   ),
                   const Spacer(),
                   CupertinoButton(
                     onPressed: () => Navigator.pop(ctx, true),
                     child: Text(
-                      'Done',
-                      style: TextStyle(fontWeight: FontWeight.w700, color: t.sheetRed),
+                      tr(context, 'Done'),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: t.sheetRed,
+                      ),
                     ),
                   ),
                 ],
@@ -208,7 +240,12 @@ IconData backIcon(BuildContext context, {bool close = false}) => isIOS(context)
 /// The bottom tabs. Android: the Material navigation bar. iPhone: a floating Liquid Glass bar,
 /// a frosted capsule above the home indicator that the page scrolls under.
 class Tabs extends StatelessWidget {
-  const Tabs({super.key, required this.index, required this.onTap, required this.items});
+  const Tabs({
+    super.key,
+    required this.index,
+    required this.onTap,
+    required this.items,
+  });
   final int index;
   final ValueChanged<int> onTap;
   final List<(IconData, IconData, String)> items; // icon, selected icon, label
@@ -222,7 +259,11 @@ class Tabs extends StatelessWidget {
         onDestinationSelected: onTap,
         destinations: [
           for (final (icon, sel, label) in items)
-            NavigationDestination(icon: Icon(icon), selectedIcon: Icon(sel), label: label),
+            NavigationDestination(
+              icon: Icon(icon),
+              selectedIcon: Icon(sel),
+              label: label,
+            ),
         ],
       );
     }
@@ -262,19 +303,27 @@ class Tabs extends StatelessWidget {
                             duration: const Duration(milliseconds: 250),
                             curve: Curves.easeOutCubic,
                             decoration: BoxDecoration(
-                              color: i == index ? t.ink.withValues(alpha: .18) : Colors.transparent,
+                              color: i == index
+                                  ? t.ink.withValues(alpha: .18)
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(27),
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(i == index ? sel : icon, size: 22, color: t.ink),
+                                Icon(
+                                  i == index ? sel : icon,
+                                  size: 22,
+                                  color: t.ink,
+                                ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  label,
+                                  tr(context, label),
                                   style: TextStyle(
                                     fontSize: 10,
-                                    fontWeight: i == index ? FontWeight.w700 : FontWeight.w500,
+                                    fontWeight: i == index
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
                                     color: t.ink,
                                   ),
                                 ),

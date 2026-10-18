@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'dart:math' as math;
 import 'dart:ui' show PathMetric, Tangent;
 
@@ -37,16 +39,25 @@ class TrackPainter extends CustomPainter {
     const r = 90.0;
     return Path()
       ..moveTo(267, 215)
-      ..arcToPoint(const Offset(267, 35), radius: const Radius.circular(r), clockwise: false)
+      ..arcToPoint(
+        const Offset(267, 35),
+        radius: const Radius.circular(r),
+        clockwise: false,
+      )
       ..lineTo(135, 35)
-      ..arcToPoint(const Offset(135, 215), radius: const Radius.circular(r), clockwise: false)
+      ..arcToPoint(
+        const Offset(135, 215),
+        radius: const Radius.circular(r),
+        clockwise: false,
+      )
       ..close();
   }
 
   static final PathMetric _metric = lane().computeMetrics().first;
 
   /// Where on the track (design space) [m] metres falls.
-  static Tangent at(double m) => _metric.getTangentForOffset(_metric.length * (m % 400) / 400)!;
+  static Tangent at(double m) =>
+      _metric.getTangentForOffset(_metric.length * (m % 400) / 400)!;
 
   /// Design-space → widget-space transform for a given widget size.
   static (double, Offset) fit(Size size) {
@@ -69,9 +80,18 @@ class TrackPainter extends CustomPainter {
       (38.0, 28.0, 326.0, 194.0),
       (52.0, 42.0, 298.0, 166.0),
     ]) {
-      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(x, y, w, h), Radius.circular(h / 2)), line);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x, y, w, h),
+          Radius.circular(h / 2),
+        ),
+        line,
+      );
     }
-    final infield = RRect.fromRectAndRadius(const Rect.fromLTWH(66, 56, 270, 138), const Radius.circular(69));
+    final infield = RRect.fromRectAndRadius(
+      const Rect.fromLTWH(66, 56, 270, 138),
+      const Radius.circular(69),
+    );
     canvas.drawRRect(infield, Paint()..color = t.infield);
 
     // finale, part 2: the infield floods with runner yellow from the centre, then drains
@@ -128,7 +148,11 @@ class TrackPainter extends CustomPainter {
         final back = m - trail * i / 7;
         if (back <= 0) break;
         final p = at(back).position;
-        canvas.drawCircle(p, 5.5 - i * .55, Paint()..color = t.ink.withValues(alpha: .5 * (1 - i / 8)));
+        canvas.drawCircle(
+          p,
+          5.5 - i * .55,
+          Paint()..color = t.ink.withValues(alpha: .5 * (1 - i / 8)),
+        );
       }
     }
 
@@ -165,7 +189,9 @@ class TrackPainter extends CustomPainter {
     canvas.rotate(-tan.angle);
     final stretch = 1 + .55 * lean.clamp(0, 1);
     final squash = 1 / math.sqrt(stretch);
-    final landing = ripple > 0 && ripple < .35 ? 1 - .18 * math.sin(ripple / .35 * math.pi) : 1.0;
+    final landing = ripple > 0 && ripple < .35
+        ? 1 - .18 * math.sin(ripple / .35 * math.pi)
+        : 1.0;
     canvas.scale(stretch * (2 - landing), squash * landing);
     canvas.drawCircle(Offset.zero, 11.75, Paint()..color = t.ground);
     canvas.drawCircle(Offset.zero, 10, Paint()..color = t.accent);
@@ -192,7 +218,11 @@ class TrackPainter extends CustomPainter {
       canvas.save();
       canvas.translate(mid.dx + dx, mid.dy + dy);
       canvas.rotate(dir * 2.4 * k);
-      canvas.drawLine(Offset(0, -half.dy / 2), Offset(0, half.dy / 2), ink..color = t.ink.withValues(alpha: fade));
+      canvas.drawLine(
+        Offset(0, -half.dy / 2),
+        Offset(0, half.dy / 2),
+        ink..color = t.ink.withValues(alpha: fade),
+      );
       canvas.restore();
     }
   }
@@ -212,7 +242,14 @@ class TrackPainter extends CustomPainter {
 /// metres roll like a scoreboard. Reaching 400 closes the lap: the lane lights up end to end,
 /// the infield floods yellow, the tape snaps and chalk kicks off the start line.
 class Track extends StatefulWidget {
-  const Track({super.key, required this.meters, required this.caption, this.impact, this.count, this.of = 4});
+  const Track({
+    super.key,
+    required this.meters,
+    required this.caption,
+    this.impact,
+    this.count,
+    this.of = 4,
+  });
   final int meters;
   final int? count; // meals to show in the middle (default meters / 100); fasting shows fewer
   final int of;
@@ -224,9 +261,18 @@ class Track extends StatefulWidget {
 }
 
 class _TrackState extends State<Track> with TickerProviderStateMixin {
-  late final _run = AnimationController.unbounded(vsync: this, value: widget.meters.toDouble());
-  late final _ripple = AnimationController(vsync: this, duration: const Duration(milliseconds: 650));
-  late final _finale = AnimationController(vsync: this, duration: const Duration(milliseconds: 2200));
+  late final _run = AnimationController.unbounded(
+    vsync: this,
+    value: widget.meters.toDouble(),
+  );
+  late final _ripple = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 650),
+  );
+  late final _finale = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2200),
+  );
   final _chalk = ChalkController();
   double _target = 0, _rippleAt = -1;
   bool _landed = true;
@@ -250,12 +296,15 @@ class _TrackState extends State<Track> with TickerProviderStateMixin {
     _landed = false;
     if (widget.meters > old.meters) HapticFeedback.selectionClick();
     // the sprint: a soft spring with a little overshoot (a runner leaning past the mark)
-    _run.animateWith(SpringSimulation(Springs.runner, _run.value, _target, _run.velocity));
+    _run.animateWith(
+      SpringSimulation(Springs.runner, _run.value, _target, _run.velocity),
+    );
   }
 
   void _watchLanding() {
     if (_landed) return;
-    final arrived = (_run.value - _target).abs() < 4 && _run.velocity.abs() < 120;
+    final arrived =
+        (_run.value - _target).abs() < 4 && _run.velocity.abs() < 120;
     if (!arrived) return;
     _landed = true;
     _rippleAt = _target;
@@ -263,7 +312,10 @@ class _TrackState extends State<Track> with TickerProviderStateMixin {
     final lapDone = _target >= 400;
     if (lapDone) {
       HapticFeedback.heavyImpact();
-      Future.delayed(const Duration(milliseconds: 140), HapticFeedback.heavyImpact);
+      Future.delayed(
+        const Duration(milliseconds: 140),
+        HapticFeedback.heavyImpact,
+      );
       widget.impact?.hit(1.2);
       _finale.forward(from: 0);
       _kickFromStart();
@@ -280,7 +332,14 @@ class _TrackState extends State<Track> with TickerProviderStateMixin {
     final start = o + TrackPainter.startLine * s;
     _chalk.kick(start, count: 34, angle: -math.pi / 2, spread: 2.4, power: 1.1);
     Future.delayed(const Duration(milliseconds: 260), () {
-      if (mounted) _chalk.kick(start, count: 22, angle: -math.pi / 2 - .5, spread: 1.4, power: .8);
+      if (mounted)
+        { _chalk.kick(
+          start,
+          count: 22,
+          angle: -math.pi / 2 - .5,
+          spread: 1.4,
+          power: .8,
+        ); }
     });
   }
 
@@ -296,8 +355,11 @@ class _TrackState extends State<Track> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     return Semantics(
-      label:
-          '${widget.count ?? widget.meters.clamp(0, 400) ~/ 100} of ${widget.of} meals logged. ${widget.caption.replaceAll('\n', '. ')}',
+      label: tr(context, '{value1} of {value2} meals logged. {value3}', {
+        'value1': widget.count ?? widget.meters.clamp(0, 400) ~/ 100,
+        'value2': widget.of,
+        'value3': widget.caption.replaceAll('\n', '. '),
+      }),
       excludeSemantics: true,
       child: AspectRatio(
         aspectRatio: TrackPainter.w / TrackPainter.h,
@@ -329,10 +391,16 @@ class _TrackState extends State<Track> with TickerProviderStateMixin {
                         children: [
                           // plain numbers: meals logged of 4 (the runner shows the same thing)
                           Odometer(
-                            text: '${widget.count ?? widget.meters.clamp(0, 400) ~/ 100}',
+                            text:
+                                '${widget.count ?? widget.meters.clamp(0, 400) ~/ 100}',
                             style: t.x(52, weight: FontWeight.w900),
                           ),
-                          Text(' of ${widget.of} meals', style: t.x(18)),
+                          Text(
+                            tr(context, ' of {value1} meals', {
+                              'value1': widget.of,
+                            }),
+                            style: t.x(18),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 8),

@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -16,12 +18,20 @@ String feetInches(int cm) => "${cmToInches(cm) ~/ 12}′ ${cmToInches(cm) % 12}�
 
 /// A choice chip on the red ground: light outline, runner yellow when picked (the default chip
 /// colours are meant for light surfaces and go dark-on-red here).
-Widget groundChip(BuildContext context, String label, bool selected, VoidCallback onTap) {
+Widget groundChip(
+  BuildContext context,
+  String label,
+  bool selected,
+  VoidCallback onTap,
+) {
   final t = Daur.of(context);
   return ChoiceChip(
     label: Text(
-      label,
-      style: TextStyle(color: selected ? t.onAccent : t.ink, fontWeight: FontWeight.w600),
+      tr(context, label),
+      style: TextStyle(
+        color: selected ? t.onAccent : t.ink,
+        fontWeight: FontWeight.w600,
+      ),
     ),
     selected: selected,
     onSelected: (_) => onTap(),
@@ -46,7 +56,13 @@ class ProfileFields extends StatelessWidget {
   final bool showGoal, showBody;
   final ValueChanged<Profile> onChanged;
 
-  Profile _with({bool? male, int? age, int? heightCm, int? activity, int? goal}) => value.copyWith(
+  Profile _with({
+    bool? male,
+    int? age,
+    int? heightCm,
+    int? activity,
+    int? goal,
+  }) => value.copyWith(
     male: male,
     age: (age ?? value.age).clamp(14, 90),
     heightCm: (heightCm ?? value.heightCm).clamp(120, 220),
@@ -67,13 +83,18 @@ class ProfileFields extends StatelessWidget {
       children: [
         // the goal first: everything else (kcal, protein, month targets, medals) follows it
         if (showGoal) ...[
-          Text('Goal', style: t.meta()),
+          Text(tr(context, 'Goal'), style: t.meta()),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
             children: [
               for (final (i, name) in Profile.goalNames.indexed)
-                groundChip(context, '$name weight', value.goal == i, () => set(_with(goal: i))),
+                groundChip(
+                  context,
+                  '$name weight',
+                  value.goal == i,
+                  () => set(_with(goal: i)),
+                ),
             ],
           ),
         ],
@@ -83,7 +104,12 @@ class ProfileFields extends StatelessWidget {
             spacing: 8,
             children: [
               for (final m in const [true, false])
-                groundChip(context, m ? 'Man' : 'Woman', value.male == m, () => set(_with(male: m))),
+                groundChip(
+                  context,
+                  m ? 'Man' : 'Woman',
+                  value.male == m,
+                  () => set(_with(male: m)),
+                ),
             ],
           ),
           _Step(
@@ -95,17 +121,26 @@ class ProfileFields extends StatelessWidget {
           _Step(
             label: 'Height',
             value: feetInches(value.heightCm),
-            onMinus: () => set(_with(heightCm: inchesToCm(cmToInches(value.heightCm) - 1))),
-            onPlus: () => set(_with(heightCm: inchesToCm(cmToInches(value.heightCm) + 1))),
+            onMinus: () => set(
+              _with(heightCm: inchesToCm(cmToInches(value.heightCm) - 1)),
+            ),
+            onPlus: () => set(
+              _with(heightCm: inchesToCm(cmToInches(value.heightCm) + 1)),
+            ),
           ),
           const SizedBox(height: 8),
-          Text('Day to day', style: t.meta()),
+          Text(tr(context, 'Day to day'), style: t.meta()),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
             children: [
               for (final (i, name) in Profile.activityNames.indexed)
-                groundChip(context, name, value.activity == i, () => set(_with(activity: i))),
+                groundChip(
+                  context,
+                  name,
+                  value.activity == i,
+                  () => set(_with(activity: i)),
+                ),
             ],
           ),
         ],
@@ -115,7 +150,12 @@ class ProfileFields extends StatelessWidget {
 }
 
 class _Step extends StatelessWidget {
-  const _Step({required this.label, required this.value, required this.onMinus, required this.onPlus});
+  const _Step({
+    required this.label,
+    required this.value,
+    required this.onMinus,
+    required this.onPlus,
+  });
   final String label, value;
   final VoidCallback onMinus, onPlus;
 
@@ -129,7 +169,11 @@ class _Step extends StatelessWidget {
         }
       },
       child: IconButton(
-        tooltip: '${i == Icons.add ? 'More' : 'Less'} ${label.toLowerCase()}',
+        tooltip: tr(
+          context,
+          i == Icons.add ? 'Increase {field}' : 'Decrease {field}',
+          {'field': tr(context, label)},
+        ),
         onPressed: f,
         icon: Icon(i, color: t.ink),
       ),
@@ -139,12 +183,20 @@ class _Step extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(label, style: t.body(weight: FontWeight.w400)),
+            child: Text(
+              tr(context, label),
+              style: t.body(weight: FontWeight.w400),
+            ),
           ),
           b(Icons.remove, onMinus),
           SizedBox(
             width: 112,
-            child: Text(value, textAlign: TextAlign.center, maxLines: 1, style: t.x(20)),
+            child: Text(
+              tr(context, value),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              style: t.x(20),
+            ),
           ),
           b(Icons.add, onPlus),
         ],
@@ -175,17 +227,36 @@ class _TargetsScreenState extends State<TargetsScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
             children: [
-              const PageHeader('Your targets'),
+              PageHeader(tr(context, 'Your targets')),
               const SizedBox(height: 16),
 
               for (final (icon, a, b) in [
-                (Icons.local_fire_department_rounded, 'Calories', '${thousands(s.kcalGoal)} kcal'),
-                (Icons.egg_alt_outlined, 'Protein', '${s.proteinText} g'),
-                (Icons.water_drop_outlined, 'Water', '${litres(s.waterGoal)} L'),
+                (
+                  Icons.local_fire_department_rounded,
+                  'Calories',
+                  tr(context, '{calories} kcal', {
+                    'calories': thousands(s.kcalGoal),
+                  }),
+                ),
+                (
+                  Icons.egg_alt_outlined,
+                  'Protein',
+                  tr(context, '{protein} g', {'protein': s.proteinText}),
+                ),
+                (
+                  Icons.water_drop_outlined,
+                  'Water',
+                  tr(context, '{water} L', {'water': litres(s.waterGoal)}),
+                ),
                 (Icons.directions_walk_rounded, 'Steps', '7k → 10k'),
                 (Icons.fitness_center_rounded, 'Gym', '3–5 a week'),
                 (Icons.bedtime_outlined, 'Sleep', '7–8 h'),
-                for (final (name, range, _) in s.targets) (Icons.flag_outlined, name, '$range kg'),
+                for (final (name, range, _) in s.targets)
+                  (
+                    Icons.flag_outlined,
+                    tr(context, name),
+                    tr(context, '{weight} kg', {'weight': range}),
+                  ),
               ])
                 Container(
                   constraints: const BoxConstraints(minHeight: 44),
@@ -197,17 +268,20 @@ class _TargetsScreenState extends State<TargetsScreen> {
                       Icon(icon, size: 20, color: t.ink2),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text(a, style: t.body(weight: FontWeight.w400)),
+                        child: Text(
+                          tr(context, a),
+                          style: t.body(weight: FontWeight.w400),
+                        ),
                       ),
-                      Text(b, style: t.x(17)),
+                      Text(tr(context, b), style: t.x(17)),
                     ],
                   ),
                 ),
               const SizedBox(height: 28),
               if (_p == null) ...[
-                Text('The original plan', style: t.title()),
+                Text(tr(context, 'The original plan'), style: t.title()),
                 const SizedBox(height: 8),
-                Text('Written for a 109 kg start', style: t.sec()),
+                Text(tr(context, 'Written for a 109 kg start'), style: t.sec()),
                 const SizedBox(height: 16),
                 FilledButton(
                   style: FilledButton.styleFrom(
@@ -221,13 +295,19 @@ class _TargetsScreenState extends State<TargetsScreen> {
                     setState(() => _p = p);
                     s.setProfile(p);
                   },
-                  child: const Text('Personalise'),
+                  child: Text(tr(context, 'Personalise')),
                 ),
               ] else ...[
-                Text('About you', style: t.title()),
+                Text(tr(context, 'About you'), style: t.title()),
                 const SizedBox(height: 4),
                 Text(
-                  '${s.profile?.paceText ?? 'about 0.5 kg a week down'} · follows your trend, now ${s.planKg.toStringAsFixed(1)} kg',
+                  tr(context, '{pace} · follows your trend, now {weight} kg', {
+                    'pace': tr(
+                      context,
+                      s.profile?.paceText ?? 'about 0.5 kg a week down',
+                    ),
+                    'weight': s.planKg.toStringAsFixed(1),
+                  }),
                   style: t.sec(),
                 ),
                 const SizedBox(height: 12),
@@ -244,7 +324,10 @@ class _TargetsScreenState extends State<TargetsScreen> {
                     setState(() => _p = null);
                     s.setProfile(null);
                   },
-                  child: Text('Use the original 1,800 kcal plan', style: t.sec(t.ink)),
+                  child: Text(
+                    tr(context, 'Use the original 1,800 kcal plan'),
+                    style: t.sec(t.ink),
+                  ),
                 ),
               ],
             ],

@@ -9,51 +9,95 @@ import 'coaching.dart';
 import 'store.dart';
 import 'targets.dart' show groundChip;
 import 'theme.dart';
+import 'l10n.dart';
 import 'today.dart' show MenuButton, thousands;
 import 'visuals.dart';
 
 /// Why a student needs the trainer now, most urgent first, in plain words. Empty = on track.
 /// [d] is the student's summary, [at] when it was last published (they last opened Daur).
-List<String> studentFlags(Map<String, dynamic> d, DateTime? at, DateTime now) {
+List<String> studentFlags(
+  Map<String, dynamic> d,
+  DateTime? at,
+  DateTime now, [
+  String language = 'en',
+]) {
+  String say(String message, [Map<String, Object> args = const {}]) =>
+      trLanguage(language, message, args);
   final out = <String>[];
   int n(String k) => (d[k] as num?)?.toInt() ?? 0;
   final lap = n('lap'), goal = n('goal');
   final idle = at == null
       ? 99
-      : DateTime(now.year, now.month, now.day).difference(DateTime(at.year, at.month, at.day)).inDays;
-  if (idle >= 2) out.add(idle >= 99 ? 'Never opened Daur' : 'Not opened in $idle days');
+      : DateTime(
+          now.year,
+          now.month,
+          now.day,
+        ).difference(DateTime(at.year, at.month, at.day)).inDays;
+  if (idle >= 2) {
+    out.add(
+      idle >= 99
+          ? say('Never opened Daur')
+          : say("Not opened in {count} days", {'count': idle}),
+    );
+  }
   final sessions = (d['sessions'] as List? ?? const []).cast<List>();
   if (lap >= 4) {
     if (sessions.isEmpty) {
-      out.add('No gym yet');
+      out.add(say('No gym yet'));
     } else {
       final last = DateTime.parse(sessions.first[0] as String);
-      final days = DateTime(now.year, now.month, now.day).difference(last).inDays;
-      if (days >= 4) out.add('No gym in $days days');
+      final days = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).difference(last).inDays;
+      if (days >= 4) out.add(say("No gym in {count} days", {'count': days}));
     }
   }
   final kg = (d['kgWeek'] as num?)?.toDouble();
   if (kg != null) {
-    if (goal == 0 && kg >= 0) out.add('Weight not moving this week');
-    if (goal == 2 && kg <= 0) out.add('Not gaining this week');
-    if (goal == 1 && kg.abs() > .5) out.add(kg > 0 ? 'Weight creeping up' : 'Losing when keeping');
+    if (goal == 0 && kg >= 0) out.add(say('Weight not moving this week'));
+    if (goal == 2 && kg <= 0) out.add(say('Not gaining this week'));
+    if (goal == 1 && kg.abs() > .5) {
+      out.add(kg > 0 ? say('Weight creeping up') : say('Losing when keeping'));
+    }
   }
-  if (lap >= 7 && d['fullDays'] != null && n('fullDays') < 4) out.add('Logged ${n('fullDays')} of 7 days');
+  if (lap >= 7 && d['fullDays'] != null && n('fullDays') < 4) {
+    out.add(say("Logged {count} of 7 days", {'count': n('fullDays')}));
+  }
   if (d['day'] == dayKey(now)) {
-    if (n('burnLeft') > 0) out.add('${thousands(n('burnLeft'))} kcal over today');
-    if (goal == 2 && n('eatLeft') > 0 && now.hour >= 20) out.add('${thousands(n('eatLeft'))} kcal short today');
+    if (n('burnLeft') > 0) {
+      out.add(
+        say("{count} kcal over today", {'count': thousands(n('burnLeft'))}),
+      );
+    }
+    if (goal == 2 && n('eatLeft') > 0 && now.hour >= 20) {
+      out.add(
+        say("{count} kcal short today", {'count': thousands(n('eatLeft'))}),
+      );
+    }
   }
   return out;
 }
 
-typedef Progress = ({String name, String? photo, Map<String, dynamic> data, DateTime? at});
+typedef Progress = ({
+  String name,
+  String? photo,
+  Map<String, dynamic> data,
+  DateTime? at,
+});
 
 /// A trainer's students as a dashboard: who needs them first (with why), filters by goal, each
 /// row this week's gym, weight pace and when they were last in. Tap a student for their week.
 class StudentsScreen extends StatefulWidget {
-  const StudentsScreen({super.key, required this.store, this.standalone = false});
+  const StudentsScreen({
+    super.key,
+    required this.store,
+    this.standalone = false,
+  });
   final Store store;
-  final bool standalone; // the whole app (a trainer with no plan of their own), not a tab
+  final bool
+  standalone; // the whole app (a trainer with no plan of their own), not a tab
   @override
   State<StudentsScreen> createState() => _StudentsScreenState();
 }
@@ -102,106 +146,157 @@ class _StudentsScreenState extends State<StudentsScreen> {
               p: _data[h['owner']],
               flags: _data[h['owner']] == null
                   ? <String>[]
-                  : studentFlags(_data[h['owner']]!.data, _data[h['owner']]!.at, now),
+                  : studentFlags(
+                      _data[h['owner']]!.data,
+                      _data[h['owner']]!.at,
+                      now,
+                      Localizations.localeOf(context).languageCode,
+                    ),
             ),
         ];
         final need = rows.where((r) => r.flags.isNotEmpty).length;
         // the Sunday digest reads this count (reminders.dart)
-        WidgetsBinding.instance.addPostFrameCallback((_) => s.noteStudents(need, rows.length));
-        bool keep(({Map<String, String> h, Progress? p, List<String> flags}) r) => switch (_filter) {
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => s.noteStudents(need, rows.length),
+        );
+        bool keep(
+          ({Map<String, String> h, Progress? p, List<String> flags}) r,
+        ) => switch (_filter) {
           'need' => r.flags.isNotEmpty,
-          'lose' ||
-          'keep' ||
-          'gain' => ((r.p?.data['goal'] as num?)?.toInt() ?? 0) == ['lose', 'keep', 'gain'].indexOf(_filter),
+          'lose' || 'keep' || 'gain' =>
+            ((r.p?.data['goal'] as num?)?.toInt() ?? 0) ==
+                ['lose', 'keep', 'gain'].indexOf(_filter),
           _ => true,
         };
         final shown = rows.where(keep).toList()
           ..sort((a, b) {
             final f = b.flags.length.compareTo(a.flags.length);
-            return f != 0 ? f : (a.h['name'] ?? '').compareTo(b.h['name'] ?? '');
+            return f != 0
+                ? f
+                : (a.h['name'] ?? '').compareTo(b.h['name'] ?? '');
           });
         final needing = shown.where((r) => r.flags.isNotEmpty).toList(),
             fine = shown.where((r) => r.flags.isEmpty).toList();
         return Scaffold(
           body: SafeArea(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
                 Row(
                   children: [
-                    if (!widget.standalone) const MenuButton(),
-                    Expanded(child: Text('Students', style: t.title())),
+                    if (!widget.standalone) MenuButton(),
+                    Expanded(
+                      child: Text(tr(context, 'Students'), style: t.title()),
+                    ),
                   ],
                 ),
                 Text(
                   rows.isEmpty
-                      ? 'Add your first student with their code'
+                      ? tr(context, 'Add your first student with their code')
                       : need == 0
-                      ? 'All ${rows.length} on track'
-                      : '$need of ${rows.length} need you',
+                      ? tr(context, "All {count} on track", {
+                          "count": rows.length,
+                        })
+                      : tr(context, "{need} of {total} need you", {
+                          "need": need,
+                          "total": rows.length,
+                        }),
                   style: t.sec(),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 if (!c.signedIn) ...[
-                  const Tip(Icons.vpn_key_outlined, 'Sign in, then enter the code each student sends you'),
-                  const SizedBox(height: 16),
-                  GoogleButton(busy: c.busy, onPressed: () => c.signInWithGoogle()),
+                  Tip(
+                    Icons.vpn_key_outlined,
+                    tr(
+                      context,
+                      'Sign in, then enter the code each student sends you',
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  GoogleButton(
+                    busy: c.busy,
+                    onPressed: () => c.signInWithGoogle(),
+                  ),
                 ] else ...[
                   if (rows.isNotEmpty)
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        for (final (k, label) in const [
-                          ('all', 'All'),
-                          ('need', 'Needs me'),
-                          ('lose', 'Losing'),
-                          ('keep', 'Keeping'),
-                          ('gain', 'Gaining'),
+                        for (final (k, label) in [
+                          ('all', tr(context, 'All')),
+                          ('need', tr(context, 'Needs me')),
+                          ('lose', tr(context, 'Losing')),
+                          ('keep', tr(context, 'Keeping')),
+                          ('gain', tr(context, 'Gaining')),
                         ])
-                          groundChip(context, label, _filter == k, () => setState(() => _filter = k)),
+                          groundChip(
+                            context,
+                            label,
+                            _filter == k,
+                            () => setState(() => _filter = k),
+                          ),
                       ],
                     ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   for (final (i, r) in needing.indexed)
                     SlideIn(
                       i: i,
-                      child: _StudentRow(h: r.h, p: r.p, flags: r.flags, store: s),
+                      child: _StudentRow(
+                        h: r.h,
+                        p: r.p,
+                        flags: r.flags,
+                        store: s,
+                      ),
                     ),
                   if (needing.isNotEmpty && fine.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 18, bottom: 4),
-                      child: Text('On track', style: t.meta()),
+                      padding: EdgeInsets.only(top: 18, bottom: 4),
+                      child: Text(tr(context, 'On track'), style: t.meta()),
                     ),
                   for (final (i, r) in fine.indexed)
                     SlideIn(
                       i: needing.length + i,
-                      child: _StudentRow(h: r.h, p: r.p, flags: r.flags, store: s),
+                      child: _StudentRow(
+                        h: r.h,
+                        p: r.p,
+                        flags: r.flags,
+                        store: s,
+                      ),
                     ),
                   if (shown.isEmpty && rows.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Text('No one here', style: t.sec()),
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Text(tr(context, 'No one here'), style: t.sec()),
                     ),
-                  const SizedBox(height: 20),
-                  Text('Add a student', style: t.meta()),
+                  SizedBox(height: 20),
+                  Text(tr(context, 'Add a student'), style: t.meta()),
                   JoinByCode(store: s),
                   if (rows.isEmpty) ...[
-                    const SizedBox(height: 12),
-                    const Center(child: Dau(mood: DauMood.waiting, size: 130)),
-                    const Tip(Icons.forum_outlined, 'They make the code in their Daur: Menu → Coaches → Trainer'),
+                    SizedBox(height: 12),
+                    Center(child: Dau(mood: DauMood.waiting, size: 130)),
+                    Tip(
+                      Icons.forum_outlined,
+                      tr(
+                        context,
+                        'They make the code in their Daur: Menu → Coaches → Trainer',
+                      ),
+                    ),
                   ],
                 ],
                 if (widget.standalone) ...[
-                  const SizedBox(height: 32),
+                  SizedBox(height: 32),
                   OutlinedButton(
                     onPressed: () => s.setHelperOnly(false),
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
+                      minimumSize: Size.fromHeight(52),
                       side: BorderSide(color: t.lane),
-                      shape: const StadiumBorder(),
+                      shape: StadiumBorder(),
                     ),
-                    child: Text('Start my own plan too', style: t.body()),
+                    child: Text(
+                      tr(context, 'Start my own plan too'),
+                      style: t.body(),
+                    ),
                   ),
                 ],
               ],
@@ -214,7 +309,12 @@ class _StudentsScreenState extends State<StudentsScreen> {
 }
 
 class _StudentRow extends StatelessWidget {
-  const _StudentRow({required this.h, required this.p, required this.flags, required this.store});
+  const _StudentRow({
+    required this.h,
+    required this.p,
+    required this.flags,
+    required this.store,
+  });
   final Map<String, String> h;
   final Progress? p;
   final List<String> flags;
@@ -223,25 +323,33 @@ class _StudentRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
-    final d = p?.data ?? const <String, dynamic>{};
+    final d = p?.data ?? <String, dynamic>{};
     final kg = (d['kgWeek'] as num?)?.toDouble();
     final line = p == null
-        ? 'Waiting for their first update'
+        ? tr(context, 'Waiting for their first update')
         : [
-            goalWords[(d['goal'] as num?)?.toInt() ?? 0],
-            'gym ${(d['gymThisWeek'] as num?)?.toInt() ?? 0}/wk',
-            if (kg != null) '${kg <= 0 ? '−' : '+'}${kg.abs().toStringAsFixed(1)} kg/wk',
-            ago(p!.at),
+            tr(context, goalWords[(d['goal'] as num?)?.toInt() ?? 0]),
+            tr(context, "gym {count}/wk", {
+              "count": (d['gymThisWeek'] as num?)?.toInt() ?? 0,
+            }),
+            if (kg != null)
+              '${kg <= 0 ? '−' : '+'}${kg.abs().toStringAsFixed(1)} kg/wk',
+            ago(p!.at, context),
           ].join(' · ');
     return InkWell(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => HelperView(owner: h['owner']!, name: h['name']!, role: h['role'] ?? 'trainer', store: store),
+          builder: (_) => HelperView(
+            owner: h['owner']!,
+            name: h['name']!,
+            role: h['role'] ?? 'trainer',
+            store: store,
+          ),
         ),
       ),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           border: Border(top: BorderSide(color: t.rule, width: .5)),
         ),
@@ -253,8 +361,13 @@ class _StudentRow extends StatelessWidget {
                 CircleAvatar(
                   radius: 22,
                   backgroundColor: t.infield,
-                  foregroundImage: p?.photo == null ? null : NetworkImage(p!.photo!),
-                  child: Text((h['name'] ?? '?').isEmpty ? '?' : h['name']![0], style: t.body()),
+                  foregroundImage: p?.photo == null
+                      ? null
+                      : NetworkImage(p!.photo!),
+                  child: Text(
+                    (h['name'] ?? '?').isEmpty ? '?' : h['name']![0],
+                    style: t.body(),
+                  ),
                 ),
                 if (flags.isNotEmpty)
                   Positioned(
@@ -272,16 +385,31 @@ class _StudentRow extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(h['name'] ?? '', style: t.body(), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  Text(line, style: t.meta(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(
+                    h['name'] ?? '',
+                    style: t.body(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    line,
+                    style: t.meta(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   if (flags.isNotEmpty)
                     Text(
-                      flags.length == 1 ? flags.first : '${flags.first} · +${flags.length - 1} more',
+                      flags.length == 1
+                          ? tr(context, flags.first)
+                          : tr(context, "{flag} · +{count} more", {
+                              "flag": tr(context, flags.first),
+                              "count": flags.length - 1,
+                            }),
                       style: t.meta(t.accent),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

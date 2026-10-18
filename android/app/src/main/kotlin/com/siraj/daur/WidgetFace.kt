@@ -28,18 +28,18 @@ object WidgetFace {
         return if (w > 0 && h > 0) w.toFloat() to h.toFloat() else def
     }
 
-    private class Face(val ctx: Context, val w: Float, val h: Float, density: Float = ctx.resources.displayMetrics.density) {
+    private class Face(val ctx: Context, val w: Float, val h: Float, density: Float = ctx.resources.displayMetrics.density, val bangla: Boolean = false) {
         val bmp: Bitmap = Bitmap.createBitmap((w * density).toInt().coerceAtLeast(1), (h * density).toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
         val palette = TrackArt.palette(ctx)
         val INK = palette.ink; val INK2 = palette.secondary; val RUNNER = palette.accent
         val ON_RUNNER = palette.onAccent
         val c = Canvas(bmp).apply { scale(density, density) }
-        val x: Typeface = runCatching { ctx.resources.getFont(R.font.unbounded_black) }.getOrDefault(Typeface.DEFAULT_BOLD)
+        val x: Typeface = if (bangla) Typeface.create("sans-serif", Typeface.BOLD) else runCatching { ctx.resources.getFont(R.font.unbounded_black) }.getOrDefault(Typeface.DEFAULT_BOLD)
         val medium: Typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         val bold: Typeface = Typeface.create("sans-serif", Typeface.BOLD)
 
         fun paint(face: Typeface, size: Float, color: Int, spacing: Float = 0f) = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-            typeface = face; textSize = size; this.color = color; letterSpacing = spacing
+            typeface = face; textSize = size; this.color = color; letterSpacing = if (bangla) 0f else spacing
         }
 
         /** Text with its top at [top]; shrinks to fit [maxW] (down to 70%), then ellipsizes. Returns its bottom. */
@@ -58,12 +58,16 @@ object WidgetFace {
 
         fun track(meters: Int, box: RectF, numerals: Boolean = false, centre: String? = null, sub: String? = null) {
             val d = c.matrix.mapRadius(1f) // px per dp
-            val art = TrackArt.track(ctx, meters, (box.width() * d).toInt(), numerals, centre, sub)
+            val art = TrackArt.track(ctx, meters, (box.width() * d).toInt(), numerals, centre, if (bangla && sub != null) "" else sub)
             // fit inside the box (the art keeps its own aspect ratio)
             val scale = minOf(box.width() / (art.width / d), box.height() / (art.height / d))
             val aw = art.width / d * scale; val ah = art.height / d * scale
             val dst = RectF(box.centerX() - aw / 2, box.centerY() - ah / 2, box.centerX() + aw / 2, box.centerY() + ah / 2)
             c.drawBitmap(art, null, dst, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
+            if (bangla && sub != null) {
+                val p = paint(bold, 15f * dst.width() / 402f, INK2).apply { textAlign = Paint.Align.CENTER }
+                c.drawText(sub, dst.centerX(), dst.top + dst.height() * 165f / 250f, p)
+            }
         }
 
         /** A thin rounded progress bar: ink over faint ink. */
@@ -92,14 +96,16 @@ object WidgetFace {
     private fun SharedPreferences.num(key: String, def: Int = 0): Int =
         runCatching { getInt(key, def) }.getOrElse { runCatching { getLong(key, def.toLong()).toInt() }.getOrDefault(def) }
     private fun SharedPreferences.str(key: String, def: String = "") = getString(key, null) ?: def
+    private fun SharedPreferences.bn() = str("language", "en") == "bn"
     private fun lapLine(d: SharedPreferences, of84: Boolean = true): String {
         val s = d.num("streak")
+        if (d.bn()) return "দিন ${d.num("lap_n", 1)}${if (of84) " / 84" else ""}${if (s > 0) " · $s দিন টানা" else ""}"
         return "DAY ${d.num("lap_n", 1)}${if (of84) " OF 84" else ""}${if (s > 0) " · $s-DAY STREAK" else ""}"
     }
 
     /** Today, medium: the track with n/4 on the left; the day, the next meal and kcal on the right. */
     fun today(ctx: Context, w: Float, h: Float, d: SharedPreferences): Bitmap {
-        val f = Face(ctx, w, h)
+        val f = Face(ctx, w, h, bangla = d.bn())
         val INK = f.palette.ink; val INK2 = f.palette.secondary; val RUNNER = f.palette.accent
         val meters = d.num("meters")
         val half = (w - 2 * PAD - 12f) / 2
@@ -114,13 +120,13 @@ object WidgetFace {
         y -= 24f
         f.text(d.str("next_when"), left, y, f.paint(f.medium, 13f, INK))
         y -= 26f
-        f.text(d.str("next_name", "Open Daur"), left, y, f.paint(f.x, 19f, INK))
+        f.text(d.str("next_name", if (d.bn()) "Daur খুলুন" else "Open Daur"), left, y, f.paint(f.x, 19f, INK))
         return f.bmp
     }
 
     /** Today, large: the whole lap with leg numbers, the day and date on top, the four meals under it. */
     fun large(ctx: Context, w: Float, h: Float, d: SharedPreferences): Bitmap {
-        val f = Face(ctx, w, h)
+        val f = Face(ctx, w, h, bangla = d.bn())
         val INK = f.palette.ink; val INK2 = f.palette.secondary; val RUNNER = f.palette.accent
         val meters = d.num("meters")
         val finish = d.num("finish") == 1
@@ -129,7 +135,7 @@ object WidgetFace {
         val gridH = 92f
         f.track(
             meters, RectF(PAD, PAD + 20f, w - PAD, h - PAD - gridH - 6f), numerals = true,
-            centre = if (finish) "84/84" else "${meters / 100}/4", sub = if (finish) "DAYS" else "MEALS",
+            centre = if (finish) "84/84" else "${meters / 100}/4", sub = if (d.bn()) { if (finish) "দিন" else "খাবার" } else { if (finish) "DAYS" else "MEALS" },
         )
         val colW = (w - 2 * PAD - 14f) / 2
         for (i in 0 until 4) {
@@ -145,17 +151,17 @@ object WidgetFace {
 
     /** Water: litres big, 14 glasses in two rows, + glass (the button view sits on the drawn disc). */
     fun water(ctx: Context, w: Float, h: Float, d: SharedPreferences): Bitmap {
-        val f = Face(ctx, w, h)
+        val f = Face(ctx, w, h, bangla = d.bn())
         val INK = f.palette.ink; val INK2 = f.palette.secondary; val RUNNER = f.palette.accent
         val g = d.num("water_glasses")
         val full = g >= d.num("water_goal", 14)
         val slots = d.num("water_slots", g)
-        var y = f.text("Water", PAD, PAD, f.paint(f.medium, 13f, INK2))
+        var y = f.text(if (d.bn()) "পানি" else "Water", PAD, PAD, f.paint(f.medium, 13f, INK2))
         val big = f.paint(f.x, 34f, INK)
         val litres = if (g % 4 == 0) "${g / 4}" else "${g / 4.0}"
         val by = f.text(litres, PAD, y + 4f, big)
-        f.text("L", PAD + big.measureText(litres) + 4f, y + 4f + (big.textSize - 15f) * .8f, f.paint(f.x, 15f, INK))
-        if (!full) f.text(d.str("water_goal_text", "of 3.5 L"), PAD, by + 2f, f.paint(f.medium, 12f, INK2))
+        f.text(if (d.bn()) "লি" else "L", PAD + big.measureText(litres) + 4f, y + 4f + (big.textSize - 15f) * .8f, f.paint(f.x, 15f, INK))
+        if (!full) f.text(d.str("water_goal_text", if (d.bn()) "3.5 লিটারের মধ্যে" else "of 3.5 L"), PAD, by + 2f, f.paint(f.medium, 12f, INK2))
         // glasses: 2 rows of 7, full = ink, the next one ringed yellow, the rest outlined
         val right = if (full) w - PAD else w - PAD - 48f
         val gap = 3f
@@ -176,14 +182,14 @@ object WidgetFace {
 
     /** Walk: steps big, the line under it, and the home straight with the runner. */
     fun walk(ctx: Context, w: Float, h: Float, d: SharedPreferences): Bitmap {
-        val f = Face(ctx, w, h)
+        val f = Face(ctx, w, h, bangla = d.bn())
         val INK = f.palette.ink; val INK2 = f.palette.secondary; val RUNNER = f.palette.accent
         val has = d.contains("walk_steps")
         val steps = d.num("walk_steps")
         val target = d.num("walk_target", 7000).coerceAtLeast(1000)
-        var y = f.text("Walk", PAD, PAD, f.paint(f.medium, 13f, INK2))
+        var y = f.text(if (d.bn()) "হাঁটা" else "Walk", PAD, PAD, f.paint(f.medium, 13f, INK2))
         y = f.text(if (has) "%,d".format(steps) else "–", PAD, y + 4f, f.paint(f.x, 32f, INK))
-        f.text(d.str("walk_sub", "steps"), PAD, y + 2f, f.paint(f.medium, 12f, INK2))
+        f.text(d.str("walk_sub", if (d.bn()) "পদক্ষেপ" else "steps"), PAD, y + 2f, f.paint(f.medium, 12f, INK2))
         val dpx = f.c.matrix.mapRadius(1f)
         val lane = TrackArt.straight(ctx, steps, target, ((w - 2 * PAD) * dpx).toInt())
         val lh = lane.height / dpx
@@ -193,11 +199,11 @@ object WidgetFace {
 
     /** Next meal: n/4 big in yellow, the four-leg strip, the meal and Log (or a slim one-row version). */
     fun meal(ctx: Context, w: Float, h: Float, d: SharedPreferences, slim: Boolean): Bitmap {
-        val f = Face(ctx, w, h)
+        val f = Face(ctx, w, h, bangla = d.bn())
         val INK = f.palette.ink; val INK2 = f.palette.secondary; val RUNNER = f.palette.accent
         val done = d.num("meal_done") == 1
         val leg = d.num("meal_num", 100) / 100
-        val btn = d.str("meal_btn", "Log")
+        val btn = d.str("meal_btn", if (d.bn()) "লিখুন" else "Log")
         val numColor = if (done) INK else RUNNER
         if (slim) {
             val mid = h / 2
@@ -205,7 +211,7 @@ object WidgetFace {
             f.text("$leg/4", PAD, mid - 17f, n)
             val left = PAD + 92f
             val maxW = w - left - PAD - (if (done) 0f else 84f)
-            val b = f.text(d.str("meal_title", "Open Daur"), left, mid - 19f, f.paint(f.x, 16f, INK), maxW)
+            val b = f.text(d.str("meal_title", if (d.bn()) "Daur খুলুন" else "Open Daur"), left, mid - 19f, f.paint(f.x, 16f, INK), maxW)
             f.text(d.str("meal_sub"), left, b + 2f, f.paint(f.medium, 13f, INK2), maxW)
             if (!done) f.pill(btn, w - PAD, mid + 20f)
             return f.bmp
@@ -214,7 +220,7 @@ object WidgetFace {
         // the display font's descent is deep: lay out from the numeral's baseline, not its box
         val nb = f.text("$leg/4", PAD, PAD - 6f, n, maxW = w * .55f) - n.fontMetrics.descent
         val m = f.paint(f.x, 18f, numColor)
-        f.text("m", PAD + n.measureText("$leg/4") + 3f, nb + m.fontMetrics.ascent, m)
+        f.text(if (d.bn()) "মি" else "m", PAD + n.measureText("$leg/4") + 3f, nb + m.fontMetrics.ascent, m)
         f.text(lapLine(d, of84 = false), w - PAD, PAD, f.paint(f.x, 11f, INK2, .06f), maxW = w * .4f, right = true)
         f.text(d.str("meal_when"), w - PAD, PAD + 17f, f.paint(f.medium, 13f, INK2), maxW = w * .4f, right = true)
         if (done) {
@@ -233,16 +239,24 @@ object WidgetFace {
         }
         val maxW = w - 2 * PAD - (if (done) 0f else 84f)
         f.text(d.str("meal_sub"), PAD, h - PAD - 16f, f.paint(f.medium, 13f, INK2), maxW)
-        f.text(d.str("meal_title", "Open Daur"), PAD, h - PAD - 44f, f.paint(f.x, 20f, INK), maxW)
+        f.text(d.str("meal_title", if (d.bn()) "Daur খুলুন" else "Open Daur"), PAD, h - PAD - 44f, f.paint(f.x, 20f, INK), maxW)
         if (!done) f.pill(btn, w - PAD, h - PAD)
         return f.bmp
     }
 
     /** Spoken by TalkBack in place of the drawn face. */
-    fun describe(kind: String, d: SharedPreferences): String = when (kind) {
-        "water" -> "Water: ${d.num("water_glasses")} glasses ${d.str("water_goal_text")}"
-        "walk" -> "Walk: ${d.num("walk_steps")} steps, ${d.str("walk_sub")}"
-        "meal" -> "Meal ${d.num("meal_num", 100) / 100} of 4: ${d.str("meal_title")}, ${d.str("meal_sub")}"
-        else -> "Day ${d.num("lap_n", 1)}: ${d.num("meters") / 100} of 4 meals. Next: ${d.str("next_name")} ${d.str("next_when")}. ${d.str("kcal_text")}"
+    fun describe(kind: String, d: SharedPreferences): String {
+        if (d.bn()) return when (kind) {
+            "water" -> "পানি: ${d.num("water_glasses")} গ্লাস ${d.str("water_goal_text")}"
+            "walk" -> "হাঁটা: ${d.num("walk_steps")} পদক্ষেপ, ${d.str("walk_sub")}"
+            "meal" -> "৪টি খাবারের মধ্যে ${d.num("meal_num", 100) / 100}: ${d.str("meal_title")}, ${d.str("meal_sub")}"
+            else -> "দিন ${d.num("lap_n", 1)}: ৪টি খাবারের মধ্যে ${d.num("meters") / 100}টি। পরের খাবার: ${d.str("next_name")} ${d.str("next_when")}। ${d.str("kcal_text")}"
+        }
+        return when (kind) {
+            "water" -> "Water: ${d.num("water_glasses")} glasses ${d.str("water_goal_text")}"
+            "walk" -> "Walk: ${d.num("walk_steps")} steps, ${d.str("walk_sub")}"
+            "meal" -> "Meal ${d.num("meal_num", 100) / 100} of 4: ${d.str("meal_title")}, ${d.str("meal_sub")}"
+            else -> "Day ${d.num("lap_n", 1)}: ${d.num("meters") / 100} of 4 meals. Next: ${d.str("next_name")} ${d.str("next_when")}. ${d.str("kcal_text")}"
+        }
     }
 }

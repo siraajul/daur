@@ -26,6 +26,7 @@ class MainActivity : FlutterFragmentActivity() {
                         call.argument<Int>("goal")!!,
                         call.argument<List<Int>>("hours")!!,
                         call.argument<List<String>>("names")!!,
+                        call.argument<String>("language") ?: "en",
                     )
                     result.success(null)
                 }

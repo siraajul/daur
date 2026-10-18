@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'package:flutter/material.dart';
 
 import 'plan.dart';
@@ -11,7 +13,12 @@ import 'water_walk.dart' show RingHero, Tiles;
 /// user's weight, counting only what's above resting (resting is already in the body's burn).
 const burnWays = <(IconData, String, String, double)>[
   (Icons.directions_walk_rounded, 'Brisk walk', '5.6 km/h', 4.3),
-  (Icons.directions_run_rounded, 'Treadmill, uphill', '5 km/h · 6% incline', 6.0),
+  (
+    Icons.directions_run_rounded,
+    'Treadmill, uphill',
+    '5 km/h · 6% incline',
+    6.0,
+  ),
   (Icons.pedal_bike_rounded, 'Cycling', 'stationary, steady', 6.8),
   (Icons.stairs_rounded, 'Stairs', 'up and down, brisk', 8.8),
   (Icons.sports_tennis_rounded, 'Badminton', 'a friendly game', 5.5),
@@ -29,7 +36,9 @@ const fuelFoods = <(IconData, String, int)>[
   (Icons.grain_outlined, 'A handful of nuts (badam)', 170),
 ];
 
-String hoursMinutes(int min) => min < 60 ? '${min}m' : '${min ~/ 60}h ${(min % 60).toString().padLeft(2, '0')}m';
+String hoursMinutes(int min) => min < 60
+    ? '${min}m'
+    : '${min ~/ 60}h ${(min % 60).toString().padLeft(2, '0')}m';
 
 /// Drawer → Burn (and Today when over): eaten against burned today, what's left to burn to stay
 /// on plan, and how long each way of burning it takes at this weight.
@@ -47,10 +56,14 @@ class BurnScreen extends StatelessWidget {
         final s = store, left = s.burnLeft, m = s.moved, moved = s.movedKcal;
         final ahead = [
           for (final m in meals)
-            if (!s.done.containsKey(m.id) && !s.skipped.contains(m.id) && !s.fasted(m)) m,
+            if (!s.done.containsKey(m.id) &&
+                !s.skipped.contains(m.id) &&
+                !s.fasted(m))
+              m,
         ];
         final aheadKcal = ahead.fold(0, (a, m) => a + s.mealKcal(m));
-        final tonight = s.bodyBurn + moved - (s.kcal > s.kcalGoal ? s.kcal : s.kcalGoal);
+        final tonight =
+            s.bodyBurn + moved - (s.kcal > s.kcalGoal ? s.kcal : s.kcalGoal);
         final over = left > 0;
         // over the target: time to burn what's left; on plan: what 30 more minutes would add
         final goal = over ? left : null;
@@ -69,7 +82,9 @@ class BurnScreen extends StatelessWidget {
                   small: over
                       ? 'kcal left to burn'
                       : '${thousands((s.kcalGoal - s.kcal).clamp(0, 1 << 30))} kcal of the plan left',
-                  pill: over ? '${thousands(moved)} burned so far' : '≈ ${thousands(tonight)} kcal deficit by tonight',
+                  pill: over
+                      ? '${thousands(moved)} burned so far'
+                      : '≈ ${thousands(tonight)} kcal deficit by tonight',
                   done: false,
                   label: over
                       ? '$left kilocalories left to burn'
@@ -78,13 +93,31 @@ class BurnScreen extends StatelessWidget {
                 const SizedBox(height: 20),
                 Tiles([
                   (Icons.restaurant_rounded, thousands(s.kcal), 'eaten'),
-                  (Icons.accessibility_new_rounded, thousands(s.bodyBurn), 'body burns'),
-                  (Icons.local_fire_department_rounded, thousands(moved), 'moved'),
+                  (
+                    Icons.accessibility_new_rounded,
+                    thousands(s.bodyBurn),
+                    'body burns',
+                  ),
+                  (
+                    Icons.local_fire_department_rounded,
+                    thousands(moved),
+                    'moved',
+                  ),
                 ]),
                 const SizedBox(height: 8),
                 Text(
-                  'Target ${thousands(s.kcalGoal)} · steps ${thousands(m.walk)} · treadmill ${thousands(m.treadmill)}'
-                  ' · gym ${thousands(m.gym)}',
+                  tr(
+                        context,
+                        'Target {value1} · steps {value2} · treadmill {value3}',
+                        {
+                          'value1': thousands(s.kcalGoal),
+                          'value2': thousands(m.walk),
+                          'value3': thousands(m.treadmill),
+                        },
+                      ) +
+                      tr(context, ' · gym {value1}', {
+                        'value1': thousands(m.gym),
+                      }),
                   style: t.meta(),
                 ),
                 // meals still to come add to the day; a smaller plate is the other way to close the gap
@@ -98,8 +131,20 @@ class BurnScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 Row(
                   children: [
-                    Expanded(child: Text(over ? 'Burn it with' : 'Want a head start?', style: t.meta())),
-                    Text(over ? 'any one of these' : '30 more minutes', style: t.meta(t.ink)),
+                    Expanded(
+                      child: Text(
+                        over
+                            ? tr(context, 'Burn it with')
+                            : tr(context, 'Want a head start?'),
+                        style: t.meta(),
+                      ),
+                    ),
+                    Text(
+                      over
+                          ? tr(context, 'any one of these')
+                          : tr(context, '30 more minutes'),
+                      style: t.meta(t.ink),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -118,7 +163,7 @@ class BurnScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(name, style: t.body()),
+                              Text(tr(context, name), style: t.body()),
                               Text(
                                 // a walk is easiest to picture in steps
                                 name == 'Brisk walk' && goal != null
@@ -140,9 +185,18 @@ class BurnScreen extends StatelessWidget {
                   ),
                 const SizedBox(height: 16),
                 if (over && left > 600)
-                  const Tip(Icons.calendar_view_week_rounded, 'A lot for one day: split it over 2–3'),
-                const Tip(Icons.restaurant_menu_rounded, 'Still eat your planned meals tomorrow'),
-                const Tip(Icons.info_outline_rounded, 'Estimates at your weight · give or take 20%'),
+                  const Tip(
+                    Icons.calendar_view_week_rounded,
+                    'A lot for one day: split it over 2–3',
+                  ),
+                const Tip(
+                  Icons.restaurant_menu_rounded,
+                  'Still eat your planned meals tomorrow',
+                ),
+                const Tip(
+                  Icons.info_outline_rounded,
+                  'Estimates at your weight · give or take 20%',
+                ),
               ],
             ),
           ),
@@ -160,7 +214,10 @@ class _Fuel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
-    final s = store, left = s.eatLeft, moved = s.movedKcal, need = s.kcalGoal + moved;
+    final s = store,
+        left = s.eatLeft,
+        moved = s.movedKcal,
+        need = s.kcalGoal + moved;
     return Scaffold(
       body: SafeArea(
         child: ListView(
@@ -172,9 +229,15 @@ class _Fuel extends StatelessWidget {
               frac: s.kcal / need,
               big: left > 0 ? thousands(left) : 'Done',
               small: left > 0 ? 'kcal still to eat' : 'today\'s target eaten',
-              pill: moved > 0 ? '+${thousands(moved)} for what you moved' : '${s.protein} g protein so far',
+              pill: moved > 0
+                  ? '+${thousands(moved)} for what you moved'
+                  : '${s.protein} g protein so far',
               done: left == 0,
-              label: left > 0 ? '$left kilocalories still to eat' : 'Target eaten',
+              label: left > 0
+                  ? tr(context, '{value1} kilocalories still to eat', {
+                      'value1': left,
+                    })
+                  : tr(context, 'Target eaten'),
             ),
             const SizedBox(height: 20),
             Tiles([
@@ -185,8 +248,15 @@ class _Fuel extends StatelessWidget {
             const SizedBox(height: 24),
             Row(
               children: [
-                Expanded(child: Text(left > 0 ? 'Add it with' : 'For tomorrow', style: t.meta())),
-                Text('easy, between meals', style: t.meta(t.ink)),
+                Expanded(
+                  child: Text(
+                    left > 0
+                        ? tr(context, 'Add it with')
+                        : tr(context, 'For tomorrow'),
+                    style: t.meta(),
+                  ),
+                ),
+                Text(tr(context, 'easy, between meals'), style: t.meta(t.ink)),
               ],
             ),
             const SizedBox(height: 4),
@@ -200,13 +270,19 @@ class _Fuel extends StatelessWidget {
                   children: [
                     IconDisc(icon, size: 40),
                     const SizedBox(width: 12),
-                    Expanded(child: Text(name, style: t.body())),
-                    Text('$kcal kcal', style: t.x(15)),
+                    Expanded(child: Text(tr(context, name), style: t.body())),
+                    Text(
+                      tr(context, '{value1} kcal', {'value1': kcal}),
+                      style: t.x(15),
+                    ),
                   ],
                 ),
               ),
             const SizedBox(height: 16),
-            const Tip(Icons.fitness_center_rounded, 'Train 3–5 times a week so the gain is muscle'),
+            const Tip(
+              Icons.fitness_center_rounded,
+              'Train 3–5 times a week so the gain is muscle',
+            ),
             const Tip(Icons.egg_alt_outlined, 'Protein at every meal'),
           ],
         ),

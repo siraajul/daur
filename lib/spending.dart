@@ -5,6 +5,7 @@ import 'activity_anim.dart';
 import 'dau.dart';
 import 'store.dart';
 import 'theme.dart';
+import 'l10n.dart';
 import 'visuals.dart';
 import 'today.dart' show Cta, niceDate, thousands, undoToast;
 
@@ -18,7 +19,8 @@ const spendCats = <(String, String, IconData)>[
   ('health', 'Health', Icons.medical_services_outlined),
   ('other', 'Other', Icons.more_horiz_rounded),
 ];
-(String, String, IconData) spendCat(String id) => spendCats.firstWhere((c) => c.$1 == id, orElse: () => spendCats.last);
+(String, String, IconData) spendCat(String id) =>
+    spendCats.firstWhere((c) => c.$1 == id, orElse: () => spendCats.last);
 String taka(int n) => '৳${thousands(n)}';
 
 const _months = [
@@ -46,8 +48,11 @@ class SpendingScreen extends StatefulWidget {
 
 class _SpendingScreenState extends State<SpendingScreen> {
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
-  String get _key => '${_month.year}-${_month.month.toString().padLeft(2, '0')}';
-  bool get _thisMonth => _month.year == DateTime.now().year && _month.month == DateTime.now().month;
+  String get _key =>
+      '${_month.year}-${_month.month.toString().padLeft(2, '0')}';
+  bool get _thisMonth =>
+      _month.year == DateTime.now().year &&
+      _month.month == DateTime.now().month;
 
   @override
   Widget build(BuildContext context) {
@@ -58,59 +63,91 @@ class _SpendingScreenState extends State<SpendingScreen> {
         final s = widget.store;
         final list = s.expensesIn(_key);
         final total = s.spentIn(_key);
-        final cats = s.byCategory(_key).entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+        final cats = s.byCategory(_key).entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
         final top = cats.isEmpty ? 1 : cats.first.value;
-        final days = _thisMonth ? DateTime.now().day : DateUtils.getDaysInMonth(_month.year, _month.month);
+        final days = _thisMonth
+            ? DateTime.now().day
+            : DateUtils.getDaysInMonth(_month.year, _month.month);
         final budget = s.monthBudget;
         return Scaffold(
           body: SafeArea(
             child: Column(
               children: [
-                const PageHeader('Spending'),
-                const SizedBox(height: 8),
+                PageHeader(tr(context, 'Spending')),
+                SizedBox(height: 8),
 
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    padding: EdgeInsets.fromLTRB(20, 8, 20, 16),
                     children: [
                       Row(
                         children: [
                           IconButton(
-                            tooltip: 'Previous month',
-                            onPressed: () => setState(() => _month = DateTime(_month.year, _month.month - 1)),
-                            icon: Icon(Icons.chevron_left_rounded, color: t.ink),
+                            tooltip: tr(context, 'Previous month'),
+                            onPressed: () => setState(
+                              () => _month = DateTime(
+                                _month.year,
+                                _month.month - 1,
+                              ),
+                            ),
+                            icon: Icon(
+                              Icons.chevron_left_rounded,
+                              color: t.ink,
+                            ),
                           ),
                           Expanded(
                             child: Text(
-                              '${_months[_month.month - 1]} ${_month.year}',
+                              '${tr(context, _months[_month.month - 1])} ${_month.year}',
                               textAlign: TextAlign.center,
                               style: t.sec(t.ink),
                             ),
                           ),
                           IconButton(
-                            tooltip: 'Next month',
+                            tooltip: tr(context, 'Next month'),
                             onPressed: _thisMonth
                                 ? null
-                                : () => setState(() => _month = DateTime(_month.year, _month.month + 1)),
-                            icon: Icon(Icons.chevron_right_rounded, color: _thisMonth ? t.faint : t.ink),
+                                : () => setState(
+                                    () => _month = DateTime(
+                                      _month.year,
+                                      _month.month + 1,
+                                    ),
+                                  ),
+                            icon: Icon(
+                              Icons.chevron_right_rounded,
+                              color: _thisMonth ? t.faint : t.ink,
+                            ),
                           ),
                         ],
                       ),
-                      Text(taka(total), style: t.x(56, weight: FontWeight.w900)),
-                      Text(total == 0 ? 'Nothing logged yet' : '${taka(total ~/ days)} a day', style: t.sec()),
-                      const SizedBox(height: 16),
+                      Text(
+                        taka(total),
+                        style: t.x(56, weight: FontWeight.w900),
+                      ),
+                      Text(
+                        total == 0
+                            ? tr(context, 'Nothing logged yet')
+                            : tr(context, "{amount} a day", {
+                                "amount": taka(total ~/ days),
+                              }),
+                        style: t.sec(),
+                      ),
+                      SizedBox(height: 16),
                       // the budget, as a bar; tap to set or change it
                       InkWell(
                         borderRadius: BorderRadius.circular(12),
                         onTap: () => _editBudget(context, s),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          padding: EdgeInsets.symmetric(vertical: 6),
                           child: budget == null
                               ? Row(
                                   children: [
                                     Icon(Icons.savings_outlined, color: t.ink),
-                                    const SizedBox(width: 10),
-                                    Text('Set a monthly budget', style: t.body()),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      tr(context, 'Set a monthly budget'),
+                                      style: t.body(),
+                                    ),
                                   ],
                                 )
                               : Column(
@@ -118,27 +155,59 @@ class _SpendingScreenState extends State<SpendingScreen> {
                                   children: [
                                     Row(
                                       children: [
-                                        Icon(Icons.savings_outlined, size: 18, color: t.ink),
-                                        const SizedBox(width: 8),
+                                        Icon(
+                                          Icons.savings_outlined,
+                                          size: 18,
+                                          color: t.ink,
+                                        ),
+                                        SizedBox(width: 8),
                                         Expanded(
                                           child: Text(
                                             total <= budget
-                                                ? '${taka(budget - total)} left of ${taka(budget)}'
-                                                : '${taka(total - budget)} over ${taka(budget)}',
+                                                ? tr(
+                                                    context,
+                                                    "{amount} left of {budget}",
+                                                    {
+                                                      "amount": taka(
+                                                        budget - total,
+                                                      ),
+                                                      "budget": taka(budget),
+                                                    },
+                                                  )
+                                                : tr(
+                                                    context,
+                                                    "{amount} over {budget}",
+                                                    {
+                                                      "amount": taka(
+                                                        total - budget,
+                                                      ),
+                                                      "budget": taka(budget),
+                                                    },
+                                                  ),
                                             style: t.body(),
                                           ),
                                         ),
-                                        Icon(Icons.edit_outlined, size: 18, color: t.ink2),
+                                        Icon(
+                                          Icons.edit_outlined,
+                                          size: 18,
+                                          color: t.ink2,
+                                        ),
                                       ],
                                     ),
-                                    const SizedBox(height: 8),
+                                    SizedBox(height: 8),
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(4),
                                       child: LinearProgressIndicator(
-                                        value: (total / budget).clamp(0, 1).toDouble(),
+                                        value: (total / budget)
+                                            .clamp(0, 1)
+                                            .toDouble(),
                                         minHeight: 8,
-                                        color: total > budget ? t.accent : t.ink,
-                                        backgroundColor: t.lane.withValues(alpha: .35),
+                                        color: total > budget
+                                            ? t.accent
+                                            : t.ink,
+                                        backgroundColor: t.lane.withValues(
+                                          alpha: .35,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -146,73 +215,113 @@ class _SpendingScreenState extends State<SpendingScreen> {
                         ),
                       ),
                       if (cats.isNotEmpty) ...[
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24),
                         for (final (i, c) in cats.indexed)
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            padding: EdgeInsets.symmetric(vertical: 6),
                             child: Row(
                               children: [
-                                Icon(spendCat(c.key).$3, size: 20, color: t.ink),
-                                const SizedBox(width: 10),
-                                SizedBox(width: 96, child: Text(spendCat(c.key).$2, style: t.sec(t.ink))),
+                                Icon(
+                                  spendCat(c.key).$3,
+                                  size: 20,
+                                  color: t.ink,
+                                ),
+                                SizedBox(width: 10),
+                                SizedBox(
+                                  width: 96,
+                                  child: Text(
+                                    tr(context, spendCat(c.key).$2),
+                                    style: t.sec(t.ink),
+                                  ),
+                                ),
                                 Expanded(
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(4),
                                     // the categories' bars grow out one after another
                                     child: Play(
-                                      delay: Duration(milliseconds: 150 + 80 * i),
-                                      duration: const Duration(milliseconds: 800),
-                                      curve: Curves.easeOutBack,
-                                      builder: (context, v, _) => LinearProgressIndicator(
-                                        value: (c.value / top * v).clamp(0, 1).toDouble(),
-                                        minHeight: 10,
-                                        color: t.ink,
-                                        backgroundColor: Colors.transparent,
+                                      delay: Duration(
+                                        milliseconds: 150 + 80 * i,
                                       ),
+                                      duration: Duration(milliseconds: 800),
+                                      curve: Curves.easeOutBack,
+                                      builder: (context, v, _) =>
+                                          LinearProgressIndicator(
+                                            value: (c.value / top * v)
+                                                .clamp(0, 1)
+                                                .toDouble(),
+                                            minHeight: 10,
+                                            color: t.ink,
+                                            backgroundColor: Colors.transparent,
+                                          ),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 10),
+                                SizedBox(width: 10),
                                 Text(taka(c.value), style: t.x(14)),
                               ],
                             ),
                           ),
                       ],
-                      if (list.isEmpty) const Center(child: Dau(mood: DauMood.waiting, size: 130)),
+                      if (list.isEmpty)
+                        Center(child: Dau(mood: DauMood.waiting, size: 130)),
                       if (list.isNotEmpty) ...[
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24),
                         for (final (i, e) in list.indexed)
                           SlideIn(
                             i: i,
                             child: Container(
-                              constraints: const BoxConstraints(minHeight: 52),
+                              constraints: BoxConstraints(minHeight: 52),
                               decoration: BoxDecoration(
-                                border: Border(top: BorderSide(color: t.rule, width: .5)),
+                                border: Border(
+                                  top: BorderSide(color: t.rule, width: .5),
+                                ),
                               ),
                               child: Row(
                                 children: [
-                                  Icon(spendCat(e.cat).$3, size: 20, color: t.ink2),
-                                  const SizedBox(width: 12),
+                                  Icon(
+                                    spendCat(e.cat).$3,
+                                    size: 20,
+                                    color: t.ink2,
+                                  ),
+                                  SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          e.note.isEmpty ? spendCat(e.cat).$2 : e.note,
-                                          style: t.body(weight: FontWeight.w400),
+                                          e.note.isEmpty
+                                              ? tr(context, spendCat(e.cat).$2)
+                                              : e.note,
+                                          style: t.body(
+                                            weight: FontWeight.w400,
+                                          ),
                                         ),
-                                        Text(niceDate(DateTime.parse(e.day)), style: t.meta()),
+                                        Text(
+                                          niceDate(DateTime.parse(e.day)),
+                                          style: t.meta(),
+                                        ),
                                       ],
                                     ),
                                   ),
                                   Text(taka(e.taka), style: t.x(15)),
                                   IconButton(
-                                    tooltip: 'Delete',
-                                    icon: Icon(Icons.close_rounded, size: 20, color: t.ink2),
+                                    tooltip: tr(context, 'Delete'),
+                                    icon: Icon(
+                                      Icons.close_rounded,
+                                      size: 20,
+                                      color: t.ink2,
+                                    ),
                                     onPressed: () {
                                       final snap = s.snapshot();
                                       s.removeExpense(e);
-                                      undoToast(context, '${taka(e.taka)} deleted', () => s.restore(snap));
+                                      undoToast(
+                                        context,
+                                        tr(context, "{amount} deleted", {
+                                          "amount": taka(e.taka),
+                                        }),
+                                        () => s.restore(snap),
+                                      );
                                     },
                                   ),
                                 ],
@@ -224,8 +333,11 @@ class _SpendingScreenState extends State<SpendingScreen> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                  child: Cta(label: 'Add an expense', onTap: () => addExpense(context, s)),
+                  padding: EdgeInsets.fromLTRB(16, 4, 16, 12),
+                  child: Cta(
+                    label: tr(context, 'Add an expense'),
+                    onTap: () => addExpense(context, s),
+                  ),
                 ),
               ],
             ),
@@ -238,11 +350,13 @@ class _SpendingScreenState extends State<SpendingScreen> {
   Future<void> _editBudget(BuildContext context, Store s) async {
     final v = await askNumber(
       context,
-      'Monthly budget',
+      tr(context, 'Monthly budget'),
       initial: s.monthBudget?.toString(),
       prefix: '৳ ',
-      hint: 'e.g. 15000',
-      side: s.monthBudget != null ? ('Remove budget', () => s.setBudget(0)) : null,
+      hint: tr(context, 'e.g. 15000'),
+      side: s.monthBudget != null
+          ? (tr(context, 'Remove budget'), () => s.setBudget(0))
+          : null,
     );
     if (v != null) s.setBudget(v.round());
   }
@@ -261,13 +375,18 @@ Future<void> addExpense(BuildContext context, Store s) async {
         final t = Daur.of(ctx);
         final v = int.tryParse(amount.text) ?? 0;
         return Padding(
-          padding: EdgeInsets.fromLTRB(20, 0, 20, MediaQuery.viewInsetsOf(ctx).bottom + 16),
+          padding: EdgeInsets.fromLTRB(
+            20,
+            0,
+            20,
+            MediaQuery.viewInsetsOf(ctx).bottom + 16,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Add an expense', style: t.title(t.sheetInk)),
-              const SizedBox(height: 12),
+              Text(tr(context, 'Add an expense'), style: t.title(t.sheetInk)),
+              SizedBox(height: 12),
               TextField(
                 controller: amount,
                 autofocus: true,
@@ -287,25 +406,41 @@ Future<void> addExpense(BuildContext context, Store s) async {
                 runSpacing: 8,
                 children: [
                   for (final (id, name, icon) in spendCats)
-                    _chip(t, name, cat == id, () => set(() => cat = id), icon: icon),
+                    _chip(
+                      t,
+                      tr(context, name),
+                      cat == id,
+                      () => set(() => cat = id),
+                      icon: icon,
+                    ),
                 ],
               ),
               TextField(
                 controller: note,
                 style: t.body(color: t.sheetInk),
-                decoration: const InputDecoration(hintText: 'Note (optional), e.g. whey 2 lb'),
+                decoration: InputDecoration(
+                  hintText: tr(context, 'Note (optional), e.g. whey 2 lb'),
+                ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 children: [
-                  for (final (d, label) in const [(0, 'Today'), (1, 'Yesterday')])
-                    _chip(t, label, daysAgo == d, () => set(() => daysAgo = d)),
+                  for (final (d, label) in [
+                    (0, tr(context, 'Today')),
+                    (1, tr(context, 'Yesterday')),
+                  ])
+                    _chip(
+                      t,
+                      tr(context, label),
+                      daysAgo == d,
+                      () => set(() => daysAgo = d),
+                    ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Cta(
-                label: 'Save',
+                label: tr(context, 'Save'),
                 trailing: v > 0 ? taka(v) : null,
                 muted: v <= 0,
                 onTap: v <= 0
@@ -313,7 +448,12 @@ Future<void> addExpense(BuildContext context, Store s) async {
                     : () {
                         final n = DateTime.now();
                         s.addExpense(
-                          Expense(dayKey(DateTime(n.year, n.month, n.day - daysAgo)), v, cat, note.text.trim()),
+                          Expense(
+                            dayKey(DateTime(n.year, n.month, n.day - daysAgo)),
+                            v,
+                            cat,
+                            note.text.trim(),
+                          ),
                         );
                         HapticFeedback.mediumImpact();
                         Navigator.pop(ctx);
@@ -328,17 +468,31 @@ Future<void> addExpense(BuildContext context, Store s) async {
 }
 
 /// A chip on the light sheet: ink outline, runner yellow when picked.
-Widget _chip(Daur t, String label, bool on, VoidCallback onTap, {IconData? icon}) => ChoiceChip(
-  avatar: icon == null ? null : Icon(icon, size: 18, color: on ? t.onAccent : t.sheetInk),
+Widget _chip(
+  Daur t,
+  String label,
+  bool on,
+  VoidCallback onTap, {
+  IconData? icon,
+}) => ChoiceChip(
+  avatar: icon == null
+      ? null
+      : Icon(icon, size: 18, color: on ? t.onAccent : t.sheetInk),
   label: Text(
     label,
-    style: TextStyle(color: on ? t.onAccent : t.sheetInk, fontWeight: FontWeight.w600),
+    style: TextStyle(
+      color: on ? t.onAccent : t.sheetInk,
+      fontWeight: FontWeight.w600,
+    ),
   ),
   selected: on,
   showCheckmark: false,
   onSelected: (_) => onTap(),
   selectedColor: t.accent,
   backgroundColor: t.sheet,
-  side: BorderSide(color: on ? t.accent : t.sheetInk2.withValues(alpha: .5), width: 1.5),
-  shape: const StadiumBorder(),
+  side: BorderSide(
+    color: on ? t.accent : t.sheetInk2.withValues(alpha: .5),
+    width: 1.5,
+  ),
+  shape: StadiumBorder(),
 );

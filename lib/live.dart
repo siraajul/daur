@@ -1,3 +1,4 @@
+import 'l10n.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show BuildContext, ScaffoldMessenger, SnackBar, SnackBarBehavior, Text;
 import 'package:flutter/painting.dart' show Color;
@@ -7,6 +8,7 @@ import 'package:live_activities/live_activities.dart';
 
 import 'fasting.dart' show fastStages;
 import 'reminders.dart';
+import 'plan.dart' show gymPlans;
 import 'store.dart';
 import 'widget_sync.dart' show WidgetSync;
 
@@ -19,6 +21,7 @@ class Live {
   static final _activities = LiveActivities();
   static const _noteId = 4400;
   static const _activityId = 'daur-workout';
+  static String get _language => Reminders.bound?.appLanguage ?? 'en';
   static bool _ready = false, _iosActive = false;
 
   static bool get _android => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -29,13 +32,13 @@ class Live {
     _ready = true;
     try {
       if (_android) {
-        await Reminders.init();
+        await Reminders.init(language: _language);
         // asked here, in context, the first time a workout goes live
         await _notes
             .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
             ?.requestNotificationsPermission();
       } else if (_ios) {
-        await Reminders.init();
+        await Reminders.init(language: _language);
         await _activities.init(appGroupId: WidgetSync.appGroup, urlScheme: 'daur');
       }
     } catch (e) {
@@ -46,8 +49,8 @@ class Live {
   static AndroidNotificationDetails _details({required int when, required bool countDown, bool ticking = true}) =>
       AndroidNotificationDetails(
         'workout',
-        'Workout',
-        channelDescription: 'Rest timer and treadmill while they run',
+        trLanguage(_language, 'Workout'),
+        channelDescription: trLanguage(_language, 'Rest timer and treadmill while they run'),
         importance: Importance.low, // silent; it's a status, not an alert
         priority: Priority.low,
         ongoing: true,
@@ -71,8 +74,8 @@ class Live {
       if (_android) {
         await _notes.show(
           id: _noteId,
-          title: 'Rest · $exercise',
-          body: 'Next: $next',
+          title: trLanguage(_language, 'Rest · {value1}', {'value1': gymPlans.containsKey(exercise) ? trLanguage(_language, exercise) : exercise}),
+          body: trLanguage(_language, 'Next: {value1}', {'value1': next}),
           notificationDetails: NotificationDetails(
             android: _details(when: end.millisecondsSinceEpoch, countDown: true),
           ),
@@ -80,8 +83,8 @@ class Live {
       } else if (_ios) {
         await _upsertIos({
           'kind': 'rest',
-          'title': 'Rest · $exercise',
-          'sub': 'Next: $next',
+          'title': trLanguage(_language, 'Rest · {value1}', {'value1': gymPlans.containsKey(exercise) ? trLanguage(_language, exercise) : exercise}),
+          'sub': trLanguage(_language, 'Next: {value1}', {'value1': next}),
           'end': end.millisecondsSinceEpoch / 1000,
           'total': end.difference(DateTime.now()).inSeconds.clamp(1, 3600), // lap glyph: share of rest used
         });
@@ -100,12 +103,12 @@ class Live {
     required int kcal,
   }) async {
     await _init();
-    final sub = '${km.toStringAsFixed(2)} km · ≈ $kcal kcal${paused ? ' · paused' : ''}';
+    final sub = trLanguage(_language, '{value1} km · ≈ {value2} kcal{value3}', {'value1': km.toStringAsFixed(2), 'value2': kcal, 'value3': paused ? trLanguage(_language, ' · paused') : ''});
     try {
       if (_android) {
         await _notes.show(
           id: _noteId,
-          title: paused ? 'Treadmill · paused at ${_clock(elapsedSeconds)}' : 'Treadmill',
+          title: paused ? trLanguage(_language, 'Treadmill · paused at {value1}', {'value1': _clock(elapsedSeconds)}) : trLanguage(_language, 'Treadmill'),
           body: sub,
           notificationDetails: NotificationDetails(
             android: _details(when: startedAt.millisecondsSinceEpoch, countDown: false, ticking: !paused),
@@ -114,7 +117,7 @@ class Live {
       } else if (_ios) {
         await _upsertIos({
           'kind': 'treadmill',
-          'title': paused ? 'Treadmill · paused' : 'Treadmill',
+          'title': paused ? trLanguage(_language, 'Treadmill · paused') : trLanguage(_language, 'Treadmill'),
           'sub': sub,
           'start': startedAt.millisecondsSinceEpoch / 1000,
           'paused': paused ? 1 : 0,
@@ -132,10 +135,10 @@ class Live {
     if (kIsWeb || s == null || s.seenHints.contains('live')) return;
     s.dismissHint('live');
     final where = defaultTargetPlatform == TargetPlatform.iOS
-        ? 'Lock Screen and Dynamic Island'
-        : 'lock screen and status bar';
+        ? trLanguage(_language, 'Lock Screen and Dynamic Island')
+        : trLanguage(_language, 'lock screen and status bar');
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(behavior: SnackBarBehavior.floating, content: Text('$what is on your $where now. Pocket the phone.')),
+      SnackBar(behavior: SnackBarBehavior.floating, content: Text(trLanguage(_language, '{value1} is on your {value2} now. Pocket the phone.', {'value1': trLanguage(_language, what), 'value2': where}))),
     );
   }
 
@@ -152,6 +155,7 @@ class Live {
   }
 
   static Future<void> _upsertIos(Map<String, dynamic> data) async {
+    data['language'] = _language;
     if (!await _activities.areActivitiesEnabled()) return;
     if (_iosActive) {
       await _activities.updateActivity(_activityId, data);
@@ -176,7 +180,7 @@ class Live {
 
   static Future<void> syncFast(Store s) async {
     final from = s.fastFrom;
-    final key = from == null ? null : '${from.millisecondsSinceEpoch}/${s.fastGoal}';
+    final key = from == null ? null : '${from.millisecondsSinceEpoch}/${s.fastGoal}/${s.appLanguage}';
     if (key == _fastKey) return;
     _fastKey = key;
     try {
@@ -188,8 +192,9 @@ class Live {
           await _fastChannel.invokeMethod('show', {
             'from': from.millisecondsSinceEpoch,
             'goal': s.fastGoal,
+            'language': s.appLanguage,
             'hours': [for (final st in fastStages) st.$1],
-            'names': [for (final st in fastStages) st.$2],
+            'names': [for (final st in fastStages) trLanguage(s.appLanguage, st.$2)],
           });
         }
       } else if (_ios) {
@@ -200,9 +205,10 @@ class Live {
           final end = from.add(Duration(hours: s.fastGoal));
           await _activities.createOrUpdateActivity(_fastActivityId, {
             'kind': 'fast',
-            'title': 'Fasting',
+            'language': s.appLanguage,
+            'title': trLanguage(_language, 'Fasting'),
             'sub':
-                'Goal ${s.fastGoal}h · done at ${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}',
+                trLanguage(_language, 'Goal {value1}h · done at {value2}:{value3}', {'value1': s.fastGoal, 'value2': end.hour.toString().padLeft(2, '0'), 'value3': end.minute.toString().padLeft(2, '0')}),
             'start': from.millisecondsSinceEpoch / 1000,
             'end': end.millisecondsSinceEpoch / 1000,
             'total': s.fastGoal * 3600,
@@ -214,5 +220,5 @@ class Live {
     }
   }
 
-  static String _clock(int s) => '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
+  static String _clock(int s) => trLanguage(_language, '{value1}:{value2}', {'value1': s ~/ 60, 'value2': (s % 60).toString().padLeft(2, '0')});
 }

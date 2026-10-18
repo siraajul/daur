@@ -23,10 +23,21 @@ private let onRunner = adaptive(0xFFFFFF, 0x153E34)
 private let outline = adaptive(0x7C8B81, 0x7E9486)
 
 private func x(_ size: CGFloat) -> Font { .system(size: size, weight: .black).width(.expanded) }
+private func widgetText(_ english: String, _ bangla: String) -> String {
+  UserDefaults(suiteName: appGroup)?.string(forKey: "language") == "bn" ? bangla : english
+}
 
 // MARK: - Data written by the app
 
 struct Day {
+  let language: String
+  var bn: Bool { language == "bn" }
+  func text(_ english: String, _ bangla: String) -> String { bn ? bangla : english }
+  func captionFont(_ size: CGFloat) -> Font { bn ? .system(size: size, weight: .bold) : x(size) }
+  func lapLine(of84: Bool = true) -> String {
+    if bn { return "দিন \(lap)\(of84 ? " / 84" : "")\(streak > 0 ? " · \(streak) দিন টানা" : "")" }
+    return "DAY \(lap)\(of84 ? " OF 84" : "")\(streak > 0 ? " · \(streak)-DAY STREAK" : "")"
+  }
   let lap, meters, kcalPct, water, steps, target, mealNum, waterGoal, waterSlots, streak: Int
   let date, waterGoalText, nextName, nextWhen, kcalText, walkSub, mealTitle, mealSub, mealWhen, mealBtn, mealCap: String
   let finish, mealDone, hasSteps, burnOver: Bool
@@ -36,19 +47,22 @@ struct Day {
     let d = UserDefaults(suiteName: appGroup)
     func s(_ k: String, _ def: String = "") -> String { d?.string(forKey: k) ?? def }
     func i(_ k: String, _ def: Int = 0) -> Int { d?.object(forKey: k) == nil ? def : d!.integer(forKey: k) }
+    let bn = s("language", "en") == "bn"
     return Day(
+      language: s("language", "en"),
       lap: i("lap_n", 1), meters: i("meters"), kcalPct: i("kcal_pct"), water: i("water_glasses"),
       steps: i("walk_steps"), target: max(1000, i("walk_target", 7000)), mealNum: i("meal_num", 100),
       waterGoal: max(1, i("water_goal", 14)), waterSlots: i("water_slots", i("water_glasses")), streak: i("streak"),
-      date: s("date"), waterGoalText: s("water_goal_text", "of 3.5 L"), nextName: s("next_name", "Open Daur"), nextWhen: s("next_when"), kcalText: s("kcal_text"),
-      walkSub: s("walk_sub", "steps"), mealTitle: s("meal_title", "Open Daur"), mealSub: s("meal_sub"),
-      mealWhen: s("meal_when"), mealBtn: s("meal_btn", "Log"), mealCap: s("meal_cap"),
+      date: s("date"), waterGoalText: s("water_goal_text", bn ? "3.5 লিটারের মধ্যে" : "of 3.5 L"), nextName: s("next_name", bn ? "Daur খুলুন" : "Open Daur"), nextWhen: s("next_when"), kcalText: s("kcal_text"),
+      walkSub: s("walk_sub", bn ? "পদক্ষেপ" : "steps"), mealTitle: s("meal_title", bn ? "Daur খুলুন" : "Open Daur"), mealSub: s("meal_sub"),
+      mealWhen: s("meal_when"), mealBtn: s("meal_btn", bn ? "লিখুন" : "Log"), mealCap: s("meal_cap"),
       finish: i("finish") == 1, mealDone: i("meal_done") == 1, hasSteps: d?.object(forKey: "walk_steps") != nil,
       burnOver: i("burn_over") == 1,
       legs: (1...4).map { (s("leg\($0)_name"), s("leg\($0)_sub"), s("leg\($0)_state", "todo")) })
   }
 
   static let sample = Day(
+    language: "en",
     lap: 23, meters: 200, kcalPct: 56, water: 7, steps: 5410, target: 8000, mealNum: 300,
     waterGoal: 14, waterSlots: 7, streak: 6,
     date: "Thu 9 Oct", waterGoalText: "of 3.5 L", nextName: "Snack", nextWhen: "16:30–18:00", kcalText: "1,002 / 1,800 kcal",
@@ -153,7 +167,7 @@ struct TrackView: View {
         if let centre {
           VStack(spacing: 4 * s) {
             Text(centre).font(x(52 * s)).foregroundStyle(centreColor).minimumScaleFactor(0.5).lineLimit(1)
-            if let sub { Text(sub).font(x(15 * s)).tracking(1.2 * s).foregroundStyle(ink2) }
+            if let sub { Text(sub).font(.system(size: 15 * s, weight: .bold)).foregroundStyle(ink2) }
           }
           .frame(width: 250 * s).position(pt(CGPoint(x: 201, y: 125)))
         }
@@ -198,25 +212,25 @@ struct TodayView: View {
       }
     case .accessoryRectangular:
       VStack(alignment: .leading, spacing: 1) {
-        Text("DAY \(day.lap) · \(day.meters / 100)/4 meals").font(x(13)).widgetAccentable()
+        Text(day.text("DAY \(day.lap) · \(day.meters / 100)/4 meals", "দিন \(day.lap) · ৪টির মধ্যে \(day.meters / 100)টি খাবার")).font(day.captionFont(13)).widgetAccentable()
         Text("\(day.nextName) \(day.nextWhen)").font(.system(size: 13, weight: .semibold)).lineLimit(1)
         Text(day.kcalText).font(.system(size: 12)).opacity(0.75)
       }
     case .systemSmall:
       VStack(alignment: .leading, spacing: 6) {
         TrackView(meters: day.meters, centre: "\(day.meters / 100)/4")
-        Text(day.nextName).font(x(15)).foregroundStyle(ink).lineLimit(1)
+        Text(day.nextName).font(day.captionFont(15)).foregroundStyle(ink).lineLimit(1)
         Text(day.nextWhen).font(.system(size: 12, weight: .semibold)).foregroundStyle(ink)
       }
     case .systemLarge:
       VStack(spacing: 10) {
         HStack {
-          Text("DAY \(day.lap) OF 84\(day.streak > 0 ? " · \(day.streak)-DAY STREAK" : "")").font(x(12)).tracking(0.7).foregroundStyle(ink2)
+          Text(day.lapLine()).font(day.captionFont(12)).tracking(day.bn ? 0 : 0.7).foregroundStyle(ink2)
           Spacer()
           Text(day.date).font(x(12)).foregroundStyle(ink2)
         }
         TrackView(meters: day.meters, numerals: true,
-                  centre: day.finish ? "84/84" : "\(day.meters / 100)/4", sub: day.finish ? "DAYS" : "MEALS",
+                  centre: day.finish ? "84/84" : "\(day.meters / 100)/4", sub: day.finish ? day.text("DAYS", "দিন") : day.text("MEALS", "খাবার"),
                   centreColor: day.finish ? runner : ink)
         Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 10) {
           GridRow { leg(0); leg(1) }
@@ -227,9 +241,9 @@ struct TodayView: View {
       HStack(spacing: 12) {
         TrackView(meters: day.meters, centre: "\(day.meters / 100)/4")
         VStack(alignment: .leading, spacing: 3) {
-          Text("DAY \(day.lap) OF 84\(day.streak > 0 ? " · \(day.streak)-DAY STREAK" : "")").font(x(11)).tracking(0.7).foregroundStyle(ink2)
+          Text(day.lapLine()).font(day.captionFont(11)).tracking(day.bn ? 0 : 0.7).foregroundStyle(ink2)
           Spacer(minLength: 0)
-          Text(day.nextName).font(x(19)).foregroundStyle(ink).lineLimit(1).minimumScaleFactor(0.7)
+          Text(day.nextName).font(day.captionFont(19)).foregroundStyle(ink).lineLimit(1).minimumScaleFactor(0.7)
           Text(day.nextWhen).font(.system(size: 13, weight: .semibold)).foregroundStyle(ink)
           ProgressView(value: Double(day.kcalPct), total: 100).tint(ink).padding(.top, 8)
           Text(day.kcalText).font(.system(size: 12, weight: day.burnOver ? .bold : .regular)).foregroundStyle(day.burnOver ? runner : ink2)
@@ -257,8 +271,8 @@ struct DaurWidget: Widget {
     StaticConfiguration(kind: "DaurWidget", provider: DayProvider()) { e in
       TodayView(day: e.day).containerBackground(tartan, for: .widget).widgetURL(URL(string: "daur://open?homeWidget"))
     }
-    .configurationDisplayName("Daur · Today")
-    .description("Today's lap on the track: next meal, kcal. Large shows all four legs.")
+    .configurationDisplayName(Text(widgetText("Daur · Today", "Daur · আজ")))
+    .description(Text(widgetText("Today's lap on the track: next meal, kcal. Large shows all four legs.", "আজকের ল্যাপ: পরের খাবার ও ক্যালরি। বড় উইজেটে চারটি খাবারই দেখুন।")))
     .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular])
   }
 }
@@ -278,10 +292,10 @@ struct DaurWaterWidget: Widget {
     StaticConfiguration(kind: "DaurWaterWidget", provider: DayProvider()) { e in
       let g = e.day.water, full = g >= e.day.waterGoal, n = e.day.waterSlots
       VStack(alignment: .leading, spacing: 2) {
-        Text("Water").font(.system(size: 13, weight: .medium)).foregroundStyle(ink2)
+        Text(e.day.text("Water", "পানি")).font(.system(size: 13, weight: .medium)).foregroundStyle(ink2)
         HStack(alignment: .lastTextBaseline, spacing: 3) {
           Text(g % 4 == 0 ? "\(g / 4)" : String(format: "%g", Double(g) / 4)).font(x(34)).foregroundStyle(ink)
-          Text("L").font(x(15)).foregroundStyle(ink)
+          Text(e.day.text("L", "লি")).font(e.day.captionFont(15)).foregroundStyle(ink)
         }
         if !full { Text(e.day.waterGoalText).font(.system(size: 12)).foregroundStyle(ink2) }
         Spacer(minLength: 4)
@@ -304,13 +318,14 @@ struct DaurWaterWidget: Widget {
             Link(destination: URL(string: "daur://water?homeWidget")!) {
               Image(systemName: "plus").font(.system(size: 18, weight: .bold)).foregroundStyle(onRunner)
                 .frame(width: 40, height: 40).background(runner, in: Circle()).widgetAccentable()
+                .accessibilityLabel(e.day.text("Add a glass of water", "এক গ্লাস পানি যোগ করুন"))
             }
           }
         }
       }
       .containerBackground(tartan, for: .widget)
     }
-    .configurationDisplayName("Daur · Water").description("Water today, with a + glass button.")
+    .configurationDisplayName(Text(widgetText("Daur · Water", "Daur · পানি"))).description(Text(widgetText("Water today, with a + glass button.", "আজকের পানি, সঙ্গে এক গ্লাস যোগ করার বোতাম।")))
     .supportedFamilies([.systemSmall])
   }
 }
@@ -320,7 +335,7 @@ struct DaurMealWidget: Widget {
     StaticConfiguration(kind: "DaurMealWidget", provider: DayProvider()) { e in
       MealView(day: e.day).containerBackground(tartan, for: .widget)
     }
-    .configurationDisplayName("Daur · Next meal").description("Your next leg, with a Log button.")
+    .configurationDisplayName(Text(widgetText("Daur · Next meal", "Daur · পরের খাবার"))).description(Text(widgetText("Your next leg, with a Log button.", "আপনার পরের খাবার, সঙ্গে লিখে রাখার বোতাম।")))
     .supportedFamilies([.systemMedium, .accessoryRectangular])
   }
 }
@@ -331,7 +346,7 @@ struct MealView: View {
   var body: some View {
     if family == .accessoryRectangular {
       VStack(alignment: .leading, spacing: 1) {
-        Text("\(day.mealNum / 100)/4 · \(day.mealTitle)").font(x(13)).widgetAccentable()
+        Text("\(day.mealNum / 100)/4 · \(day.mealTitle)").font(day.captionFont(13)).widgetAccentable()
         Text(day.mealWhen).font(.system(size: 13, weight: .semibold))
         Text(day.mealSub).font(.system(size: 12)).opacity(0.75).lineLimit(1)
       }
@@ -341,11 +356,11 @@ struct MealView: View {
         HStack(alignment: .top) {
           HStack(alignment: .lastTextBaseline, spacing: 2) {
             Text("\(day.mealNum / 100)/4").font(x(60)).foregroundStyle(day.mealDone ? ink : runner).widgetAccentable()
-            Text("m").font(x(18)).foregroundStyle(day.mealDone ? ink : runner)
+            Text(day.text("m", "মি")).font(day.captionFont(18)).foregroundStyle(day.mealDone ? ink : runner)
           }
           Spacer()
           VStack(alignment: .trailing, spacing: 2) {
-            Text("DAY \(day.lap)\(day.streak > 0 ? " · \(day.streak)-DAY STREAK" : "")").font(x(12)).tracking(0.7).foregroundStyle(ink2)
+            Text(day.lapLine(of84: false)).font(day.captionFont(12)).tracking(day.bn ? 0 : 0.7).foregroundStyle(ink2)
             Text(day.mealWhen).font(.system(size: 13, weight: .semibold)).foregroundStyle(ink2)
           }
         }
@@ -368,7 +383,7 @@ struct MealView: View {
         Spacer(minLength: 6)
         HStack(alignment: .bottom, spacing: 12) {
           VStack(alignment: .leading, spacing: 3) {
-            Text(day.mealTitle).font(x(20)).foregroundStyle(ink).lineLimit(1).minimumScaleFactor(0.7)
+            Text(day.mealTitle).font(day.captionFont(20)).foregroundStyle(ink).lineLimit(1).minimumScaleFactor(0.7)
             Text(day.mealSub).font(.system(size: 13)).foregroundStyle(ink2).lineLimit(1)
           }
           Spacer(minLength: 0)
@@ -387,7 +402,7 @@ struct DaurWalkWidget: Widget {
       let d = e.day
       let f = min(1, Double(d.steps) / Double(d.target))
       VStack(alignment: .leading, spacing: 2) {
-        Text("Walk").font(.system(size: 13, weight: .medium)).foregroundStyle(ink2)
+        Text(d.text("Walk", "হাঁটা")).font(.system(size: 13, weight: .medium)).foregroundStyle(ink2)
         Text(d.hasSteps ? d.steps.formatted() : "–").font(x(32)).foregroundStyle(ink).minimumScaleFactor(0.6).lineLimit(1)
         Text(d.walkSub).font(.system(size: 12)).foregroundStyle(ink2).lineLimit(1)
         Spacer(minLength: 6)
@@ -409,7 +424,7 @@ struct DaurWalkWidget: Widget {
       }
       .containerBackground(tartan, for: .widget)
     }
-    .configurationDisplayName("Daur · Walk").description("Steps today against this week's target.")
+    .configurationDisplayName(Text(widgetText("Daur · Walk", "Daur · হাঁটা"))).description(Text(widgetText("Steps today against this week's target.", "এই সপ্তাহের লক্ষ্যের তুলনায় আজকের পদক্ষেপ।")))
     .supportedFamilies([.systemSmall])
   }
 }
@@ -428,7 +443,7 @@ extension LiveActivitiesAppAttributes {
 }
 
 private struct WorkoutLive {
-  let kind, title, sub: String
+  let kind, title, sub, language: String
   let end, start: Date
   let paused: Bool
   let elapsed: Int
@@ -436,6 +451,7 @@ private struct WorkoutLive {
 
   init(_ a: LiveActivitiesAppAttributes) {
     let d = UserDefaults(suiteName: appGroup)
+    language = d?.string(forKey: a.prefixedKey("language")) ?? d?.string(forKey: "language") ?? "en"
     kind = d?.string(forKey: a.prefixedKey("kind")) ?? "rest"
     title = d?.string(forKey: a.prefixedKey("title")) ?? "Daur"
     sub = d?.string(forKey: a.prefixedKey("sub")) ?? ""
@@ -453,7 +469,10 @@ private struct WorkoutLive {
       : kind == "fast" ? min(1, max(0, -start.timeIntervalSinceNow / total)) : 0.25
   }
 
-  var label: String { kind == "rest" ? "Rest" : kind == "fast" ? "Fasting" : "Treadmill" }
+  var label: String {
+    if language == "bn" { return kind == "rest" ? "বিশ্রাম" : kind == "fast" ? "উপবাস" : "ট্রেডমিল" }
+    return kind == "rest" ? "Rest" : kind == "fast" ? "Fasting" : "Treadmill"
+  }
 
   /// The lap glyph, or for a fast a bar that fills to the goal on its own (no updates needed).
   @ViewBuilder var gauge: some View {
@@ -501,7 +520,7 @@ struct DaurLiveActivity: Widget {
       HStack(spacing: 12) {
         w.gauge.frame(width: 64, height: 42)
         VStack(alignment: .leading, spacing: 2) {
-          Text(w.label).font(x(20)).foregroundStyle(ink)
+          Text(w.label).font(.system(size: 20, weight: .bold)).foregroundStyle(ink)
           Text(w.sub).font(.system(size: 13)).foregroundStyle(ink2).lineLimit(2)
         }
         Spacer(minLength: 4)

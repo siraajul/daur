@@ -15,6 +15,7 @@ import 'students.dart';
 import 'plan.dart' show Meal;
 import 'store.dart';
 import 'theme.dart';
+import 'l10n.dart';
 import 'today.dart' show Cta, MenuButton, niceDate, thousands;
 import 'visuals.dart';
 import 'water_walk.dart' show RingHero, Tiles, litres;
@@ -25,15 +26,24 @@ import 'workout_editor.dart';
 
 const goalWords = ['losing', 'keeping', 'gaining'];
 
-const roleNames = {'diet': 'Diet helper', 'trainer': 'Trainer', 'partner': 'Partner', 'owner': 'You'};
+const roleNames = {
+  'diet': 'Diet helper',
+  'trainer': 'Trainer',
+  'partner': 'Partner',
+  'owner': 'You',
+};
 
-String ago(DateTime? t) {
+String ago(DateTime? t, [BuildContext? context]) {
+  String say(String message, [Map<String, Object> args = const {}]) =>
+      context == null
+      ? trLanguage('en', message, args)
+      : tr(context, message, args);
   if (t == null) return '';
   final d = DateTime.now().difference(t);
-  if (d.inMinutes < 1) return 'just now';
-  if (d.inMinutes < 60) return '${d.inMinutes} min ago';
-  if (d.inHours < 24) return '${d.inHours} h ago';
-  return '${d.inDays} d ago';
+  if (d.inMinutes < 1) return say('just now');
+  if (d.inMinutes < 60) return say('{count} min ago', {'count': d.inMinutes});
+  if (d.inHours < 24) return say('{count} h ago', {'count': d.inHours});
+  return say('{count} d ago', {'count': d.inDays});
 }
 
 /// Menu → Coaches: invite a diet helper or a trainer, see who follows, notes; or help someone.
@@ -73,21 +83,38 @@ class _CoachesScreenState extends State<CoachesScreen> {
         return Scaffold(
           body: SafeArea(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
-                const PageHeader('Coaches', sub: 'People who follow your plan'),
-                const SizedBox(height: 16),
+                PageHeader(
+                  tr(context, 'Coaches'),
+                  sub: tr(context, 'People who follow your plan'),
+                ),
+                SizedBox(height: 16),
                 if (!c.signedIn) ...[
-                  const Tip(
+                  Tip(
                     Icons.family_restroom_rounded,
-                    'Your mother, your trainer: they see your day, you get their notes',
+                    tr(
+                      context,
+                      'Your mother, your trainer: they see your day, you get their notes',
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  GoogleButton(busy: c.busy, onPressed: () => c.signInWithGoogle()),
+                  SizedBox(height: 16),
+                  GoogleButton(
+                    busy: c.busy,
+                    onPressed: () => c.signInWithGoogle(),
+                  ),
                 ] else ...[
-                  for (final (role, icon, sees) in const [
-                    ('diet', Icons.restaurant_rounded, 'Meals, kcal, water, weight'),
-                    ('trainer', Icons.fitness_center_rounded, 'All that, plus gym and strength'),
+                  for (final (role, icon, sees) in [
+                    (
+                      'diet',
+                      Icons.restaurant_rounded,
+                      tr(context, 'Meals, kcal, water, weight'),
+                    ),
+                    (
+                      'trainer',
+                      Icons.fitness_center_rounded,
+                      tr(context, 'All that, plus gym and strength'),
+                    ),
                   ])
                     InviteCard(
                       role: role,
@@ -99,16 +126,19 @@ class _CoachesScreenState extends State<CoachesScreen> {
                       onRevoke: () => c.revokeInvite(role),
                     ),
                   if (s.inviteCodes.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Text('Following you', style: t.meta()),
+                    SizedBox(height: 12),
+                    Text(tr(context, 'Following you'), style: t.meta()),
                     StreamBuilder<List<Map<String, dynamic>>>(
                       stream: c.helpers(),
                       builder: (context, snap) {
-                        final rows = snap.data ?? const [];
+                        final rows = snap.data ?? [];
                         if (rows.isEmpty) {
                           return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            child: Text('No one yet · share a code', style: t.sec()),
+                            padding: EdgeInsets.symmetric(vertical: 10),
+                            child: Text(
+                              tr(context, 'No one yet · share a code'),
+                              style: t.sec(),
+                            ),
                           );
                         }
                         return Column(
@@ -123,9 +153,14 @@ class _CoachesScreenState extends State<CoachesScreen> {
                                   onRemove: () async {
                                     if (await confirmPop(
                                       context,
-                                      'Remove ${h['name']}?',
-                                      'They stop seeing your progress.',
-                                      'Remove',
+                                      tr(context, "Remove {name}?", {
+                                        "name": h['name'] ?? '',
+                                      }),
+                                      tr(
+                                        context,
+                                        'They stop seeing your progress.',
+                                      ),
+                                      tr(context, 'Remove'),
                                       destructive: true,
                                     )) {
                                       await c.removeHelper(h['uid'] as String);
@@ -137,21 +172,27 @@ class _CoachesScreenState extends State<CoachesScreen> {
                         );
                       },
                     ),
-                    const SizedBox(height: 20),
-                    Text('Notes', style: t.meta()),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 20),
+                    Text(tr(context, 'Notes'), style: t.meta()),
+                    SizedBox(height: 8),
                     NotesThread(owner: c.user!.uid, role: 'owner', store: s),
                   ],
-                  const SizedBox(height: 28),
-                  Text('Helping someone?', style: t.meta()),
+                  SizedBox(height: 28),
+                  Text(tr(context, 'Helping someone?'), style: t.meta()),
                   for (final (i, h) in s.helping.indexed)
                     SlideIn(
                       i: i,
                       child: _Helped(h: h, store: s),
                     ),
-                  _JoinRow(busy: _busy, onJoin: (code) => _run(() => c.joinAsHelper(code))),
+                  _JoinRow(
+                    busy: _busy,
+                    onJoin: (code) => _run(() => c.joinAsHelper(code)),
+                  ),
                 ],
-                if (_error != null) ...[const SizedBox(height: 12), Text(_error!, style: t.body())],
+                if (_error != null) ...[
+                  SizedBox(height: 12),
+                  Text(tr(context, _error!), style: t.body()),
+                ],
               ],
             ),
           ),
@@ -182,50 +223,78 @@ class InviteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
-      decoration: BoxDecoration(color: t.infield, borderRadius: BorderRadius.circular(18)),
+      margin: EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.fromLTRB(16, 14, 8, 14),
+      decoration: BoxDecoration(
+        color: t.infield,
+        borderRadius: BorderRadius.circular(18),
+      ),
       child: Row(
         children: [
           Icon(icon, color: t.ink),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(roleNames[role]!, style: t.body()),
-                Text(sees, style: t.meta()),
-                if (code != null) ...[const SizedBox(height: 6), Text(code!, style: t.x(22, weight: FontWeight.w900))],
+                Text(tr(context, roleNames[role]!), style: t.body()),
+                Text(tr(context, sees), style: t.meta()),
+                if (code != null) ...[
+                  SizedBox(height: 6),
+                  Text(code!, style: t.x(22, weight: FontWeight.w900)),
+                ],
               ],
             ),
           ),
           if (code == null)
             FilledButton(
               onPressed: busy ? null : onMake,
-              style: FilledButton.styleFrom(backgroundColor: t.accent, foregroundColor: t.onAccent),
-              child: const Text('Invite'),
+              style: FilledButton.styleFrom(
+                backgroundColor: t.accent,
+                foregroundColor: t.onAccent,
+              ),
+              child: Text(tr(context, 'Invite')),
             )
           else ...[
             IconButton(
-              tooltip: 'Share the code',
+              tooltip: tr(context, 'Share the code'),
               icon: Icon(Icons.ios_share_rounded, color: t.ink),
               onPressed: () => SharePlus.instance.share(
                 ShareParams(
                   text: role == 'partner'
-                      ? 'Let\'s see each other\'s progress on Daur: install it, open Menu → Couple and enter $code'
-                      : 'Follow my diet on Daur as my ${roleNames[role]!.toLowerCase()}: install Daur, choose "Helping someone?" and enter $code',
+                      ? tr(
+                          context,
+                          "See my progress on Daur: install it, open Menu → Couple and enter {code}",
+                          {"code": code!},
+                        )
+                      : tr(
+                          context,
+                          "Follow my plan on Daur as {role}: choose Helping someone? and enter {code}",
+                          {
+                            "role": tr(context, roleNames[role]!),
+                            "code": code!,
+                          },
+                        ),
                 ),
               ),
             ),
             IconButton(
-              tooltip: 'Copy',
+              tooltip: tr(context, 'Copy'),
               icon: Icon(Icons.copy_rounded, color: t.ink),
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: code!));
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Code copied')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(tr(context, 'Code copied'))),
+                );
               },
             ),
-            MoreButton([MenuItem('Stop this code', onRevoke, destructive: true)]),
+            MoreButton([
+              MenuItem(
+                tr(context, 'Stop this code'),
+                onRevoke,
+                destructive: true,
+              ),
+            ]),
           ],
         ],
       ),
@@ -261,16 +330,19 @@ class _JoinRowState extends State<_JoinRow> {
             textCapitalization: TextCapitalization.characters,
             style: t.x(20),
             decoration: InputDecoration(
-              hintText: 'THEIR CODE',
+              hintText: tr(context, 'THEIR CODE'),
               hintStyle: t.x(20, color: t.faint),
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         FilledButton(
           onPressed: widget.busy ? null : () => widget.onJoin(_code.text),
-          style: FilledButton.styleFrom(backgroundColor: t.accent, foregroundColor: t.onAccent),
-          child: const Text('Join'),
+          style: FilledButton.styleFrom(
+            backgroundColor: t.accent,
+            foregroundColor: t.onAccent,
+          ),
+          child: Text(tr(context, 'Join')),
         ),
       ],
     );
@@ -278,7 +350,12 @@ class _JoinRowState extends State<_JoinRow> {
 }
 
 class _Person extends StatelessWidget {
-  const _Person({required this.name, required this.sub, this.photo, this.onRemove});
+  const _Person({
+    required this.name,
+    required this.sub,
+    this.photo,
+    this.onRemove,
+  });
   final String name, sub;
   final String? photo;
   final VoidCallback? onRemove;
@@ -287,7 +364,7 @@ class _Person extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     return Container(
-      constraints: const BoxConstraints(minHeight: 60),
+      constraints: BoxConstraints(minHeight: 60),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: t.rule, width: .5)),
       ),
@@ -299,20 +376,25 @@ class _Person extends StatelessWidget {
             foregroundImage: photo == null ? null : NetworkImage(photo!),
             child: Text(name.isEmpty ? '?' : name[0], style: t.body()),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(name, style: t.body(), maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text(sub, style: t.meta()),
+                Text(
+                  name,
+                  style: t.body(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(tr(context, sub), style: t.meta()),
               ],
             ),
           ),
           if (onRemove != null)
             IconButton(
-              tooltip: 'Remove',
+              tooltip: tr(context, 'Remove'),
               icon: Icon(Icons.close_rounded, color: t.ink2),
               onPressed: onRemove,
             ),
@@ -324,7 +406,12 @@ class _Person extends StatelessWidget {
 
 /// Notes on [owner]'s plan, newest first, with a box to write one. [role] is the writer's.
 class NotesThread extends StatefulWidget {
-  const NotesThread({super.key, required this.owner, required this.role, required this.store});
+  const NotesThread({
+    super.key,
+    required this.owner,
+    required this.role,
+    required this.store,
+  });
   final String owner, role;
   final Store store;
   @override
@@ -341,10 +428,15 @@ class _NotesThreadState extends State<NotesThread> {
   }
 
   Future<void> _send() async {
-    final msg = await Cloud.instance.addNote(widget.owner, _text.text, widget.role);
+    final msg = await Cloud.instance.addNote(
+      widget.owner,
+      _text.text,
+      widget.role,
+    );
     if (!mounted) return;
     if (msg != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr(context, msg))));
     } else {
       _text.clear();
       HapticFeedback.lightImpact();
@@ -370,10 +462,10 @@ class _NotesThreadState extends State<NotesThread> {
                 cursorColor: t.accent,
                 decoration: InputDecoration(
                   hintText: switch (widget.role) {
-                    'owner' => 'Write to your helpers',
-                    'trainer' => 'e.g. Bench 50 kg next push day',
-                    'partner' => 'e.g. Gym together at 7?',
-                    _ => 'e.g. Less rice tonight',
+                    'owner' => tr(context, 'Write to your helpers'),
+                    'trainer' => tr(context, 'e.g. Bench 50 kg next push day'),
+                    'partner' => tr(context, 'e.g. Gym together at 7?'),
+                    _ => tr(context, 'e.g. Less rice tonight'),
                   },
                   hintStyle: t.sec(),
                   counterText: '',
@@ -382,7 +474,7 @@ class _NotesThreadState extends State<NotesThread> {
               ),
             ),
             IconButton(
-              tooltip: 'Send',
+              tooltip: tr(context, 'Send'),
               icon: Icon(Icons.send_rounded, color: t.accent),
               onPressed: _send,
             ),
@@ -391,16 +483,22 @@ class _NotesThreadState extends State<NotesThread> {
         StreamBuilder<List<Map<String, dynamic>>>(
           stream: Cloud.instance.notes(widget.owner),
           builder: (context, snap) {
-            final notes = snap.data ?? const [];
+            final notes = snap.data ?? [];
             if (notes.isNotEmpty && widget.role == 'owner') {
-              final newest = (notes.first['at'] as dynamic)?.toDate()?.toIso8601String() as String?;
-              if (newest != null) WidgetsBinding.instance.addPostFrameCallback((_) => widget.store.seeNotes(newest));
+              final newest =
+                  (notes.first['at'] as dynamic)?.toDate()?.toIso8601String()
+                      as String?;
+              if (newest != null) {
+                WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => widget.store.seeNotes(newest),
+                );
+              }
             }
             return Column(
               children: [
                 for (final n in notes)
                   Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
                       border: Border(top: BorderSide(color: t.rule, width: .5)),
                     ),
@@ -412,19 +510,29 @@ class _NotesThreadState extends State<NotesThread> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${n['name']} · ${roleNames[n['role']] ?? ''} · ${ago((n['at'] as dynamic)?.toDate() as DateTime?)}',
+                                '${n['name']} · ${tr(context, roleNames[n['role']] ?? '')} · ${ago((n['at'] as dynamic)?.toDate() as DateTime?, context)}',
                                 style: t.meta(),
                               ),
-                              const SizedBox(height: 2),
-                              Text(n['text'] as String? ?? '', style: t.body(weight: FontWeight.w500)),
+                              SizedBox(height: 2),
+                              Text(
+                                n['text'] as String? ?? '',
+                                style: t.body(weight: FontWeight.w500),
+                              ),
                             ],
                           ),
                         ),
                         if (n['fromUid'] == me || widget.role == 'owner')
                           IconButton(
-                            tooltip: 'Delete note',
-                            icon: Icon(Icons.close_rounded, size: 18, color: t.ink2),
-                            onPressed: () => Cloud.instance.deleteNote(widget.owner, n['id'] as String),
+                            tooltip: tr(context, 'Delete note'),
+                            icon: Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: t.ink2,
+                            ),
+                            onPressed: () => Cloud.instance.deleteNote(
+                              widget.owner,
+                              n['id'] as String,
+                            ),
                           ),
                       ],
                     ),
@@ -443,12 +551,23 @@ class _NotesThreadState extends State<NotesThread> {
 Widget helperPage(Map<String, String> h, Store store) => switch (h['role']) {
   'diet' => MaPage(owner: h['owner']!, name: h['name']!, store: store),
   'partner' => PartnerPage(owner: h['owner']!, name: h['name']!, store: store),
-  _ => HelperView(owner: h['owner']!, name: h['name']!, role: h['role']!, store: store),
+  _ => HelperView(
+    owner: h['owner']!,
+    name: h['name']!,
+    role: h['role']!,
+    store: store,
+  ),
 };
 
 /// What a helper sees: [owner]'s day, weight, (trainer) gym and strength, and the notes.
 class HelperView extends StatelessWidget {
-  const HelperView({super.key, required this.owner, required this.name, required this.role, required this.store});
+  const HelperView({
+    super.key,
+    required this.owner,
+    required this.name,
+    required this.role,
+    required this.store,
+  });
   final String owner, name, role;
   final Store store;
 
@@ -461,115 +580,188 @@ class HelperView extends StatelessWidget {
           stream: Cloud.instance.progress(owner),
           builder: (context, snap) {
             final p = snap.data;
-            final d = p?.data ?? const <String, dynamic>{};
+            final d = p?.data ?? <String, dynamic>{};
             int n(String k) => (d[k] as num?)?.toInt() ?? 0;
             final stale = p != null && d['day'] != dayKey(DateTime.now());
             return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
                 PageHeader(
                   p?.name ?? name,
                   sub: p == null
-                      ? 'Waiting for their first update'
-                      : 'Day ${n('lap')} of 84 · ${n('streak')}-day streak · ${ago(p.at)}',
+                      ? tr(context, 'Waiting for their first update')
+                      : tr(
+                          context,
+                          "Day {day} of 84 · {streak}-day streak · {updated}",
+                          {
+                            "day": n('lap'),
+                            "streak": n('streak'),
+                            "updated": ago(p.at, context),
+                          },
+                        ),
                 ),
                 if (snap.connectionState == ConnectionState.waiting)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.all(40),
                     child: Center(child: CircularProgressIndicator.adaptive()),
                   ),
-                if (snap.hasError) Text('Couldn\'t load: ${snap.error}', style: t.sec()),
-                if (p == null && snap.connectionState != ConnectionState.waiting)
-                  const Tip(Icons.schedule_rounded, 'Shows up once they open Daur'),
+                if (snap.hasError)
+                  Text(
+                    tr(context, "Could not load: {error}", {
+                      "error": snap.error.toString(),
+                    }),
+                    style: t.sec(),
+                  ),
+                if (p == null &&
+                    snap.connectionState != ConnectionState.waiting)
+                  Tip(
+                    Icons.schedule_rounded,
+                    tr(context, 'Shows up once they open Daur'),
+                  ),
                 if (p != null) ...[
-                  if (stale) Tip(Icons.history_rounded, 'From ${d['day']} · they haven\'t opened Daur today'),
-                  const SizedBox(height: 16),
+                  if (stale)
+                    Tip(
+                      Icons.history_rounded,
+                      tr(
+                        context,
+                        "From {date} · they have not opened Daur today",
+                        {"date": d['day'] ?? ''},
+                      ),
+                    ),
+                  SizedBox(height: 16),
                   RingHero(
                     frac: n('kcal') / math.max(1, n('kcalGoal')),
                     big: thousands(n('kcal')),
-                    small: 'of ${thousands(n('kcalGoal'))} kcal',
+                    small: tr(context, "of {count} kcal", {
+                      "count": thousands(n('kcalGoal')),
+                    }),
                     pill: n('burnLeft') > 0
-                        ? '${thousands(n('burnLeft'))} kcal over'
+                        ? tr(context, "{count} kcal over", {
+                            "count": thousands(n('burnLeft')),
+                          })
                         : n('eatLeft') > 0
-                        ? '${thousands(n('eatLeft'))} kcal still to eat'
-                        : '${goalWords[n('goal')]} · ${n('protein')} g protein',
+                        ? tr(context, "{count} kcal still to eat", {
+                            "count": thousands(n('eatLeft')),
+                          })
+                        : tr(context, "{goal} · {count} g protein", {
+                            "goal": tr(context, goalWords[n('goal')]),
+                            "count": n('protein'),
+                          }),
                     done: false,
-                    label: '${n('kcal')} of ${n('kcalGoal')} kilocalories',
+                    label: tr(context, "{count} of {goal} kilocalories", {
+                      "count": n('kcal'),
+                      "goal": n('kcalGoal'),
+                    }),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   Tiles([
-                    (Icons.water_drop_outlined, '${litres(n('water'))} L', 'of ${litres(n('waterGoal'))} L'),
-                    (Icons.directions_walk_rounded, thousands(n('steps')), 'of ${thousands(n('stepTarget'))}'),
+                    (
+                      Icons.water_drop_outlined,
+                      '${litres(n('water'))} L',
+                      tr(context, "of {count} L", {
+                        "count": litres(n('waterGoal')),
+                      }),
+                    ),
+                    (
+                      Icons.directions_walk_rounded,
+                      thousands(n('steps')),
+                      tr(context, "of {count}", {
+                        "count": thousands(n('stepTarget')),
+                      }),
+                    ),
                     (
                       Icons.bedtime_outlined,
-                      d['sleepMin'] == null ? '–' : '${(n('sleepMin') / 60).toStringAsFixed(1)} h',
+                      d['sleepMin'] == null
+                          ? '–'
+                          : '${(n('sleepMin') / 60).toStringAsFixed(1)} h',
                       'sleep',
                     ),
                   ]),
-                  const SizedBox(height: 24),
-                  Text('Meals', style: t.meta()),
-                  for (final m in (d['meals'] as List? ?? const []).cast<Map>()) MealRow(m: m),
-                  for (final e in (d['extras'] as List? ?? const []).cast<Map>())
-                    MealRow(m: {'name': 'Extra', 'status': 'extra', 'food': e['name'], 'kcal': e['kcal']}),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
+                  Text(tr(context, 'Meals'), style: t.meta()),
+                  for (final m in (d['meals'] as List? ?? []).cast<Map>())
+                    MealRow(m: m),
+                  for (final e in (d['extras'] as List? ?? []).cast<Map>())
+                    MealRow(
+                      m: {
+                        'name': tr(context, 'Extra'),
+                        'status': 'extra',
+                        'food': e['name'],
+                        'kcal': e['kcal'],
+                      },
+                    ),
+                  SizedBox(height: 24),
                   _Weight(d: d),
                   if (role == 'trainer') ...[
-                    const SizedBox(height: 24),
+                    SizedBox(height: 24),
                     _Gym(d: d, owner: owner, ownerName: p.name),
-                    const SizedBox(height: 24),
-                    _ChartSection(d: d, owner: owner, ownerName: p.name, store: store),
+                    SizedBox(height: 24),
+                    _ChartSection(
+                      d: d,
+                      owner: owner,
+                      ownerName: p.name,
+                      store: store,
+                    ),
                   ],
                 ],
                 if (role == 'trainer') ...[
-                  const SizedBox(height: 24),
-                  Text('Quick feedback', style: t.meta()),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 24),
+                  Text(tr(context, 'Quick feedback'), style: t.meta()),
+                  SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final text in const [
-                        'Great week, keep going',
-                        'Missed sessions · back on it Monday',
-                        'Add 2.5 kg next time',
-                        'More protein, please',
-                        'Log every meal this week',
+                      for (final text in [
+                        tr(context, 'Great week, keep going'),
+                        tr(context, 'Missed sessions · back on it Monday'),
+                        tr(context, 'Add 2.5 kg next time'),
+                        tr(context, 'More protein, please'),
+                        tr(context, 'Log every meal this week'),
                       ])
                         ActionChip(
                           label: Text(text, style: t.sec(t.onAccent)),
                           backgroundColor: t.accent,
                           side: BorderSide.none,
-                          shape: const StadiumBorder(),
+                          shape: StadiumBorder(),
                           onPressed: () async {
                             HapticFeedback.lightImpact();
-                            final msg = await Cloud.instance.addNote(owner, text, role);
+                            final msg = await Cloud.instance.addNote(
+                              owner,
+                              text,
+                              role,
+                            );
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg ?? 'Sent')));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(msg ?? tr(context, 'Sent')),
+                                ),
+                              );
                             }
                           },
                         ),
                     ],
                   ),
                 ],
-                const SizedBox(height: 24),
-                Text('Notes', style: t.meta()),
-                const SizedBox(height: 8),
+                SizedBox(height: 24),
+                Text(tr(context, 'Notes'), style: t.meta()),
+                SizedBox(height: 8),
                 NotesThread(owner: owner, role: role, store: store),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 TextButton(
                   onPressed: () async {
                     if (await confirmPop(
                       context,
-                      'Stop helping $name?',
-                      'You stop seeing their progress.',
-                      'Stop',
+                      tr(context, "Stop helping {name}?", {"name": name}),
+                      tr(context, 'You stop seeing their progress.'),
+                      tr(context, 'Stop'),
                       destructive: true,
                     )) {
                       await Cloud.instance.leaveHelping(owner);
                       if (context.mounted) Navigator.maybePop(context);
                     }
                   },
-                  child: Text('Stop helping', style: t.sec(t.ink)),
+                  child: Text(tr(context, 'Stop helping'), style: t.sec(t.ink)),
                 ),
               ],
             );
@@ -589,7 +781,7 @@ class MealRow extends StatelessWidget {
     final t = Daur.of(context);
     final status = m['status'] as String? ?? 'todo';
     return Container(
-      constraints: const BoxConstraints(minHeight: 56),
+      constraints: BoxConstraints(minHeight: 56),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: t.rule, width: .5)),
       ),
@@ -602,7 +794,7 @@ class MealRow extends StatelessWidget {
             'extra' => Icons.add_circle_outline_rounded,
             _ => Icons.radio_button_unchecked_rounded,
           }, color: status == 'next' ? t.accent : t.ink),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -612,12 +804,14 @@ class MealRow extends StatelessWidget {
                 Text(
                   // a partner may not see the food itself (couple.dart privacy)
                   status == 'done' || status == 'extra'
-                      ? '${m['food'] ?? 'Done'}'
+                      ? '${m['food'] ?? tr(context, 'Done')}'
                       : status == 'skipped'
-                      ? 'Skipped'
+                      ? tr(context, 'Skipped')
                       : m['food'] == null
                       ? ''
-                      : 'Planned: ${m['food']}',
+                      : tr(context, "Planned: {food}", {
+                          "food": m['food'] ?? '',
+                        }),
                   style: t.meta(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -629,8 +823,12 @@ class MealRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text((m['time'] ?? m['window'] ?? '') as String, style: t.meta(t.ink)),
-              if (status == 'done' || status == 'extra') Text('${m['kcal']} kcal', style: t.meta()),
+              Text(
+                (m['time'] ?? m['window'] ?? '') as String,
+                style: t.meta(t.ink),
+              ),
+              if (status == 'done' || status == 'extra')
+                Text('${m['kcal']} kcal', style: t.meta()),
             ],
           ),
         ],
@@ -646,14 +844,18 @@ class _Weight extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
-    final now = (d['nowKg'] as num?)?.toDouble(), start = (d['startKg'] as num?)?.toDouble();
-    final pts = [for (final w in (d['weights'] as List? ?? const [])) ((w as List)[1] as num).toDouble()];
+    final now = (d['nowKg'] as num?)?.toDouble(),
+        start = (d['startKg'] as num?)?.toDouble();
+    final pts = [
+      for (final w in (d['weights'] as List? ?? []))
+        ((w as List)[1] as num).toDouble(),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Expanded(child: Text('Weight', style: t.meta())),
+            Expanded(child: Text(tr(context, 'Weight'), style: t.meta())),
             if (now != null && start != null)
               Text(
                 '${now <= start ? '−' : '+'}${(now - start).abs().toStringAsFixed(1)} kg since day 1',
@@ -661,10 +863,15 @@ class _Weight extends StatelessWidget {
               ),
           ],
         ),
-        const SizedBox(height: 6),
-        Text(now == null ? 'No weigh-in yet' : '${now.toStringAsFixed(1)} kg', style: t.x(28)),
+        SizedBox(height: 6),
+        Text(
+          now == null
+              ? tr(context, 'No weigh-in yet')
+              : '${now.toStringAsFixed(1)} kg',
+          style: t.x(28),
+        ),
         if (pts.length > 1) ...[
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           SizedBox(
             height: 60,
             child: CustomPaint(painter: _Line(pts, t), size: Size.infinite),
@@ -684,10 +891,12 @@ class _Gym extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
-    final sessions = (d['sessions'] as List? ?? const []).cast<List>();
-    final strength = (d['strength'] as List? ?? const []).cast<Map>();
+    final sessions = (d['sessions'] as List? ?? []).cast<List>();
+    final strength = (d['strength'] as List? ?? []).cast<Map>();
     // older phones don't send the workout yet: no editor until they update
-    final workout = d['workout'] is Map ? workoutFrom(d['workout'] as Map) : null;
+    final workout = d['workout'] is Map
+        ? workoutFrom(d['workout'] as Map)
+        : null;
     final by = d['gymBy'] as String? ?? '';
     String amount(num v, String unit) => unit == 's'
         ? '${v.round()} s'
@@ -699,38 +908,60 @@ class _Gym extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: Text('Gym', style: t.meta())),
-            Text('${(d['gymThisWeek'] as num?)?.toInt() ?? 0} of 3–5 this week', style: t.meta(t.ink)),
+            Expanded(child: Text(tr(context, 'Gym'), style: t.meta())),
+            Text(
+              tr(context, "{count} of 3–5 this week", {
+                "count": (d['gymThisWeek'] as num?)?.toInt() ?? 0,
+              }),
+              style: t.meta(t.ink),
+            ),
           ],
         ),
         for (final x in sessions)
           Container(
-            constraints: const BoxConstraints(minHeight: 44),
+            constraints: BoxConstraints(minHeight: 44),
             decoration: BoxDecoration(
               border: Border(top: BorderSide(color: t.rule, width: .5)),
             ),
             child: Row(
               children: [
                 Expanded(
-                  child: Text('${x[1] ?? 'Gym'} day', style: t.body(weight: FontWeight.w500)),
+                  child: Text(
+                    tr(context, "{day} day", {
+                      "day": tr(context, (x[1] ?? 'Gym').toString()),
+                    }),
+                    style: t.body(weight: FontWeight.w500),
+                  ),
                 ),
-                Text('${niceDate(DateTime.parse(x[0] as String))} · ${x[2]} done', style: t.meta()),
+                Text(
+                  tr(context, "{date} · {count} done", {
+                    "date": niceDate(DateTime.parse(x[0] as String)),
+                    "count": x[2] ?? 0,
+                  }),
+                  style: t.meta(),
+                ),
               ],
             ),
           ),
         if (strength.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Text('Strength since the first session', style: t.meta()),
+          SizedBox(height: 16),
+          Text(
+            tr(context, 'Strength since the first session'),
+            style: t.meta(),
+          ),
           for (final x in strength)
             Container(
-              constraints: const BoxConstraints(minHeight: 44),
+              constraints: BoxConstraints(minHeight: 44),
               decoration: BoxDecoration(
                 border: Border(top: BorderSide(color: t.rule, width: .5)),
               ),
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(x['ex'] as String? ?? '', style: t.body(weight: FontWeight.w500)),
+                    child: Text(
+                      x['ex'] as String? ?? '',
+                      style: t.body(weight: FontWeight.w500),
+                    ),
                   ),
                   Text(
                     '${amount(x['start'] as num, x['unit'] as String)} → ${amount(x['now'] as num, x['unit'] as String)}',
@@ -741,16 +972,21 @@ class _Gym extends StatelessWidget {
             ),
         ],
         if (workout != null) ...[
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: Text('Workout', style: t.meta())),
-              Text(by.isEmpty ? 'their own plan' : 'by $by', style: t.meta(t.ink)),
+              Expanded(child: Text(tr(context, 'Workout'), style: t.meta())),
+              Text(
+                by.isEmpty
+                    ? tr(context, 'their own plan')
+                    : tr(context, "by {name}", {"name": by}),
+                style: t.meta(t.ink),
+              ),
             ],
           ),
           for (final MapEntry(key: day, value: list) in workout.entries)
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              padding: EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
                 border: Border(top: BorderSide(color: t.rule, width: .5)),
               ),
@@ -758,28 +994,39 @@ class _Gym extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(dayIcon(day), size: 20, color: t.ink),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('$day day', style: t.body(weight: FontWeight.w500)),
-                        if (list.isEmpty) Text('nothing yet', style: t.meta()),
-                        for (final (n, p) in list) Text('$n · ${planText(p)}', style: t.meta()),
+                        Text(
+                          tr(context, "{day} day", {"day": tr(context, day)}),
+                          style: t.body(weight: FontWeight.w500),
+                        ),
+                        if (list.isEmpty)
+                          Text(tr(context, 'nothing yet'), style: t.meta()),
+                        for (final (n, p) in list)
+                          Text('$n · ${planText(p)}', style: t.meta()),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Cta(
-            label: 'Edit workout',
-            trailing: '${workout.values.fold(0, (a, l) => a + l.length)} exercises',
+            label: tr(context, 'Edit workout'),
+            trailing: tr(context, "{count} exercises", {
+              "count": workout.values.fold<int>(0, (a, l) => a + l.length),
+            }),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => WorkoutEditor(owner: owner, ownerName: ownerName, initial: workout),
+                builder: (_) => WorkoutEditor(
+                  owner: owner,
+                  ownerName: ownerName,
+                  initial: workout,
+                ),
               ),
             ),
           ),
@@ -791,7 +1038,12 @@ class _Gym extends StatelessWidget {
 
 /// For the trainer: the diet chart this person follows, one line per meal, and Edit.
 class _ChartSection extends StatelessWidget {
-  const _ChartSection({required this.d, required this.owner, required this.ownerName, required this.store});
+  const _ChartSection({
+    required this.d,
+    required this.owner,
+    required this.ownerName,
+    required this.store,
+  });
   final Map<String, dynamic> d;
   final String owner, ownerName;
   final Store store;
@@ -799,44 +1051,57 @@ class _ChartSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Daur.of(context);
-    final chart = [for (final m in (d['chart'] as List? ?? const [])) Meal.from(m as Map)];
-    if (chart.length != 4) return const SizedBox.shrink();
+    final chart = [
+      for (final m in (d['chart'] as List? ?? [])) Meal.from(m as Map),
+    ];
+    if (chart.length != 4) return SizedBox.shrink();
     final by = d['chartBy'] as String? ?? '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Expanded(child: Text('Diet chart', style: t.meta())),
-            Text(by.isEmpty ? 'the starting plan' : 'by $by', style: t.meta(t.ink)),
+            Expanded(child: Text(tr(context, 'Diet chart'), style: t.meta())),
+            Text(
+              by.isEmpty
+                  ? tr(context, 'the starting plan')
+                  : tr(context, "by {name}", {"name": by}),
+              style: t.meta(t.ink),
+            ),
           ],
         ),
         for (final m in chart)
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
               border: Border(top: BorderSide(color: t.rule, width: .5)),
             ),
             child: Row(
               children: [
                 Icon(mealIcon(m.id), size: 20, color: t.ink),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(m.name, style: t.body(weight: FontWeight.w500)),
-                      Text(m.options.map((o) => o.name).join(' · '), style: t.meta(), maxLines: 2),
+                      Text(
+                        m.options.map((o) => o.name).join(' · '),
+                        style: t.meta(),
+                        maxLines: 2,
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Cta(
-          label: 'Edit diet chart',
-          trailing: '${(d['kcalGoal'] as num?)?.toInt() ?? 0} kcal a day',
+          label: tr(context, 'Edit diet chart'),
+          trailing: tr(context, "{count} kcal a day", {
+            "count": (d['kcalGoal'] as num?)?.toInt() ?? 0,
+          }),
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
@@ -862,7 +1127,9 @@ class _Line extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final lo = pts.reduce(math.min), hi = pts.reduce(math.max), span = math.max(.5, hi - lo);
+    final lo = pts.reduce(math.min),
+        hi = pts.reduce(math.max),
+        span = math.max(.5, hi - lo);
     const r = 6.0; // room for the end dot
     final w = size.width - r, h = size.height - 2 * r;
     final path = Path();
@@ -896,7 +1163,9 @@ class HelperHome extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([store, Cloud.instance]),
     builder: (context, _) {
-      if (Cloud.instance.signedIn && store.helping.length == 1 && store.role != 'trainer') {
+      if (Cloud.instance.signedIn &&
+          store.helping.length == 1 &&
+          store.role != 'trainer') {
         return helperPage(store.helping.first, store);
       }
       return PeopleScreen(store: store, standalone: true);
@@ -919,47 +1188,75 @@ class PeopleScreen extends StatelessWidget {
       listenable: Listenable.merge([store, c]),
       builder: (context, _) {
         final s = store;
-        if (s.role == 'trainer') return StudentsScreen(store: s, standalone: standalone);
+        if (s.role == 'trainer') {
+          return StudentsScreen(store: s, standalone: standalone);
+        }
         final title = s.role == 'trainer'
-            ? 'Students'
+            ? tr(context, 'Students')
             : s.role == 'family'
-            ? 'Family'
-            : 'People';
+            ? tr(context, 'Family')
+            : tr(context, 'People');
         return Scaffold(
           body: SafeArea(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+              padding: EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
                 Row(
                   children: [
-                    if (!standalone) const MenuButton(),
-                    Expanded(child: Text(standalone ? 'Daur' : title, style: t.title())),
+                    if (!standalone) MenuButton(),
+                    Expanded(
+                      child: Text(
+                        standalone ? 'Daur' : title,
+                        style: t.title(),
+                      ),
+                    ),
                   ],
                 ),
                 Text(
-                  standalone ? 'Helping with their plan' : 'Their day at a glance · a dot needs a look',
+                  standalone
+                      ? tr(context, 'Helping with their plan')
+                      : tr(
+                          context,
+                          'Their day at a glance · a dot needs a look',
+                        ),
                   style: t.sec(),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 if (!c.signedIn) ...[
-                  const Tip(Icons.vpn_key_outlined, 'Sign in, then enter the code they sent you'),
-                  const SizedBox(height: 16),
-                  GoogleButton(busy: c.busy, onPressed: () => c.signInWithGoogle()),
+                  Tip(
+                    Icons.vpn_key_outlined,
+                    tr(context, 'Sign in, then enter the code they sent you'),
+                  ),
+                  SizedBox(height: 16),
+                  GoogleButton(
+                    busy: c.busy,
+                    onPressed: () => c.signInWithGoogle(),
+                  ),
                 ] else ...[
                   if (s.helping.isEmpty)
-                    const Tip(Icons.vpn_key_outlined, 'Ask for their code: in their Daur, Menu → Coaches → Invite'),
+                    Tip(
+                      Icons.vpn_key_outlined,
+                      tr(
+                        context,
+                        'Ask for their code: in their Daur, Menu → Coaches → Invite',
+                      ),
+                    ),
                   for (final (i, h) in s.helping.indexed)
                     SlideIn(
                       i: i,
                       child: _Helped(h: h, store: s),
                     ),
-                  const SizedBox(height: 16),
-                  Text('Add someone', style: t.meta()),
+                  SizedBox(height: 16),
+                  Text(tr(context, 'Add someone'), style: t.meta()),
                   JoinByCode(store: s),
                 ],
                 if (standalone) ...[
-                  const SizedBox(height: 32),
-                  Cta(label: 'Start my own plan too', muted: true, onTap: () => s.setHelperOnly(false)),
+                  SizedBox(height: 32),
+                  Cta(
+                    label: tr(context, 'Start my own plan too'),
+                    muted: true,
+                    onTap: () => s.setHelperOnly(false),
+                  ),
                 ],
               ],
             ),
@@ -1000,7 +1297,10 @@ class JoinByCodeState extends State<JoinByCode> {
             }
           },
         ),
-        if (_error != null) ...[const SizedBox(height: 8), Text(_error!, style: t.body())],
+        if (_error != null) ...[
+          SizedBox(height: 8),
+          Text(tr(context, _error!), style: t.body()),
+        ],
       ],
     );
   }
@@ -1017,29 +1317,43 @@ class _Helped extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     return StreamBuilder(
-      stream: Cloud.instance.progress(h['owner']!, partner: h['role'] == 'partner'),
+      stream: Cloud.instance.progress(
+        h['owner']!,
+        partner: h['role'] == 'partner',
+      ),
       builder: (context, snap) {
-        final d = snap.data?.data ?? const <String, dynamic>{};
+        final d = snap.data?.data ?? <String, dynamic>{};
         int n(String k) => (d[k] as num?)?.toInt() ?? 0;
         final today = d['day'] == dayKey(DateTime.now());
-        final now = (d['nowKg'] as num?)?.toDouble(), start = (d['startKg'] as num?)?.toDouble();
+        final now = (d['nowKg'] as num?)?.toDouble(),
+            start = (d['startKg'] as num?)?.toDouble();
         final status = snap.data == null
-            ? 'Waiting for their first update'
+            ? tr(context, 'Waiting for their first update')
             : [
-                goalWords[n('goal')],
-                today ? '${thousands(n('kcal'))}/${thousands(n('kcalGoal'))} kcal' : 'Not opened today',
-                if (h['role'] != 'diet') 'gym ${n('gymThisWeek')}/wk',
+                tr(context, goalWords[n('goal')]),
+                today
+                    ? '${thousands(n('kcal'))}/${thousands(n('kcalGoal'))} kcal'
+                    : tr(context, 'Not opened today'),
+                if (h['role'] != 'diet')
+                  tr(context, "gym {count}/wk", {"count": n('gymThisWeek')}),
                 if (now != null && start != null)
                   '${now <= start ? '−' : '+'}${(now - start).abs().toStringAsFixed(1)} kg',
               ].join(' · ');
         // needs a look: not opened today; over target (losing, keeping); short in the evening (gaining)
         final flag =
             snap.data != null &&
-            (!today || n('burnLeft') > 0 || (n('goal') == 2 && n('eatLeft') > 0 && DateTime.now().hour >= 18));
+            (!today ||
+                n('burnLeft') > 0 ||
+                (n('goal') == 2 &&
+                    n('eatLeft') > 0 &&
+                    DateTime.now().hour >= 18));
         return InkWell(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => helperPage(h, store))),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => helperPage(h, store)),
+          ),
           child: Container(
-            constraints: const BoxConstraints(minHeight: 64),
+            constraints: BoxConstraints(minHeight: 64),
             decoration: BoxDecoration(
               border: Border(top: BorderSide(color: t.rule, width: .5)),
             ),
@@ -1048,17 +1362,32 @@ class _Helped extends StatelessWidget {
                 CircleAvatar(
                   radius: 20,
                   backgroundColor: t.infield,
-                  foregroundImage: snap.data?.photo == null ? null : NetworkImage(snap.data!.photo!),
-                  child: Text((h['name'] ?? '?').isEmpty ? '?' : h['name']![0], style: t.body()),
+                  foregroundImage: snap.data?.photo == null
+                      ? null
+                      : NetworkImage(snap.data!.photo!),
+                  child: Text(
+                    (h['name'] ?? '?').isEmpty ? '?' : h['name']![0],
+                    style: t.body(),
+                  ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(h['name'] ?? '', style: t.body(), maxLines: 1, overflow: TextOverflow.ellipsis),
-                      Text(status, style: t.meta(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(
+                        h['name'] ?? '',
+                        style: t.body(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        tr(context, status),
+                        style: t.meta(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),
@@ -1066,8 +1395,11 @@ class _Helped extends StatelessWidget {
                   Container(
                     width: 10,
                     height: 10,
-                    margin: const EdgeInsets.only(right: 6),
-                    decoration: BoxDecoration(color: t.accent, shape: BoxShape.circle),
+                    margin: EdgeInsets.only(right: 6),
+                    decoration: BoxDecoration(
+                      color: t.accent,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 Icon(Icons.chevron_right_rounded, color: t.ink2),
               ],
@@ -1088,32 +1420,43 @@ class NoteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Daur.of(context);
     final c = Cloud.instance, me = c.user?.uid;
-    if (me == null || store.inviteCodes.isEmpty) return const SizedBox.shrink();
+    if (me == null || store.inviteCodes.isEmpty) return SizedBox.shrink();
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: c.notes(me),
       builder: (context, snap) {
-        final n = (snap.data ?? const []).where((n) => n['fromUid'] != me).firstOrNull;
-        final at = (n?['at'] as dynamic)?.toDate()?.toIso8601String() as String?;
-        if (n == null || at == null || at.compareTo(store.notesSeen) <= 0) return const SizedBox.shrink();
+        final n = (snap.data ?? [])
+            .where((n) => n['fromUid'] != me)
+            .firstOrNull;
+        final at =
+            (n?['at'] as dynamic)?.toDate()?.toIso8601String() as String?;
+        if (n == null || at == null || at.compareTo(store.notesSeen) <= 0) {
+          return SizedBox.shrink();
+        }
         return Padding(
-          padding: const EdgeInsets.only(top: 12),
+          padding: EdgeInsets.only(top: 12),
           child: Material(
             color: t.infield,
             borderRadius: BorderRadius.circular(18),
             child: InkWell(
               borderRadius: BorderRadius.circular(18),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CoachesScreen(store: store))),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => CoachesScreen(store: store)),
+              ),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+                padding: EdgeInsets.fromLTRB(14, 12, 4, 12),
                 child: Row(
                   children: [
                     Icon(Icons.chat_bubble_outline_rounded, color: t.accent),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('${n['name']} · ${roleNames[n['role']] ?? ''}', style: t.meta()),
+                          Text(
+                            '${n['name']} · ${tr(context, roleNames[n['role']] ?? '')}',
+                            style: t.meta(),
+                          ),
                           Text(
                             n['text'] as String? ?? '',
                             style: t.body(),
@@ -1124,7 +1467,7 @@ class NoteCard extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Dismiss',
+                      tooltip: tr(context, 'Dismiss'),
                       icon: Icon(Icons.close_rounded, color: t.ink2),
                       onPressed: () => store.seeNotes(at),
                     ),

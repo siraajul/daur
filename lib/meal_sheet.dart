@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,13 +17,17 @@ import 'today.dart' show Cta, thousands, junkStatus;
 
 /// Opens the logging sheet for [meal], or for an extra between meals when [meal] is null.
 /// Returns a short message for the undo snackbar, or null if nothing changed.
-Future<String?> showMealSheet(BuildContext context, Store store, {Meal? meal, int n = 0}) =>
-    showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => MealSheet(store: store, meal: meal, n: n),
-    );
+Future<String?> showMealSheet(
+  BuildContext context,
+  Store store, {
+  Meal? meal,
+  int n = 0,
+}) => showModalBottomSheet<String>(
+  context: context,
+  isScrollControlled: true,
+  useSafeArea: true,
+  builder: (_) => MealSheet(store: store, meal: meal, n: n),
+);
 
 enum _Mode { plan, other }
 
@@ -50,7 +56,9 @@ class _MealSheetState extends State<MealSheet> {
   bool get logged => m != null && s.done.containsKey(m!.id);
 
   late _Mode mode = isExtra || s.ateOther(m!) ? _Mode.other : _Mode.plan;
-  late int opt = m == null ? 0 : m!.options.indexOf(s.chosen(m!)); // the same option Today shows
+  late int opt = m == null
+      ? 0
+      : m!.options.indexOf(s.chosen(m!)); // the same option Today shows
   late double portion = m == null ? 1 : s.portionOf(m!);
   late final List<Eaten> plate = [...?s.other[m?.id]];
   final _search = TextEditingController();
@@ -79,11 +87,15 @@ class _MealSheetState extends State<MealSheet> {
       : plate.fold(0, (a, e) => a + e.totalProtein);
 
   /// Logging this selection makes a new junk meal (a keep-rare food where there wasn't one).
-  bool get addsJunk => mode == _Mode.other && plate.any((e) => e.rare) && !(m != null && s.mealRare(m!));
+  bool get addsJunk =>
+      mode == _Mode.other &&
+      plate.any((e) => e.rare) &&
+      !(m != null && s.mealRare(m!));
 
   /// The day's totals if this selection is logged (replacing what this meal counted before).
   (int, int) get after {
-    final prevK = logged ? s.mealKcal(m!) : 0, prevP = logged ? s.mealProtein(m!) : 0;
+    final prevK = logged ? s.mealKcal(m!) : 0,
+        prevP = logged ? s.mealProtein(m!) : 0;
     return (s.kcal - prevK + selKcal, s.protein - prevP + selProtein);
   }
 
@@ -111,14 +123,19 @@ class _MealSheetState extends State<MealSheet> {
       setState(() {
         for (final e in items) {
           final i = plate.indexWhere((p) => p.name == e.name);
-          i < 0 ? plate.add(e) : plate[i] = plate[i].withQty(plate[i].qty + e.qty);
+          i < 0
+              ? plate.add(e)
+              : plate[i] = plate[i].withQty(plate[i].qty + e.qty);
         }
         _search.clear();
       });
       HapticFeedback.mediumImpact();
-      if (items.isEmpty) _say('Couldn\'t find food in that. Try "2 parathas and an egg".');
+      if (items.isEmpty)
+        { _say('Couldn\'t find food in that. Try "2 parathas and an egg".'); }
     } on AiQuotaGone {
-      _say('Today\'s free AI estimates are used up. Back at ${MealAi.resetsAt()}.');
+      _say(
+        'Today\'s free AI estimates are used up. Back at ${MealAi.resetsAt()}.',
+      );
     } catch (e) {
       debugPrint('MealAi: $e');
       _say('AI estimate unavailable right now. Search the list instead.');
@@ -128,8 +145,9 @@ class _MealSheetState extends State<MealSheet> {
     }
   }
 
-  void _say(String msg) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(behavior: SnackBarBehavior.floating, content: Text(msg)));
+  void _say(String msg) => ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(behavior: SnackBarBehavior.floating, content: Text(msg)),
+  );
 
   Widget _aiRow(Daur t, String text) {
     final saved = s.hasEstimate(text); // estimated before: reused, no AI
@@ -143,7 +161,10 @@ class _MealSheetState extends State<MealSheet> {
             Container(
               width: 40,
               height: 40,
-              decoration: BoxDecoration(color: t.accent, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: t.accent,
+                shape: BoxShape.circle,
+              ),
               child: _aiBusy
                   ? Padding(
                       padding: const EdgeInsets.all(11),
@@ -152,7 +173,13 @@ class _MealSheetState extends State<MealSheet> {
                         valueColor: AlwaysStoppedAnimation(t.onAccent),
                       ),
                     )
-                  : Icon(saved ? Icons.bookmark_rounded : Icons.auto_awesome_rounded, color: t.onAccent, size: 20),
+                  : Icon(
+                      saved
+                          ? Icons.bookmark_rounded
+                          : Icons.auto_awesome_rounded,
+                      color: t.onAccent,
+                      size: 20,
+                    ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -174,7 +201,8 @@ class _MealSheetState extends State<MealSheet> {
                         ? 'Saved earlier · no AI used'
                         : switch (_aiLeft) {
                             null => 'AI · check the numbers before logging',
-                            0 => 'Free AI used up today · back at ${MealAi.resetsAt()}',
+                            0 =>
+                              'Free AI used up today · back at ${MealAi.resetsAt()}',
                             final n => 'AI · $n left today · check the numbers',
                           },
                     style: t.meta(t.sheetInk2),
@@ -188,7 +216,9 @@ class _MealSheetState extends State<MealSheet> {
     );
   }
 
-  void _setQty(int i, double q) => setState(() => q <= 0 ? plate.removeAt(i) : plate[i] = plate[i].withQty(q));
+  void _setQty(int i, double q) => setState(
+    () => q <= 0 ? plate.removeAt(i) : plate[i] = plate[i].withQty(q),
+  );
 
   Future<void> _custom() async {
     final e = await editFood(context, s, name: query.trim());
@@ -211,7 +241,10 @@ class _MealSheetState extends State<MealSheet> {
     } else {
       s.logMeal(m!, instead: List.of(plate));
     }
-    Navigator.pop(context, '${m!.name} ${wasLogged ? 'updated' : 'logged'} · $selKcal kcal');
+    Navigator.pop(
+      context,
+      '${m!.name} ${wasLogged ? 'updated' : 'logged'} · $selKcal kcal',
+    );
   }
 
   @override
@@ -237,9 +270,23 @@ class _MealSheetState extends State<MealSheet> {
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                 children: [
                   // header
-                  if (!isExtra) Text('Meal ${widget.n ~/ 100} of 4', style: t.sec(t.sheetRed)),
-                  Text(isExtra ? 'Extra' : m!.name, style: t.title(t.sheetInk)),
-                  Text(isExtra ? 'Between meals · counts to the day' : m!.window, style: t.sec(t.sheetInk2)),
+                  if (!isExtra)
+                    Text(
+                      tr(context, 'Meal {value1} of 4', {
+                        'value1': widget.n ~/ 100,
+                      }),
+                      style: t.sec(t.sheetRed),
+                    ),
+                  Text(
+                    isExtra ? tr(context, 'Extra') : m!.name,
+                    style: t.title(t.sheetInk),
+                  ),
+                  Text(
+                    isExtra
+                        ? tr(context, 'Between meals · counts to the day')
+                        : m!.window,
+                    style: t.sec(t.sheetInk2),
+                  ),
                   const SizedBox(height: 16),
                   // impact before logging
                   Text.rich(
@@ -248,10 +295,17 @@ class _MealSheetState extends State<MealSheet> {
                       children: [
                         const TextSpan(text: 'Today after this: '),
                         TextSpan(
-                          text: '${thousands(aK)} of ${thousands(s.kcalGoal)} kcal',
-                          style: TextStyle(color: over > 0 ? t.sheetRed : t.sheetInk, fontWeight: FontWeight.w600),
+                          text:
+                              '${thousands(aK)} of ${thousands(s.kcalGoal)} kcal',
+                          style: TextStyle(
+                            color: over > 0 ? t.sheetRed : t.sheetInk,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                        TextSpan(text: ' · $aP g protein${over > 0 ? ' · over by ${thousands(over)}' : ''}'),
+                        TextSpan(
+                          text:
+                              ' · $aP g protein${over > 0 ? ' · over by ${thousands(over)}' : ''}',
+                        ),
                       ],
                     ),
                   ),
@@ -269,9 +323,18 @@ class _MealSheetState extends State<MealSheet> {
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        Icon(Icons.fastfood_outlined, size: 18, color: t.sheetRed),
+                        Icon(
+                          Icons.fastfood_outlined,
+                          size: 18,
+                          color: t.sheetRed,
+                        ),
                         const SizedBox(width: 8),
-                        Expanded(child: Text(junkStatus(s, adding: 1).$1, style: t.sec(t.sheetRed))),
+                        Expanded(
+                          child: Text(
+                            junkStatus(s, adding: 1).$1,
+                            style: t.sec(t.sheetRed),
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -297,7 +360,12 @@ class _MealSheetState extends State<MealSheet> {
                 color: t.sheet,
                 border: Border(top: BorderSide(color: t.sheetRule)),
               ),
-              padding: EdgeInsets.fromLTRB(16, 12, 16, 8 + MediaQuery.paddingOf(context).bottom),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                12,
+                16,
+                8 + MediaQuery.paddingOf(context).bottom,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -319,11 +387,18 @@ class _MealSheetState extends State<MealSheet> {
                     TextButton(
                       onPressed: () {
                         HapticFeedback.selectionClick();
-                        final msg = logged ? '${m!.name} cleared' : '${m!.name} skipped';
+                        final msg = logged
+                            ? '${m!.name} cleared'
+                            : '${m!.name} skipped';
                         logged ? s.unlogMeal(m!) : s.skipMeal(m!);
                         Navigator.pop(context, msg);
                       },
-                      child: Text(logged ? 'Clear $name' : 'Skip $name', style: t.sec(t.sheetInk2)),
+                      child: Text(
+                        logged
+                            ? tr(context, 'Clear {value1}', {'value1': name})
+                            : tr(context, 'Skip {value1}', {'value1': name}),
+                        style: t.sec(t.sheetInk2),
+                      ),
                     ),
                 ],
               ),
@@ -335,11 +410,17 @@ class _MealSheetState extends State<MealSheet> {
   }
 
   List<Widget> _planned(Daur t) => [
-    if (s.dietPreference != 'any' && !s.acceptsFood('${m!.options[opt].name} ${m!.options[opt].items.join(' ')}'))
+    if (s.dietPreference != 'any' &&
+        !s.acceptsFood(
+          '${m!.options[opt].name} ${m!.options[opt].items.join(' ')}',
+        ))
       Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Text(
-          'This planned option does not match your food preference. Use Something else to find an alternative. You can still log what you actually ate.',
+          tr(
+            context,
+            'This planned option does not match your food preference. Use Something else to find an alternative. You can still log what you actually ate.',
+          ),
           style: t.sec(t.sheetRed),
         ),
       ),
@@ -347,7 +428,11 @@ class _MealSheetState extends State<MealSheet> {
       Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Text(
-          'Your food notes: ${s.allergyNotes}. Check ingredients and preparation before choosing.',
+          tr(
+            context,
+            'Your food notes: {value1}. Check ingredients and preparation before choosing.',
+            {'value1': s.allergyNotes},
+          ),
           style: t.sec(t.sheetInk2),
         ),
       ),
@@ -373,8 +458,15 @@ class _MealSheetState extends State<MealSheet> {
                       right: -4,
                       bottom: -4,
                       child: Container(
-                        decoration: BoxDecoration(color: t.sheet, shape: BoxShape.circle),
-                        child: Icon(Icons.check_circle, color: t.sheetRed, size: 20),
+                        decoration: BoxDecoration(
+                          color: t.sheet,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.check_circle,
+                          color: t.sheetRed,
+                          size: 20,
+                        ),
                       ),
                     ),
                 ],
@@ -384,20 +476,35 @@ class _MealSheetState extends State<MealSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(o.name, style: t.body(color: t.sheetInk)),
-                    if (i == opt) Text(o.items.join(' · '), style: t.sec(t.sheetInk2)),
+                    Text((s.ramadan ? s.ramadanChart : s.chart) == null ? tr(context, o.name) : o.name, style: t.body(color: t.sheetInk)),
+                    if (i == opt)
+                      Text(((s.ramadan ? s.ramadanChart : s.chart) == null ? o.items.map((item) => tr(context, item)) : o.items).join(' · '), style: t.sec(t.sheetInk2)),
                     // the menu is written for 1,800 kcal; a personal plan eats more or less of it
                     if (i == opt && (s.mealScale(m!) - 1).abs() >= .05)
-                      Text('Your portion: ${(s.mealScale(m!) * 100).round()}% of this', style: t.meta(t.sheetRed)),
+                      Text(
+                        tr(context, 'Your portion: {value1}% of this', {
+                          'value1': (s.mealScale(m!) * 100).round(),
+                        }),
+                        style: t.meta(t.sheetRed),
+                      ),
                   ],
                 ),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('${(s.optKcal(m!, o) * (i == opt ? portion : 1)).round()} kcal', style: t.sec(t.sheetInk)),
                   Text(
-                    '${(s.optProtein(m!, o) * (i == opt ? portion : 1)).round()} g protein',
+                    tr(context, '{value1} kcal', {
+                      'value1': (s.optKcal(m!, o) * (i == opt ? portion : 1))
+                          .round(),
+                    }),
+                    style: t.sec(t.sheetInk),
+                  ),
+                  Text(
+                    tr(context, '{value1} g protein', {
+                      'value1': (s.optProtein(m!, o) * (i == opt ? portion : 1))
+                          .round(),
+                    }),
                     style: t.meta(t.sheetInk2),
                   ),
                 ],
@@ -407,21 +514,28 @@ class _MealSheetState extends State<MealSheet> {
         ),
       ),
     const SizedBox(height: 8),
-    Text('How much?', style: t.meta(t.sheetInk2)),
+    Text(tr(context, 'How much?'), style: t.meta(t.sheetInk2)),
     const SizedBox(height: 8),
     Wrap(
       spacing: 8,
       children: [
         for (final p in _portions)
           ChoiceChip(
-            label: Text(p == 1 ? 'As planned' : '${qtyText(p)}×'),
+            label: Text(
+              p == 1
+                  ? tr(context, 'As planned')
+                  : tr(context, '{value1}×', {'value1': qtyText(p)}),
+            ),
             selected: portion == p,
             onSelected: (_) {
               HapticFeedback.selectionClick();
               setState(() => portion = p);
             },
             selectedColor: t.accent,
-            labelStyle: TextStyle(color: portion == p ? t.onAccent : t.sheetInk, fontWeight: FontWeight.w600),
+            labelStyle: TextStyle(
+              color: portion == p ? t.onAccent : t.sheetInk,
+              fontWeight: FontWeight.w600,
+            ),
             backgroundColor: t.sheet,
             side: BorderSide(color: t.sheetRule),
           ),
@@ -452,7 +566,8 @@ class _MealSheetState extends State<MealSheet> {
     final list = foods
         .where(
           (f) =>
-              (_showAllFoods || s.acceptsFood(f.name)) && (q.isEmpty ? (_cat == null || f.cat == _cat) : f.matches(q)),
+              (_showAllFoods || s.acceptsFood(f.name)) &&
+              (q.isEmpty ? (_cat == null || f.cat == _cat) : f.matches(q)),
         )
         .map(Eaten.of)
         .toList();
@@ -460,7 +575,9 @@ class _MealSheetState extends State<MealSheet> {
     list.addAll(
       s.aiFoods.where(
         (e) =>
-            (q.isNotEmpty ? foodMatches(e.name, '', q) : _cat != null && e.cat == _cat) &&
+            (q.isNotEmpty
+                ? foodMatches(e.name, '', q)
+                : _cat != null && e.cat == _cat) &&
             (_showAllFoods || s.acceptsFood(e.name)) &&
             !list.any((f) => f.name == e.name),
       ),
@@ -479,7 +596,12 @@ class _MealSheetState extends State<MealSheet> {
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(
             children: [
-              IconDisc(foodIcon(e.name, e.cat), size: 40, onSheet: true, rare: e.rare),
+              IconDisc(
+                foodIcon(e.name, e.cat),
+                size: 40,
+                onSheet: true,
+                rare: e.rare,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -493,16 +615,32 @@ class _MealSheetState extends State<MealSheet> {
                     Wrap(
                       spacing: 10,
                       children: [
-                        Text(portionText ?? 'portion', style: t.meta(t.sheetInk2)),
-                        Stat(Icons.local_fire_department_outlined, '${e.kcal}', color: t.sheetInk2, size: 12),
-                        Stat(Icons.fitness_center_rounded, '${e.protein} g', color: t.sheetInk2, size: 12),
+                        Text(
+                          portionText ?? tr(context, 'portion'),
+                          style: t.meta(t.sheetInk2),
+                        ),
+                        Stat(
+                          Icons.local_fire_department_outlined,
+                          '${e.kcal}',
+                          color: t.sheetInk2,
+                          size: 12,
+                        ),
+                        Stat(
+                          Icons.fitness_center_rounded,
+                          '${e.protein} g',
+                          color: t.sheetInk2,
+                          size: 12,
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
               if (inPlate != null)
-                Text('${qtyText(inPlate.qty)}×', style: t.body(color: t.sheetRed))
+                Text(
+                  tr(context, '{value1}×', {'value1': qtyText(inPlate.qty)}),
+                  style: t.body(color: t.sheetRed),
+                )
               else
                 Icon(Icons.add_circle_outline, color: t.sheetInk2),
             ],
@@ -511,15 +649,23 @@ class _MealSheetState extends State<MealSheet> {
       );
     }
 
-    String portionOf(Eaten e) =>
-        e.portion.isNotEmpty ? e.portion : foods.where((f) => f.name == e.name).firstOrNull?.portion ?? 'your portion';
+    String portionOf(Eaten e) => e.portion.isNotEmpty
+        ? e.portion
+        : foods.where((f) => f.name == e.name).firstOrNull?.portion ??
+              'your portion';
 
     return [
       if (s.dietPreference != 'any')
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
-          title: Text('Show foods outside my preference', style: t.sec(t.sheetInk)),
-          subtitle: Text('Use this to record what you actually ate.', style: t.meta(t.sheetInk2)),
+          title: Text(
+            tr(context, 'Show foods outside my preference'),
+            style: t.sec(t.sheetInk),
+          ),
+          subtitle: Text(
+            tr(context, 'Use this to record what you actually ate.'),
+            style: t.meta(t.sheetInk2),
+          ),
           value: _showAllFoods,
           onChanged: (v) => setState(() => _showAllFoods = v),
         ),
@@ -529,17 +675,24 @@ class _MealSheetState extends State<MealSheet> {
         // bring the search box to the top so results get the room above the keyboard
         onTap: () => Future.delayed(const Duration(milliseconds: 350), () {
           final c = _searchKey.currentContext;
-          if (c != null && c.mounted) Scrollable.ensureVisible(c, duration: const Duration(milliseconds: 250));
+          if (c != null && c.mounted)
+            { Scrollable.ensureVisible(
+              c,
+              duration: const Duration(milliseconds: 250),
+            ); }
         }),
         onChanged: (_) => setState(() {}),
         style: t.body(color: t.sheetInk, weight: FontWeight.w400),
         decoration: InputDecoration(
-          hintText: 'Search, e.g. biryani, beef, singara',
+          hintText: tr(context, 'Search, e.g. biryani, beef, singara'),
           hintStyle: t.sec(t.sheetInk2),
           prefixIcon: Icon(Icons.search, color: t.sheetInk2),
           filled: true,
           fillColor: t.sheetRule.withValues(alpha: .5),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
         ),
       ),
       // describe it instead of searching: AI splits it into items with kcal and protein
@@ -558,15 +711,22 @@ class _MealSheetState extends State<MealSheet> {
                     child: ChoiceChip(
                       avatar: key == null
                           ? null
-                          : Icon(categoryIcon(key), size: 18, color: _cat == key ? t.onAccent : t.sheetInk),
-                      label: Text(label),
+                          : Icon(
+                              categoryIcon(key),
+                              size: 18,
+                              color: _cat == key ? t.onAccent : t.sheetInk,
+                            ),
+                      label: Text(tr(context, label)),
                       selected: _cat == key,
                       onSelected: (_) {
                         HapticFeedback.selectionClick();
                         setState(() => _cat = key);
                       },
                       selectedColor: t.accent,
-                      labelStyle: TextStyle(color: _cat == key ? t.onAccent : t.sheetInk, fontWeight: FontWeight.w600),
+                      labelStyle: TextStyle(
+                        color: _cat == key ? t.onAccent : t.sheetInk,
+                        fontWeight: FontWeight.w600,
+                      ),
                       backgroundColor: t.sheet,
                       side: BorderSide(color: t.sheetRule),
                       showCheckmark: false,
@@ -580,20 +740,33 @@ class _MealSheetState extends State<MealSheet> {
       if (mineFiltered.isNotEmpty) ...[
         Padding(
           padding: const EdgeInsets.only(top: 8),
-          child: Text('Yours and recent', style: t.meta(t.sheetInk2)),
+          child: Text(
+            tr(context, 'Yours and recent'),
+            style: t.meta(t.sheetInk2),
+          ),
         ),
         for (final e in mineFiltered) row(e, portionText: portionOf(e)),
         Divider(color: t.sheetRule),
       ],
-      for (final e in list.where((e) => !mineFiltered.any((x) => x.name == e.name))) row(e, portionText: portionOf(e)),
+      for (final e in list.where(
+        (e) => !mineFiltered.any((x) => x.name == e.name),
+      ))
+        row(e, portionText: portionOf(e)),
       ListTile(
         contentPadding: EdgeInsets.zero,
         leading: Icon(Icons.edit_note, color: t.sheetRed),
         title: Text(
-          q.isEmpty ? 'Add a custom food' : 'Add “${query.trim()}” as a custom food',
+          q.isEmpty
+              ? tr(context, 'Add a custom food')
+              : tr(context, 'Add “{value1}” as a custom food', {
+                  'value1': query.trim(),
+                }),
           style: t.body(color: t.sheetRed),
         ),
-        subtitle: Text('Name and kcal; it stays in "Yours" next time', style: t.meta(t.sheetInk2)),
+        subtitle: Text(
+          tr(context, 'Name and kcal; it stays in "Yours" next time'),
+          style: t.meta(t.sheetInk2),
+        ),
         onTap: _custom,
       ),
     ];
@@ -619,7 +792,10 @@ extension on _MealSheetState {
                         text: e.name,
                         style: t.body(color: t.sheetInk),
                       ),
-                      TextSpan(text: '  ${e.totalKcal} kcal', style: t.meta(t.sheetInk2)),
+                      TextSpan(
+                        text: '  ${e.totalKcal} kcal',
+                        style: t.meta(t.sheetInk2),
+                      ),
                     ],
                   ),
                   maxLines: 1,
@@ -629,7 +805,7 @@ extension on _MealSheetState {
               IconButton(
                 onPressed: () => _setQty(i, e.qty - .5),
                 icon: Icon(Icons.remove_circle_outline, color: t.sheetInk),
-                tooltip: 'Less',
+                tooltip: tr(context, 'Less'),
               ),
               SizedBox(
                 width: 32,
@@ -642,7 +818,7 @@ extension on _MealSheetState {
               IconButton(
                 onPressed: () => _setQty(i, e.qty + .5),
                 icon: Icon(Icons.add_circle_outline, color: t.sheetInk),
-                tooltip: 'More',
+                tooltip: tr(context, 'More'),
               ),
             ],
           ),
